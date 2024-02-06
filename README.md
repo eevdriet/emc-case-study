@@ -27,6 +27,6 @@ This project exists thanks to all the people who contribute.
 
 
 - **Matthijs de Keijzer** - [MRDekeijzer](https://github.com/MRDekeijzer)
-- **Alexander Neutel** - [MRDekeijzer](https://github.com/MRDekeijzer)
+- **Alexander Neutel** - [alexanderthn](https://github.com/alexanderthn)
 - **Eertze van Riet** - [eevdriet](https://github.com/eevdriet)
-- **Marinthe de Vries** - [MRDekeijzer](https://github.com/MRDekeijzer)
+- **Marinthe de Vries** - [MarinthedeVries](https://github.com/MarinthedeVries)
