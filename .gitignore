@@ -11,3 +11,7 @@
 *.tdo
 *.out
 *.log
+
+# Ignore everything in the data directory
+/data/*
+!/data/
