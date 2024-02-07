@@ -5,13 +5,27 @@
 *.fdb_latexmk
 *.fls
 *.synctex.gz
-# *.pdf
+*.pdf
 
 # General
 *.tdo
 *.out
 *.log
 
-# Ignore everything in the data directory
+# Artifacts and data
 /data/*
 !/data/
+build
+_build
+dist
+
+# Editors
+.vscode
+.idea
+
+# Python
+venv
+*.pyc
+.pytest_cache
+__pycache__
+*.egg-info
