@@ -5,9 +5,9 @@ from attrs import define
 
 # Required to avoid circular dependency
 if typing.TYPE_CHECKING:
-    from emc.model import Scenario
+    from emc.model.scenario import Scenario
 
-from emc.data import DataModel
+from emc.data.data_model import DataModel
 
 
 @define
