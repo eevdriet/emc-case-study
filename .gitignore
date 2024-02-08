@@ -23,9 +23,15 @@ dist
 .vscode
 .idea
 
+# R
+*.RData
+*.Rhistory
+
 # Python
 venv
 *.pyc
 .pytest_cache
 __pycache__
 *.egg-info
+.venv
+

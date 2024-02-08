@@ -1,11 +1,11 @@
-from emc.model import Scenario, Simulation
+from emc.data import DataLoader
 
 
 def main():
-    scenario = Scenario(1)
-    simulation = Simulation(1, scenario)
+    loader = DataLoader('ascaris')
+    scenarios = loader.load_scenarios()
 
-    print(simulation.id)
+    print("succes")
 
 if __name__ == "__main__":
     main()
