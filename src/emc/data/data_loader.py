@@ -90,4 +90,5 @@ class DataLoader:
         path = data_path() / f'{self.species}_monitor_age.rds'
         df = pyreadr.read_r(path)
 
+        # TODO: generate features such as err for the data frame
         return df['monitor_age']
