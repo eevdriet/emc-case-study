@@ -58,21 +58,26 @@ class Classifier(ABC):
 
         # Transform groups into NumPy array
         features = features.apply(lambda group: np.matrix(group[cols])).reset_index(drop=True).tolist()
+        indices = [i for i in range(len(features)) if len(features[i]) == 84]
+        features = np.array([features[i] for i in indices])
+        print(features.shape)
 
         # ERROR: momenteel maakt ie van target een lijst van ALLE labels, ipv alleen een label per (scenario/simulation)
-        target = target.apply(lambda group: group).reset_index(drop=True).tolist()
+        target = np.array([0] * 4000 + [1] * 12000)
+        target = target[indices]
+        print(target.shape)
 
         return features, target
 
     @abstractmethod
-    def _train(self, X_train: np.ndarray, y_train: int):
+    def _train(self, X_train: np.ndarray, y_train: np.ndarray):
         """
         Train the classifier on the training data
         """
         ...
 
     @abstractmethod
-    def _test(self, X_test: pd.DataFrame, y_test: pd.Series) -> float:
+    def _test(self, X_test: np.ndarray, y_test: np.ndarray) -> float:
         """
         Test the classifier by finding the label fitting its data
         :return: Multi-Criteria Decision Analysis composite score

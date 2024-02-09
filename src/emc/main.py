@@ -1,5 +1,5 @@
 from emc.data import DataLoader
-from emc.classifiers import GradientBoosting
+from emc.classifiers import GradientBoostingClassifier, LSTMClassifier
 from emc.data import LabelGenerator
 from collections import Counter
 
@@ -13,9 +13,10 @@ def main():
     labelGenerator.generate()
 
     # Classifiers bouwen
-    gb = GradientBoosting()
-    result = gb.run(scenarios[0]._epi_data)
-    print(Counter(result))
+    lstm = LSTMClassifier()
+    model_result, y_test = lstm.run(scenarios[0]._epi_data)
+    print(model_result)
+    print(y_test)
 
     print("succes")
 
