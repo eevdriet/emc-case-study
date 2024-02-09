@@ -2,6 +2,7 @@ import pandas as pd
 from attrs import define
 
 from emc.data.data_model import DataModel
+from emc.model.label import Label
 from emc.model.simulation import Simulation
 
 
@@ -39,3 +40,7 @@ class Scenario(DataModel):
 
     def filter_cond(self, df: pd.DataFrame):
         return df['scen'] == self.id
+    
+    def label_all_simulations(self, label : Label) -> None:
+        for simulation in self.simulations:
+            simulation.set_label(label)
