@@ -31,3 +31,6 @@ class Simulation(DataModel):
 
     def filter_cond(self, df: pd.DataFrame):
         return (df['scen'] == self.scenario.id) & (df['sim'] == self.id)
+    
+    def set_label(self, newLabel: Label) -> None:
+        self.label = newLabel
