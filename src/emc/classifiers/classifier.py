@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
 import numpy as np
 
 import pandas as pd
@@ -60,12 +61,38 @@ class Classifier(ABC):
         features = features.apply(lambda group: np.matrix(group[cols])).reset_index(drop=True).tolist()
         indices = [i for i in range(len(features)) if len(features[i]) == 84]
         features = np.array([features[i] for i in indices])
+        # print(features[0])
+
+        # Trickery
+        # Compound the data from all age groups per year
+        new_features = []
+        for sim in features:
+            reshaped_sim = sim.reshape(-1, 4, 4)
+            averaged_sim = reshaped_sim.mean(axis=1)
+            # Add rate of change of number of infected hosts AND expected eggs level
+            rate_of_change_3rd = np.diff(averaged_sim[:, 2], prepend=0)
+            rate_of_change_4th = np.diff(averaged_sim[:, 3], prepend=0)
+            averaged_sim = np.column_stack((averaged_sim, rate_of_change_3rd, rate_of_change_4th))
+            # Remove time as a feature
+            averaged_sim = np.delete(averaged_sim, 0, axis=1)
+            new_features.append(averaged_sim)
+        features = np.array(new_features)
+        # Print final boys
+        # print(features[0])
+        # print(features[-1])
+
         print(features.shape)
 
         # ERROR: momenteel maakt ie van target een lijst van ALLE labels, ipv alleen een label per (scenario/simulation)
         target = np.array([0] * 4000 + [1] * 12000)
         target = target[indices]
         print(target.shape)
+
+        # SMOTE
+        # smote = SMOTE()
+        # features_resampled, target_resampled = smote.fit_resample(features, target)
+        # print(features.shape)
+        # print(target.shape)
 
         return features, target
 
