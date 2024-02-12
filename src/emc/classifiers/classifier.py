@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import numpy as np
 
 import pandas as pd
@@ -26,8 +27,19 @@ class Classifier(ABC):
                                                             random_state=self.SEED)
 
         self._train(X_train, y_train)
+        predictions = self._test(X_test, y_test)
 
-        return self._test(X_test, y_test)
+        accuracy = accuracy_score(y_test, predictions)
+        precision = precision_score(y_test, predictions, average='weighted')
+        recall = recall_score(y_test, predictions, average='weighted')
+        f1 = f1_score(y_test, predictions, average='weighted')
+
+        return {
+            'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall,
+            'f1_score': f1
+        }
 
     @abstractmethod
     def _preprocess(self, data: list[Scenario]):
@@ -38,69 +50,15 @@ class Classifier(ABC):
         - ...
         """
 
-        # features = pd.DataFrame()
-        # target = pd.DataFrame()
+        features = []
+        target = []
 
-        # time_data = data[0]._epi_data['time']
-        # n_host_data = data[0]._epi_data['n_host']
-        # n_host_eggpos_data = data[0]._epi_data['n_host_eggpos']
-        # a_epg_obs_data = data[0]._epi_data['a_epg_obs']
-        
-
-        # start_indices = []
-
-        # tolerance = 0.001
-
-        # start_indices.append(0)
-        # for i in range(1, len(time_data)):
-        #     if time_data[i] < tolerance and abs(time_data[i - 1]) > tolerance:
-        #         start_indices.append(i)
-
-        # time_result = [[] for _ in range(len(start_indices) * 4)]
-        # n_host_result = [[] for _ in range(len(start_indices) * 4)]
-        # n_host_eggpos_result = [[] for _ in range(len(start_indices) * 4)]
-        # a_epg_obs_result = [[] for _ in range(len(start_indices) * 4)]
-
-        # for i in range(len(start_indices)):
-        #     start_index = start_indices[i]
-        #     end_index = start_indices[i + 1] if i < len(start_indices) - 1 else len(time_data)
-        #     sublist_length = end_index - start_index
-            
-        #     for j in range(sublist_length):
-        #         sublist_index = i * 4 + (j % 4)
-        #         time_result[sublist_index].append(time_data[start_index + j])
-        #         n_host_result[sublist_index].append(n_host_data[start_index + j])
-        #         n_host_eggpos_result[sublist_index].append(n_host_eggpos_data[start_index + j])
-        #         a_epg_obs_result[sublist_index].append(a_epg_obs_data[start_index + j])
-
-
-        # print(time_result[0])
-
-        # target = [[] for _ in range(len(start_indices))]
-        
-        # Only include relevant columns (that can be obtained from survey)
-        cols = ['time', 'n_host', 'n_host_eggpos', 'a_epg_obs']
-
-        features = data[cols + ids]
-
-        # Normalize relevant columns
-        std_cols = ['n_host', 'n_host_eggpos', 'a_epg_obs']
-        for col in std_cols:
-            min_col = features[col].max()
-            max_col = features[col].min()
-
-            features[col] = (features[col] - min_col) / (max_col - min_col)
-
-        # Group all data by the corresponding simulation
-        target = pd.DataFrame({'label': data['label'], 'scen': data['scen'], 'sim': data['sim']})
-        features = features.groupby(ids)
-        target = target.groupby(ids)
-
-        # Transform groups into NumPy array
-        features = features.apply(lambda group: np.matrix(group[cols])).reset_index(drop=True).tolist()
-
-        # ERROR: momenteel maakt ie van target een lijst van ALLE labels, ipv alleen een label per (scenario/simulation)
-        target = target.apply(lambda group: group).reset_index(drop=True).tolist()
+        for scenario in data:
+            for simulation in scenario:
+                simulation.monitor_age = simulation.monitor_age[simulation.monitor_age['age_cat'] == 5]
+                simulation.monitor_age = simulation.monitor_age.drop(columns=['age_cat', 'Unnamed: 1', 'age_cat.1'])
+                features.append(simulation.monitor_age['n_host_eggpos'].tolist())
+                target.append(simulation.label.value)
 
         return features, target
 
