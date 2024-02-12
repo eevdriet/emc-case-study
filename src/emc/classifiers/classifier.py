@@ -56,7 +56,7 @@ class Classifier(ABC):
         for scenario in data:
             for simulation in scenario:
                 simulation.monitor_age = simulation.monitor_age[simulation.monitor_age['age_cat'] == 5]
-                simulation.monitor_age = simulation.monitor_age.drop(columns=['age_cat', 'Unnamed: 1', 'age_cat.1'])
+                simulation.monitor_age = simulation.monitor_age.drop(columns=['age_cat'])
                 features.append(simulation.monitor_age['n_host_eggpos'].tolist())
                 target.append(simulation.label.value)
 
