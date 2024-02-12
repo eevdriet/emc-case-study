@@ -6,7 +6,7 @@ from emc.model.simulation import Simulation
 
 
 @define
-class Scenario(DataModel):
+class Scenario:
     id: int
 
     # Worm species ("hook", "asc")
