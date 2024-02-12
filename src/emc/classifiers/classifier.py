@@ -77,12 +77,8 @@ class Classifier(ABC):
         # print(time_result[0])
 
         # target = [[] for _ in range(len(start_indices))]
-
         
-
-
         # Only include relevant columns (that can be obtained from survey)
-        ids = ['scen', 'sim']
         cols = ['time', 'n_host', 'n_host_eggpos', 'a_epg_obs']
 
         features = data[cols + ids]
