@@ -4,6 +4,7 @@ import pandas as pd
 import pyreadr
 
 from emc.model.scenario import Scenario, Simulation
+from emc.model.label import Label
 from emc.util import data_path
 
 
@@ -35,7 +36,7 @@ class DataLoader:
         res_freq = metadata['p_SNP']
         res_mode = metadata['pheno_SNP']
 
-        scenario = Scenario(self.monitor_age, self.monitor_age, id=scen_id, species=self.species, mda_freq=mda_freq,
+        scenario = Scenario(id=scen_id, species=self.species, mda_freq=mda_freq,
                             mda_strategy=mda_strategy, res_freq=res_freq, res_mode=res_mode)
 
         # Load in its relevant simulations
@@ -69,8 +70,13 @@ class DataLoader:
         mda_age = metadata['mda_age']
         mda_cov = metadata['mda_cov']
 
-        return Simulation(self.monitor_age, self.monitor_age, id=sim_id, scenario=scenario, mda_time=mda_time,
-                          mda_age=mda_age, mda_cov=mda_cov)
+        start = 84 * (1000 * (scenario.id - 1) + (sim_id - 1))
+        monitor_age = self.monitor_age.iloc[start:start + 84]
+
+        label = Label.NO_SIGNAL if scenario.res_mode == 'none' else Label.SIGNAL
+
+        return Simulation(id=sim_id, scenario=scenario, mda_time=mda_time,
+                          mda_age=mda_age, mda_cov=mda_cov, monitor_age=monitor_age, label=label)
 
     def _load_metadata(self):
         """
@@ -87,8 +93,5 @@ class DataLoader:
         Load the simulation data for all simulations
         :return: Simulation data
         """
-        path = data_path() / f'{self.species}_monitor_age.rds'
-        df = pyreadr.read_r(path)
-
-        # TODO: generate features such as err for the data frame
-        return df['monitor_age']
+        path = data_path() / f'{self.species}_monitor_age.csv'
+        return pd.read_csv(path)
