@@ -38,7 +38,6 @@ class Classifier(ABC):
         - ...
         """
         # Only include relevant columns (that can be obtained from survey)
-        ids = ['scen', 'sim']
         cols = ['time', 'n_host', 'n_host_eggpos', 'a_epg_obs']
         print(data.columns)
         features = data[cols + ids]
