@@ -8,6 +8,7 @@ def main():
     loader = DataLoader('ascaris')
     scenarios = loader.load_scenarios()
     df = scenarios[0]._epi_data
+    print(df)
 
     labelGenerator = LabelGenerator(scenarios)
     labelGenerator.generate()

@@ -24,7 +24,7 @@ def consumable(df):
 
 
 def personnel(df):
-    return 2 * days(df) * 4 * 22.50
+    return days(df) * 4 * 22.50
 
 
 def transportation(df):
@@ -37,7 +37,7 @@ def days(df):
     timeAvailable = workers * 4 * 60 * 60  # In seconds
     c = 100  # TODO: Find average for egg count or adjust to simulation
     timeProcessing = N * (15 + 67 + 9) + pow(10, 2.3896 + 0.0661 * math.log10(pow(c + 1, 2)))
-    return math.ceil(timeProcessing / timeAvailable)
+    return 2*math.ceil(timeProcessing / timeAvailable)
 
 
 def totalCost(deSurvey, epSurvey):
