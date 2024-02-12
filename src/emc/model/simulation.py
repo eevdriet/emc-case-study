@@ -13,7 +13,7 @@ from emc.data.data_model import DataModel
 
 
 @define
-class Simulation(DataModel):
+class Simulation:
     id: int
 
     scenario: "Scenario"
@@ -27,7 +27,9 @@ class Simulation(DataModel):
     # Proportion of the target population that is effectively treated during each PC round
     mda_cov: float
 
-    label: Label = Label.SIGNAL
+    monitor_age: pd.DataFrame
+
+    label: Label
 
     def filter_cond(self, df: pd.DataFrame):
         return (df['scen'] == self.scenario.id) & (df['sim'] == self.id)
