@@ -9,16 +9,19 @@ class Costs:
 
     # Variable costs
     KATO_KATZ: dict[str, float] = {
-        'single': 0.78,
-        'duplicate': 0.91
+        'aliquot': 1.37,  # from 'Cost' paper
+        'single_sample': 0.78,  # from 'Erasmus MC_cost data'
+        'duplicate_sample': 0.91
     }
 
     MINI_FLOTAC: dict[str, float] = {
-        'single': 0.92,
-        'duplicate': 1.27
+        'aliquot': 1.51,
+        'single_sample': 0.92,
+        'duplicate_sample': 1.27
     }
 
     FECPAK_G2: dict[str, float] = {
-        'single': 1.09
-        'duplicate': 2.13
+        'aliquot': 1.69,
+        'single_sample': 1.09,
+        'duplicate_sample': 2.13
     }
