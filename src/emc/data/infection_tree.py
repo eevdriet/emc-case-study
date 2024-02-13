@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 
 from emc.model.scenario import Scenario
+from emc.util import data_path
 
 
 class InfectionTree:
@@ -29,6 +30,9 @@ class InfectionTree:
             print(f'({level}, {level + 0.1}]')
 
             for scenario in self.scenarios:
+                if scenario.res_mode != 'none':
+                    continue
+
                 print(scenario.id)
 
                 for simulation in scenario:
@@ -54,5 +58,5 @@ class InfectionTree:
 
             level_simulations[int(10 * level)] = mean_sd
 
-        with open('levels.txt', 'w') as file:
-            file.write(f"Levels: {level_simulations}")
+        with open(data_path() / 'levels.txt', 'w') as file:
+            file.write(str(level_simulations))
