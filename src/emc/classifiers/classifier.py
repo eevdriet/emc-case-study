@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import numpy as np
 
 import pandas as pd
 
-from emc.model import Label, Scenario
+
+from emc.model import Label
 from emc.data import DataModel
 
 
@@ -17,7 +17,8 @@ class Classifier(ABC):
     def __init__(self):
         self.data: pd.DataFrame = pd.DataFrame()
 
-    def run(self, data: list[Scenario]) -> float:
+
+    def run(self, data: pd.DataFrame) -> float:
         """
         Run the classifier to find the labels of the given data
         :return: Results from the classifier
@@ -42,23 +43,36 @@ class Classifier(ABC):
         }
 
     @abstractmethod
-    def _preprocess(self, data: list[Scenario]):
+    def _preprocess(self, data: pd.DataFrame):
         """
         Preprocess the given data to
         - standardize data
         - remove columns that cannot be observed from epidemiological surveys
         - ...
         """
+        # Only include relevant columns (that can be obtained from survey)
+        cols = ['time', 'n_host', 'n_host_eggpos', 'a_epg_obs']
+        print(data.columns)
+        features = data[cols + ids]
 
-        features = []
-        target = []
+        # Normalize relevant columns
+        std_cols = ['n_host', 'n_host_eggpos', 'a_epg_obs']
+        for col in std_cols:
+            min_col = features[col].max()
+            max_col = features[col].min()
 
-        for scenario in data:
-            for simulation in scenario:
-                simulation.monitor_age = simulation.monitor_age[simulation.monitor_age['age_cat'] == 5]
-                simulation.monitor_age = simulation.monitor_age.drop(columns=['age_cat'])
-                features.append(simulation.monitor_age['n_host_eggpos'].tolist())
-                target.append(simulation.label.value)
+            features[col] = (features[col] - min_col) / (max_col - min_col)
+
+        # Group all data by the corresponding simulation
+        target = pd.DataFrame({'label': data['label'], 'scen': data['scen'], 'sim': data['sim']})
+        features = features.groupby(ids)
+        target = target.groupby(ids)
+
+        # Transform groups into NumPy array
+        features = features.apply(lambda group: np.matrix(group[cols])).reset_index(drop=True).tolist()
+
+        # ERROR: momenteel maakt ie van target een lijst van ALLE labels, ipv alleen een label per (scenario/simulation)
+        target = target.apply(lambda group: group).reset_index(drop=True).tolist()
 
         return features, target
 

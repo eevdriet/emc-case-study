@@ -38,6 +38,5 @@ def main():
     # gb = GradientBoosting()
     # print(gb.run(scenarios))
 
-
 if __name__ == "__main__":
     main()
