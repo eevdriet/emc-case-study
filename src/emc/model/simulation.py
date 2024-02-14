@@ -29,6 +29,8 @@ class Simulation:
 
     monitor_age: pd.DataFrame
 
+    drug_efficacy_s: pd.DataFrame
+
     label: Label
 
     def filter_cond(self, df: pd.DataFrame):

@@ -13,17 +13,9 @@ class Policy:
     surveys: list[bool] = [False] * 21
     deSurvey: list[bool] = [False] * 21
     epSurvey: list[bool] = [True] * 21
-    surveys_b: list[bool]
-    surveys_i: list[int]
-    policy_cost: float
-
-    def __init__(self, policy: list[int] = []):
-        self.surveys = [False] * 21
-        self.survey_index = policy
-        self.policy_cost = 0
-
-        for item in policy:
-            self.surveys[item] == True
+    surveys_b: list[bool] = [True] * 21
+    surveys_i: list[int] = [1] * 21
+    policy_cost: float = 0
 
     @property
     def total_cost(self):
