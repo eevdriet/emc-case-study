@@ -36,9 +36,9 @@ class Policy:
         return self.__days() * 90
 
     def __days(self):
-        N = 430
+        N = 430 # TODO: Get the number of total hosts (all age categories together
         workers = 4  # Under assumption of single mobile field team: 1 nurse, three technicians
         timeAvailable = workers * 4 * 60 * 60  # In seconds
-        c = 100  # TODO: Find average for egg count or adjust to simulation
+        c = 100  # TODO: Use average egg observations per time stamp
         timeProcessing = N * (15 + 67 + 9) + pow(10, 2.3896 + 0.0661 * math.log10(pow(c + 1, 2)))
         return 2 * math.ceil(timeProcessing / timeAvailable)
