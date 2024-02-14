@@ -10,6 +10,7 @@ relevant_cols = c("time", "age_cat", "n_host", "n_host_eggpos", "a_epg_obs")
 # Extract all survey information for each of the worms
 extract_surveys <- function(df) {
     name = deparse(substitute(df))
+
     for (scenario in 1:n_scenarios) {
         for (simulation in 1:n_simulations) {
             print(sprintf("Scenario %d:  %d", scenario, simulation))

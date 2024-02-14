@@ -4,6 +4,7 @@ import numpy as np
 
 import pandas as pd
 
+
 from emc.model import Label
 from emc.data import DataModel
 
@@ -16,6 +17,7 @@ class Classifier(ABC):
     def __init__(self):
         self.data: pd.DataFrame = pd.DataFrame()
 
+
     def run(self, data: pd.DataFrame) -> float:
         """
         Run the classifier to find the labels of the given data
@@ -26,8 +28,19 @@ class Classifier(ABC):
                                                             random_state=self.SEED)
 
         self._train(X_train, y_train)
+        predictions = self._test(X_test, y_test)
 
-        return self._test(X_test, y_test)
+        accuracy = accuracy_score(y_test, predictions)
+        precision = precision_score(y_test, predictions, average='weighted')
+        recall = recall_score(y_test, predictions, average='weighted')
+        f1 = f1_score(y_test, predictions, average='weighted')
+
+        return {
+            'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall,
+            'f1_score': f1
+        }
 
     @abstractmethod
     def _preprocess(self, data: pd.DataFrame):

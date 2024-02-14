@@ -9,6 +9,7 @@ from emc.model.costs import Costs
 @define
 class Policy:
     # At which moments in time to conduct a survey or not
+    surveys: list[bool] = [False] * 21
     deSurvey: list[bool] = [False] * 21
     epSurvey: list[bool] = [True] * 21
 
