@@ -7,7 +7,7 @@ from emc.util import data_path
 
 class InfectionTree:
     """
-    The InfectionTree class determines the infection levels
+    Determines the infection levels for a given bucket size and plot them if available
     """
 
     def __init__(self, scenarios: list[Scenario], data: pd.DataFrame):

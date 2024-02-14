@@ -12,6 +12,13 @@ from emc.util import worm_path
 
 
 class DataLoader:
+    """
+    Class responsible for loading the following data files
+    - Epidemiological survey data
+    - Drug efficacy survey data
+    - Metadata of the surveys
+    """
+
     def __init__(self, species: str, *, use_merged: bool = False, load_efficacy: bool = False):
         self.species = species
         self.use_merged = use_merged
@@ -98,7 +105,7 @@ class DataLoader:
     def _load_metadata(self) -> Optional[dict]:
         """
         Load the metadata for all scenarios
-        :return: Metadata
+        :return: Metadata if available
         """
         path = worm_path(self.species, 'metadata')
         if not path.exists():
@@ -110,8 +117,8 @@ class DataLoader:
 
     def _load_monitor_ages(self) -> Optional[pd.DataFrame]:
         """
-        Load the simulation data for all simulations
-        :return: Simulation data
+        Load the epidemiological survey data for all simulations
+        :return: Survey data if available
         """
         path = worm_path(self.species, 'monitor_age', self.use_merged)
         if not path.exists():
@@ -122,8 +129,8 @@ class DataLoader:
 
     def _load_drug_efficacy(self) -> Optional[pd.DataFrame]:
         """
-        Load the drug efficacy data for all simulations
-        :return: Drug Efficacy data
+        Load the drug efficacy survey data for all simulations
+        :return: Survey data if available
         """
         path = worm_path(self.species, 'drug_efficacy')
         if not path.exists():
