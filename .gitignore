@@ -13,7 +13,7 @@
 *.log
 
 # Artifacts and data
-/data
+/data/
 build
 _build
 dist

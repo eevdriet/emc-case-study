@@ -18,7 +18,7 @@ def main():
 
     # NOTE: uncomment to generate new levels
     # Levels are currently saved in data, so you can instead retrieve them directly
-    tree = InfectionTree(scenarios, new_df)
+    tree = InfectionTree(scenarios, df)
 
     path = data_path() / 'levels.txt'
     if not path.exists():
@@ -37,6 +37,7 @@ def main():
     # Classifiers bouwen
     # gb = GradientBoosting()
     # print(gb.run(scenarios))
+
 
 if __name__ == "__main__":
     main()
