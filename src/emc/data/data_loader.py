@@ -4,28 +4,33 @@ import numpy as np
 import pandas as pd
 import pyreadr
 
+from typing import Optional
+
 from emc.model.scenario import Scenario, Simulation
 from emc.model.label import Label
 from emc.util import data_path
 
 
 class DataLoader:
-    def __init__(self, species: str):
+    def __init__(self, species: str, *, use_merged: bool = False, load_efficacy: bool = False):
         self.species = species
-        self.monitor_age = self._load_monitor_ages()
-        self.metadata = self._load_metadata()
+        self.use_merged = use_merged
+        self.load_efficacy = load_efficacy
 
-    def load_scenarios(self, loadEfficacy: bool = False) -> list[Scenario]:
+        self.metadata: Optional[dict] = self._load_metadata()
+        self.monitor_age: Optional[pd.DataFrame] = self._load_monitor_ages()
+        self.drug_efficacy: Optional[pd.DataFrame] = self._load_drug_efficacy() if self.load_efficacy else None
+
+    def load_scenarios(self) -> list[Scenario]:
         """
         Load all scenarios from the monitor age table and metadata
         :return: Scenarios that were loaded from the data sets
         """
-        if loadEfficacy: 
-            self.drug_efficacy = self._load_drug_efficacy()
 
-        return [self._load_scenario(scen_id, scenario, loadEfficacy) for scen_id, scenario in enumerate(self.metadata, start=1)]
+        return [self._load_scenario(scen_id, scenario) for scen_id, scenario in
+                enumerate(self.metadata, start=1)]
 
-    def _load_scenario(self, scen_id: int, metadata: dict, loadEfficacy: bool) -> Scenario:
+    def _load_scenario(self, scen_id: int, metadata: dict) -> Scenario:
         """
         Load specific scenario from its metadata
         :param scen_id: Identifier of the scenario
@@ -44,12 +49,12 @@ class DataLoader:
                             mda_strategy=mda_strategy, res_freq=res_freq, res_mode=res_mode)
 
         # Load in its relevant simulations
-        simulations = self._load_simulations(scenario, metadata, loadEfficacy)
+        simulations = self._load_simulations(scenario, metadata)
         scenario.simulations = simulations
 
         return scenario
 
-    def _load_simulations(self, scenario: Scenario, metadata: dict, loadEfficacy: bool) -> list[Simulation]:
+    def _load_simulations(self, scenario: Scenario, metadata: dict) -> list[Simulation]:
         """
         Load the simulations of a given scenario
         :param scenario: Scenario for which to load the simulations
@@ -58,10 +63,10 @@ class DataLoader:
         """
         simulations = metadata['simulations']
 
-        return [self._load_simulation(scenario, simulation_id, simulation, loadEfficacy)
+        return [self._load_simulation(scenario, simulation_id, simulation)
                 for simulation_id, simulation in enumerate(simulations, start=1)]
 
-    def _load_simulation(self, scenario: Scenario, sim_id: int, metadata: dict, loadEfficacy: bool) -> Simulation:
+    def _load_simulation(self, scenario: Scenario, sim_id: int, metadata: dict) -> Simulation:
         """
         Load specific simulation from its metadata
         :param scenario: Scenario for which to load the simulations
@@ -74,45 +79,62 @@ class DataLoader:
         mda_age = metadata['mda_age']
         mda_cov = metadata['mda_cov']
 
-        start = 84 * (1000 * (scenario.id - 1) + (sim_id - 1))
-        monitor_age = self.monitor_age.iloc[start:start + 84]
-        
-        if (loadEfficacy):
-            drug_efficacy_s = self.drug_efficacy.loc[(scenario.id, sim_id)]
-        else:
-            drug_efficacy_s = None
-
         label = Label.NO_SIGNAL if scenario.res_mode == 'none' else Label.SIGNAL
 
-        return Simulation(id=sim_id, scenario=scenario, mda_time=mda_time,
-                          mda_age=mda_age, mda_cov=mda_cov, monitor_age=monitor_age, drug_efficacy_s=drug_efficacy_s, label=label)
+        # Load monitor age
+        df = self.monitor_age
+        step = 21 if self.use_merged else 84
+        start = step * (1000 * (scenario.id - 1) + sim_id - 1)
+        monitor_age = df.iloc[start:start + step]
 
-    def _load_metadata(self):
+        # Load drug efficacy (if required)
+        df = self.drug_efficacy
+        drug_efficacy_s = df.loc[(scenario.id, sim_id)] if self.load_efficacy else None
+
+        return Simulation(id=sim_id, scenario=scenario, mda_time=mda_time,
+                          mda_age=mda_age, mda_cov=mda_cov, monitor_age=monitor_age, drug_efficacy_s=drug_efficacy_s,
+                          label=label)
+
+    def _load_metadata(self) -> Optional[dict]:
         """
         Load the metadata for all scenarios
         :return: Metadata
         """
         path = data_path() / f'{self.species}_metadata.json'
+        if not path.exists():
+            print(f"Path {path} does not exist, cannot load in meta data!")
+            return None
 
         with open(path, 'r') as file:
             return json.load(file)
 
-    def _load_monitor_ages(self) -> pd.DataFrame:
+    def _load_monitor_ages(self) -> Optional[pd.DataFrame]:
         """
         Load the simulation data for all simulations
         :return: Simulation data
         """
-        path = data_path() / f'{self.species}_monitor_age.csv'
+        merge_str = '_merged' if self.use_merged else ''
+        path = data_path() / f'{self.species}_monitor_age{merge_str}.csv'
+
+        if not path.exists():
+            print(f"Path {path} does not exist, cannot load in epidemiological survey!")
+            return None
+
         return pd.read_csv(path)
-    
-    def _load_drug_efficacy(self) -> pd.DataFrame:
+
+    def _load_drug_efficacy(self) -> Optional[pd.DataFrame]:
         """
         Load the drug efficacy data for all simulations
         :return: Drug Efficacy data
         """
+
         path = data_path() / f'drug_efficacy_{self.species}.feather'
+        if not path.exists():
+            print(f"Path {path} does not exist, cannot load in drug efficacy survey!")
+            return None
+
         df = pd.read_feather(path)
         if not isinstance(df.index, pd.MultiIndex):
             df.set_index(['scenario', 'simulation'], inplace=True)
-        
+
         return df

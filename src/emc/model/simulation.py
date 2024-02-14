@@ -10,6 +10,7 @@ if typing.TYPE_CHECKING:
     from emc.model.scenario import Scenario
 
 from emc.data.data_model import DataModel
+from typing import Optional
 
 
 @define
@@ -29,7 +30,7 @@ class Simulation:
 
     monitor_age: pd.DataFrame
 
-    drug_efficacy_s: pd.DataFrame
+    drug_efficacy_s: Optional[pd.DataFrame]
 
     label: Label
 

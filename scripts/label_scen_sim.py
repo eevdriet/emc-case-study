@@ -10,7 +10,7 @@ def main():
 
     # Whether to change the merged or normal CSV files
     merged = True
-    worm = 'hookworm'
+    worm = 'ascaris'
 
     merge_str = '_merged' if merged else ''
     step = 21 if merged else 84

@@ -12,12 +12,11 @@ import numpy as np
 
 def main():
     worm = 'ascaris'
-    loader = DataLoader(worm)
-    scenarios = loader.load_scenarios(True)
+    loader = DataLoader(worm, use_merged=True, load_efficacy=False)
+    df = loader.monitor_age
+    scenarios = loader.load_scenarios()
 
     print(scenarios[0][0].drug_efficacy_s[scenarios[0][0].drug_efficacy_s['treat_time'] == 0])
-
-    df = loader.monitor_age
 
     # NOTE: uncomment to generate new levels
     # Levels are currently saved in data, so you can instead retrieve them directly
