@@ -8,7 +8,7 @@ from typing import Optional
 
 from emc.model.scenario import Scenario, Simulation
 from emc.model.label import Label
-from emc.util import data_path
+from emc.util import worm_path
 
 
 class DataLoader:
@@ -100,7 +100,7 @@ class DataLoader:
         Load the metadata for all scenarios
         :return: Metadata
         """
-        path = data_path() / f'{self.species}_metadata.json'
+        path = worm_path(self.species, 'metadata')
         if not path.exists():
             print(f"Path {path} does not exist, cannot load in meta data!")
             return None
@@ -113,9 +113,7 @@ class DataLoader:
         Load the simulation data for all simulations
         :return: Simulation data
         """
-        merge_str = '_merged' if self.use_merged else ''
-        path = data_path() / f'{self.species}_monitor_age{merge_str}.csv'
-
+        path = worm_path(self.species, 'monitor_age', self.use_merged)
         if not path.exists():
             print(f"Path {path} does not exist, cannot load in epidemiological survey!")
             return None
@@ -127,8 +125,7 @@ class DataLoader:
         Load the drug efficacy data for all simulations
         :return: Drug Efficacy data
         """
-
-        path = data_path() / f'drug_efficacy_{self.species}.feather'
+        path = worm_path(self.species, 'drug_efficacy')
         if not path.exists():
             print(f"Path {path} does not exist, cannot load in drug efficacy survey!")
             return None

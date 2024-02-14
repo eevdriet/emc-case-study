@@ -12,7 +12,7 @@ import numpy as np
 
 def main():
     worm = 'ascaris'
-    loader = DataLoader(worm, use_merged=True, load_efficacy=False)
+    loader = DataLoader(worm, use_merged=False, load_efficacy=True)
     df = loader.monitor_age
     scenarios = loader.load_scenarios()
 
