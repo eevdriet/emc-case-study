@@ -54,15 +54,16 @@ class Classifier(ABC):
         target = []
 
         for scenario in data:
-            for simulation in scenario:
-                simulation.monitor_age = simulation.monitor_age[simulation.monitor_age['age_cat'] == 5]
-                simulation.monitor_age = simulation.monitor_age.drop(columns=['age_cat'])
-                features.append(simulation.monitor_age['n_host_eggpos'].tolist())
-                target.append(simulation.label.value)
+            if scenario.mda_freq == 2 and scenario.mda_strategy == 'community':
+                for simulation in scenario:
+                    simulation.monitor_age = simulation.monitor_age[simulation.monitor_age['age_cat'] == 5]
+                    simulation.monitor_age = simulation.monitor_age.drop(columns=['age_cat'])
+                    features.append(simulation.monitor_age['n_host_eggpos'].tolist() + simulation.monitor_age['a_epg_obs'].tolist() + simulation.monitor_age['inf_level'].tolist())
+                    target.append(simulation.label.value)
 
         return features, target
 
-    @abstractmethod
+    @abstractmethod 
     def _train(self, X_train: np.ndarray, y_train: int):
         """
         Train the classifier on the training data
