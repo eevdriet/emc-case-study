@@ -9,7 +9,6 @@ from emc.model.label import Label
 if typing.TYPE_CHECKING:
     from emc.model.scenario import Scenario
 
-from emc.data.data_model import DataModel
 from typing import Optional
 
 

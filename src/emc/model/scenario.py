@@ -1,7 +1,6 @@
 import pandas as pd
 from attrs import define
 
-from emc.data.data_model import DataModel
 from emc.model.label import Label
 from emc.model.simulation import Simulation
 
