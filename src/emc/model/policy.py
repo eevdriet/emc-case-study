@@ -5,13 +5,23 @@ from attrs import define
 
 from emc.model.costs import Costs
 
-
 @define
 class Policy:
     # At which moments in time to conduct a survey or not
     surveys: list[bool] = [False] * 21
     deSurvey: list[bool] = [False] * 21
     epSurvey: list[bool] = [True] * 21
+    surveys_b: list[bool]
+    surveys_i: list[int]
+    policy_cost: float
+
+    def __init__(self, policy: list[int] = []):
+        self.surveys = [False] * 21
+        self.survey_index = policy
+        self.policy_cost = 0
+
+        for item in policy:
+            self.surveys[item] == True
 
     @property
     def total_cost(self):
@@ -43,3 +53,13 @@ class Policy:
         c = 100  # TODO: Use average egg observations per time stamp
         timeProcessing = N * (15 + 67 + 9) + pow(10, 2.3896 + 0.0661 * math.log10(pow(c + 1, 2)))
         return 2 * math.ceil(timeProcessing / timeAvailable)
+    
+    def find_cost(self, scenario: Scenario) -> None:
+        for simulation in scenario:
+            for survey_index in self.surveys_i:
+                if (True): # TODO: get whether or not we have a signal of less than expected
+                    # TODO: what if we do have DE survey
+                    print('yes')
+                else:
+                    # TODO: what if we do not have DE survey
+                    print('no')

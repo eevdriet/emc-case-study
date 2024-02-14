@@ -50,33 +50,21 @@ class Classifier(ABC):
         - remove columns that cannot be observed from epidemiological surveys
         - ...
         """
-        # Only include relevant columns (that can be obtained from survey)
-        cols = ['time', 'n_host', 'n_host_eggpos', 'a_epg_obs']
-        print(data.columns)
-        features = data[cols + ids]
 
-        # Normalize relevant columns
-        std_cols = ['n_host', 'n_host_eggpos', 'a_epg_obs']
-        for col in std_cols:
-            min_col = features[col].max()
-            max_col = features[col].min()
+        features = []
+        target = []
 
-            features[col] = (features[col] - min_col) / (max_col - min_col)
-
-        # Group all data by the corresponding simulation
-        target = pd.DataFrame({'label': data['label'], 'scen': data['scen'], 'sim': data['sim']})
-        features = features.groupby(ids)
-        target = target.groupby(ids)
-
-        # Transform groups into NumPy array
-        features = features.apply(lambda group: np.matrix(group[cols])).reset_index(drop=True).tolist()
-
-        # ERROR: momenteel maakt ie van target een lijst van ALLE labels, ipv alleen een label per (scenario/simulation)
-        target = target.apply(lambda group: group).reset_index(drop=True).tolist()
+        for scenario in data:
+            if scenario.mda_freq == 2 and scenario.mda_strategy == 'community':
+                for simulation in scenario:
+                    simulation.monitor_age = simulation.monitor_age[simulation.monitor_age['age_cat'] == 5]
+                    simulation.monitor_age = simulation.monitor_age.drop(columns=['age_cat'])
+                    features.append(simulation.monitor_age['n_host_eggpos'].tolist() + simulation.monitor_age['a_epg_obs'].tolist() + simulation.monitor_age['inf_level'].tolist())
+                    target.append(simulation.label.value)
 
         return features, target
 
-    @abstractmethod
+    @abstractmethod 
     def _train(self, X_train: np.ndarray, y_train: int):
         """
         Train the classifier on the training data
