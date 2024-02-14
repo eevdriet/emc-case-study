@@ -1,5 +1,6 @@
-ascaris <- readRDS("C:\\Users\\Marin\\OneDrive - Erasmus University Rotterdam\\Documents\\Master 1\\Seminar Logistics Case Studies\\data\\timeline_db_main_ascaris.rds")
-hookworm <- readRDS("C:\\Users\\Marin\\OneDrive - Erasmus University Rotterdam\\Documents\\Master 1\\Seminar Logistics Case Studies\\data\\timeline_db_main_hookworm.rds")
+# Load information for both worms
+ascaris <- readRDS("../data/timeline_db_main_ascaris.rds")
+hookworm <- readRDS("../data/timeline_db_main_hookworm.rds")
 
 n_simulations <- 1000
 n_scenarios <- 16
@@ -8,14 +9,14 @@ n_scenarios <- 16
 extract_surveys <- function(df) {
   name <- deparse(substitute(df))
   for (scenario in 1:n_scenarios) {
-    output_df <- data.frame(simulation = integer(),
-                            scenario = integer(),
-                            treat_time = numeric(),
-                            host = numeric(),
-                            pre = numeric(),
-                            post = numeric())
-    
     for (simulation in 1:n_simulations) {
+      output_df <- data.frame(simulation = integer(),
+                              scenario = integer(),
+                              treat_time = numeric(),
+                              host = numeric(),
+                              pre = numeric(),
+                              post = numeric())
+      
       print(sprintf("Scenario %d: %d", scenario, simulation))
       
       de_survey <- df[[simulation]][[scenario]]$drug_efficacy
@@ -32,13 +33,14 @@ extract_surveys <- function(df) {
       }
       
       de_survey_df <- data.frame(scenario = scenario, simulation = simulation, drug_efficacy = de_survey)
-      output_df <- rbind(output_df, de_survey_df)
+      
+      file <- sprintf("../csv/%s_drug_efficacySC%02dSIM%04d.csv", name, scenario, simulation)
+      write.csv(de_survey_df, row.names = FALSE, file = file)
     }
     
-    file <- sprintf("../csv/%s_drug_efficacySC%02d.csv", name, scenario)
-    write.csv(output_df, row.names = FALSE, file = file)
+    
   }
 }
 
-# extract_surveys(ascaris)
+extract_surveys(ascaris)
 extract_surveys(hookworm)
