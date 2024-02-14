@@ -4,6 +4,8 @@ import pandas as pd
 from attrs import define
 
 from emc.model.costs import Costs
+from emc.model.scenario import Scenario
+
 
 @define
 class Policy:
