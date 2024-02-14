@@ -5,13 +5,11 @@ from collections import Counter
 
 
 def main():
-    loader = DataLoader('ascaris')
+    loader = DataLoader('hookworm')
     scenarios = loader.load_scenarios()
 
     # Classifiers bouwen
     gb = GradientBoosting()
-    print(gb.run(scenarios))
-
 
 if __name__ == "__main__":
     main()

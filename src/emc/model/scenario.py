@@ -2,7 +2,6 @@ import pandas as pd
 from attrs import define
 
 from emc.data.data_model import DataModel
-from emc.model.label import Label
 from emc.model.simulation import Simulation
 
 
@@ -37,18 +36,6 @@ class Scenario:
         assert 0 <= sim_idx < len(self.simulations)
 
         return self.simulations[sim_idx]
-
-    def __iter__(self):
-        """
-        Iterator method to iterate over simulations in the scenario
-        """
-        return iter(self.simulations)
-
-    def __next__(self):
-        """
-        Returns the next simulation in the scenario
-        """
-        return next(iter(self.simulations))
 
     def filter_cond(self, df: pd.DataFrame):
         return df['scen'] == self.id
