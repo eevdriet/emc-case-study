@@ -36,4 +36,4 @@ timeline_db_main_hookworm.rds
 ascaris_monitor_age.rds
 timeline_db_main_ascaris.rds
 hookworm_monitor_age.rds
-csv
+drug_efficacy_*.csv
