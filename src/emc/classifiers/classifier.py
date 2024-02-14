@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import numpy as np
 
 import pandas as pd
 
-from emc.model import Label, Scenario
+
+from emc.model import Label
 from emc.data import DataModel
 
 
@@ -17,7 +17,8 @@ class Classifier(ABC):
     def __init__(self):
         self.data: pd.DataFrame = pd.DataFrame()
 
-    def run(self, data: list[Scenario]) -> float:
+
+    def run(self, data: pd.DataFrame) -> float:
         """
         Run the classifier to find the labels of the given data
         :return: Results from the classifier
@@ -42,7 +43,7 @@ class Classifier(ABC):
         }
 
     @abstractmethod
-    def _preprocess(self, data: list[Scenario]):
+    def _preprocess(self, data: pd.DataFrame):
         """
         Preprocess the given data to
         - standardize data

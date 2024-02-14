@@ -33,10 +33,7 @@ class LabelGenerator:
             new = col
             old = col.shift(1)
 
-            if old == 0 or new - old == 0:
-                return np.nan
-            else:
-                return (new - old) / old
+            return (new - old) / old
 
         def age_cat_func(group):
             age_cat = int(group['age_cat'].iloc[-1])
