@@ -13,7 +13,10 @@ import numpy as np
 def main():
     worm = 'ascaris'
     loader = DataLoader(worm)
-    scenarios = loader.load_scenarios()
+    scenarios = loader.load_scenarios(True)
+
+    print(scenarios[0][0].drug_efficacy_s[scenarios[0][0].drug_efficacy_s['treat_time'] == 0])
+
     df = loader.monitor_age
 
     # NOTE: uncomment to generate new levels
