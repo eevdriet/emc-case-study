@@ -1,6 +1,6 @@
 import math
 
-class Time:
+class Time_Costs:
     """
     Helper static class with the time constants that are used throughout the surveys
     """
