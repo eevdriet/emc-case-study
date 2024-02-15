@@ -7,6 +7,7 @@ import pandas as pd
 
 from emc.model import Label
 from emc.data import DataModel
+from emc.model.scenario import Scenario
 
 
 class Classifier(ABC):
