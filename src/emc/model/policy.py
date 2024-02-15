@@ -61,16 +61,3 @@ class Policy:
         time_post = N_follow_up * (Time.KATO_KATZ.get('demography') + Time.KATO_KATZ.get('duplicate_prep') +
                                   Time.KATO_KATZ.get('duplicate_record')) + count_post
         return math.ceil((time_pre + time_post) / timeAvailable)
-
-    # TODO: Add to time class if possible
-    @staticmethod
-    def __countKK(count: int):
-        return pow(10, 2.3896 + 0.0661 * pow(math.log10(count + 1), 2))
-
-    @staticmethod
-    def __countMF(count: int):
-        return pow(10, 2.5154 + 0.0661 * pow(math.log10(count + 1), 2))
-
-    @staticmethod
-    def __countFEC(count: int):
-        return pow(10, 1.8349 + 0.1731 * pow(math.log10(count + 1), 2))
