@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 
-
 def process_data(type: str):
     data = pd.read_feather('../data/drug_efficacy_' + type + '.feather')
 
@@ -24,6 +23,18 @@ def process_data(type: str):
     # Merge dropped rows information with the grouped dataframe
     grouped = pd.merge(grouped, dropped_rows_per_group, on=['scenario', 'simulation', 'treat_time'], how='left')
 
+    # Add missing scenario-simulation combinations with NaN values
+    scenarios = range(1, 17)
+    simulations = range(1, 1001)
+    treat_times = grouped['treat_time'].unique()
+
+    # Create a DataFrame with all possible combinations of scenarios and simulations
+    all_combinations = pd.DataFrame([(s, sim, t) for s in scenarios for sim in simulations for t in treat_times],
+                                    columns=['scenario', 'simulation', 'treat_time'])
+
+    # Perform left join to add missing combinations
+    grouped = pd.merge(all_combinations, grouped, on=['scenario', 'simulation', 'treat_time'], how='left')
+
     grouped['ERR'] = (1 - (grouped['true_a_post'] / grouped['true_a_pre'])) * 100
     grouped['EPG_change'] = (grouped['true_a_post'] - grouped['true_a_pre']) / grouped['true_a_pre']
 
@@ -35,4 +46,4 @@ def process_data(type: str):
     grouped.to_csv('../data/' + type + '_drug_efficacy.csv', index=False)
 
 process_data('ascaris')
-# process_data('hookworm')
+process_data('hookworm')

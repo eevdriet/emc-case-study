@@ -32,7 +32,7 @@ def worm_path(worm: str, typ: str, use_merged: bool = False) -> Path:
     ext = {
         'monitor_age': 'csv',
         'metadata': 'json',
-        'drug_efficacy': 'feather'
+        'drug_efficacy': 'csv'
     }[typ]
 
     return data_path() / f'{worm}_{typ}{merge_str}.{ext}'
