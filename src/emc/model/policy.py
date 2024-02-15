@@ -47,7 +47,7 @@ class Policy:
         count_post = self.__countKK(self, 2 * c_post)
         time_pre = N_baseline * (Time.KATO_KATZ.get('demography') + Time.KATO_KATZ.get('single_prep') +
                                  Time.KATO_KATZ.get('single_record')) + count_pre
-        time_post = N_baseline * (Time.KATO_KATZ.get('demography') + Time.KATO_KATZ.get('duplicate_prep') +
+        time_post = N_follow_up * (Time.KATO_KATZ.get('demography') + Time.KATO_KATZ.get('duplicate_prep') +
                                   Time.KATO_KATZ.get('duplicate_record')) + count_post
         return math.ceil((time_pre + time_post) / timeAvailable)
 
