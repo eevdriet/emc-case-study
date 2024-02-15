@@ -5,9 +5,15 @@ from emc.data.data_model import DataModel
 from emc.model.label import Label
 from emc.model.simulation import Simulation
 
+from typing import Iterator
+
 
 @define
 class Scenario:
+    """
+    Combines all information about the simulations of a single scenario
+    Survey data is split into monitor_age (epidemiological) and drug_efficacy (drug efficacy) data frames
+    """
     id: int
 
     # Worm species ("hook", "asc")
@@ -38,15 +44,17 @@ class Scenario:
 
         return self.simulations[sim_idx]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         """
         Iterator method to iterate over simulations in the scenario
+        :return: Iterator of the class
         """
         return iter(self.simulations)
 
-    def __next__(self):
+    def __next__(self) -> Simulation:
         """
         Returns the next simulation in the scenario
+        :return: The next simulation
         """
         return next(iter(self.simulations))
 

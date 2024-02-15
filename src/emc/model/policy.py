@@ -5,13 +5,24 @@ from attrs import define
 
 from emc.model.costs import Costs
 from emc.model.time import Time
-
+from emc.model.scenario import Scenario
 
 @define
 class Policy:
-    # At which moments in time to conduct a survey or not
-    deSurvey: list[bool] = [False] * 21
-    epSurvey: list[bool] = [True] * 21
+    """
+    States at which point times a survey is conducted, which can be
+    - an epidemiological survey
+    - a drug efficacy survey (when a signal of drug resistance is suspected)
+    """
+
+    # At which moments in time to conduct a drug efficacy survey or not
+    drug_surveys: list[bool] = [False] * 21
+
+    # At which moments in time to conduct an epidemiological survey or not
+    epi_surveys: list[bool] = [True] * 21
+
+    surveys_b: list[bool] = [True] * 21
+    surveys_i: list[int] = [1] * 21
 
     @property
     def total_cost(self, de_survey: pd.DataFrame):

@@ -13,18 +13,21 @@
 *.log
 
 # Artifacts and data
+/data/
 build
 _build
 dist
+*.feather
 
 # Editors
 .vscode
 .idea
+.venv
 
 # R
 *.RData
 *.Rhistory
-csv
+*.rds
 
 # Python
 venv
@@ -32,9 +35,3 @@ venv
 .pytest_cache
 __pycache__
 *.egg-info
-.venv
-timeline_db_main_hookworm.rds
-ascaris_monitor_age.rds
-timeline_db_main_ascaris.rds
-hookworm_monitor_age.rds
-
