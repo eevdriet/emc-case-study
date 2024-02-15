@@ -24,6 +24,7 @@ class Classifier(ABC):
         Run the classifier to find the labels of the given data
         :return: Results from the classifier
         """
+
         features, target = self._preprocess(data)
         X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=self.TRAIN_TEST_SPLIT_SIZE,
                                                             random_state=self.SEED)
@@ -51,19 +52,7 @@ class Classifier(ABC):
         - remove columns that cannot be observed from epidemiological surveys
         - ...
         """
-
-        features = []
-        target = []
-
-        for scenario in data:
-            if scenario.mda_freq == 2 and scenario.mda_strategy == 'community':
-                for simulation in scenario:
-                    simulation.monitor_age = simulation.monitor_age[simulation.monitor_age['age_cat'] == 5]
-                    simulation.monitor_age = simulation.monitor_age.drop(columns=['age_cat'])
-                    features.append(simulation.monitor_age['n_host_eggpos'].tolist() + simulation.monitor_age['a_epg_obs'].tolist() + simulation.monitor_age['inf_level'].tolist())
-                    target.append(simulation.label.value)
-
-        return features, target
+        ...
 
     @abstractmethod 
     def _train(self, X_train: np.ndarray, y_train: int):
