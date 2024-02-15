@@ -16,8 +16,6 @@ def main():
     df = loader.monitor_age
     scenarios = loader.load_scenarios()
 
-    print(scenarios[0][0].drug_efficacy_s)
-
     # # NOTE: uncomment to generate new levels
     # # Levels are currently saved in data, so you can instead retrieve them directly
     # tree = InfectionTree(scenarios, df)

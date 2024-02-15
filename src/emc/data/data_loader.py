@@ -138,7 +138,6 @@ class DataLoader:
             return None
 
         df = pd.read_csv(path)
-        print(df)
         if not isinstance(df.index, pd.MultiIndex):
             df.set_index(['scenario', 'simulation'], inplace=True)
 
