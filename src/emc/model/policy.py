@@ -63,11 +63,14 @@ class Policy:
         return math.ceil((time_pre + time_post) / timeAvailable)
 
     # TODO: Add to time class if possible
-    def __countKK(self, count: int):
+    @staticmethod
+    def __countKK(count: int):
         return pow(10, 2.3896 + 0.0661 * pow(math.log10(count + 1), 2))
 
-    def __countMF(self, count: int):
+    @staticmethod
+    def __countMF(count: int):
         return pow(10, 2.5154 + 0.0661 * pow(math.log10(count + 1), 2))
 
-    def __countFEC(self, count: int):
+    @staticmethod
+    def __countFEC(count: int):
         return pow(10, 1.8349 + 0.1731 * pow(math.log10(count + 1), 2))
