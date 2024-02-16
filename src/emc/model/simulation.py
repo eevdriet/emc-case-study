@@ -1,15 +1,13 @@
 import typing
 
 import pandas as pd
-from attrs import define
+from attrs import define, field
 
 from emc.model.label import Label
 
 # Required to avoid circular dependency
 if typing.TYPE_CHECKING:
     from emc.model.scenario import Scenario
-
-from typing import Optional
 
 
 @define
@@ -20,7 +18,7 @@ class Simulation:
     """
 
     # Identifier of the simulation
-    id: int
+    id: int = field(eq=False)
 
     # Scenario the simulation belongs to
     scenario: "Scenario"
@@ -35,13 +33,10 @@ class Simulation:
     mda_cov: float
 
     # Data concerning the simulated epidemiological survey results
-    monitor_age: pd.DataFrame
+    monitor_age: pd.DataFrame = field(eq=False, repr=False)
 
     # Data concerning the simulated drug efficacy survey results
-    drug_efficacy_s: Optional[pd.DataFrame]
+    drug_efficacy_s: typing.Optional[pd.DataFrame] = field(eq=False, repr=False)
 
     # Label that defines what signal the simulation produces
     label: Label
-
-    def filter_cond(self, df: pd.DataFrame):
-        return (df['scen'] == self.scenario.id) & (df['sim'] == self.id)
