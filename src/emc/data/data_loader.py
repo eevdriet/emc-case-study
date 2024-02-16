@@ -137,7 +137,7 @@ class DataLoader:
             print(f"Path {path} does not exist, cannot load in drug efficacy survey!")
             return None
 
-        df = pd.read_feather(path)
+        df = pd.read_csv(path)
         if not isinstance(df.index, pd.MultiIndex):
             df.set_index(['scenario', 'simulation'], inplace=True)
 

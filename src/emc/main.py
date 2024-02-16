@@ -16,30 +16,27 @@ def main():
     df = loader.monitor_age
     scenarios = loader.load_scenarios()
 
-    print(scenarios[0][0].drug_efficacy_s[scenarios[0][0].drug_efficacy_s['treat_time'] == 0])
+    # # NOTE: uncomment to generate new levels
+    # # Levels are currently saved in data, so you can instead retrieve them directly
+    # tree = InfectionTree(scenarios, df)
 
-    # NOTE: uncomment to generate new levels
-    # Levels are currently saved in data, so you can instead retrieve them directly
-    tree = InfectionTree(scenarios, df)
+    # path = data_path() / 'levels.txt'
+    # if not path.exists():
+    #     print("Levels does not exist, generate from InfectionTree")
+    #     return
 
-    path = data_path() / 'levels.txt'
-    if not path.exists():
-        print("Levels does not exist, generate from InfectionTree")
-        return
+    # with open(path, 'r') as file:
+    #     level_simulations = eval(file.read())
 
-    with open(path, 'r') as file:
-        level_simulations = eval(file.read())
-
-    means, sds, mins, maxs = zip(*level_simulations[3])
-    times = range(len(means))
-    plt.errorbar(times, means, yerr=sds, color='b')
-    plt.ylim(0, 1)
-    plt.show()
+    # means, sds, mins, maxs = zip(*level_simulations[3])
+    # times = range(len(means))
+    # plt.errorbar(times, means, yerr=sds, color='b')
+    # plt.ylim(0, 1)
+    # plt.show()
 
     # Classifiers bouwen
     # gb = GradientBoosting()
     # print(gb.run(scenarios))
-
 
 if __name__ == "__main__":
     main()

@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import numpy as np
 
 import pandas as pd
 
 from emc.model import Label
+from emc.model.scenario import Scenario
 
 
 class Classifier(ABC):
@@ -40,7 +42,7 @@ class Classifier(ABC):
         }
 
     @abstractmethod
-    def _preprocess(self, data: pd.DataFrame):
+    def _preprocess(self, data: list[Scenario]):
         """
         Preprocess the given data to
         - standardize data
