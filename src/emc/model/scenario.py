@@ -12,7 +12,6 @@ class Scenario:
     Survey data is split into monitor_age (epidemiological) and drug_efficacy (drug efficacy) data frames
     Note that scenarios are only compared on their pre-determined settings, such as target population
     """
-    id: int = field(eq=False)
 
     # Worm species ("hook", "asc")
     species: str
@@ -26,8 +25,11 @@ class Scenario:
     # Initial frequency of resistant alleles in the worm population (between 0 and 1)
     res_freq: float = field(eq=False)
 
-    # Mode of inheritance of resistance ("none", "recessive", "co-dominant", "dominant)
+    # Mode of inheritance of resistance ("none", "recessive", "co-dominant", "dominant")
     res_mode: str = field(eq=False)
+
+    # Identifier of the scenario
+    id: int = field(eq=False, default=-1)
 
     # Information about the simulation for this specific scenario
     simulations: list[Simulation] = field(default=list(), eq=False, repr=False)

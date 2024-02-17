@@ -17,9 +17,6 @@ class Simulation:
     Survey data is split into monitor_age (epidemiological) and drug_efficacy (drug efficacy) data frames
     """
 
-    # Identifier of the simulation
-    id: int = field(eq=False)
-
     # Scenario the simulation belongs to
     scenario: "Scenario"
 
@@ -40,3 +37,6 @@ class Simulation:
 
     # Label that defines what signal the simulation produces
     label: Label
+
+    # Identifier of the simulation
+    id: int = field(eq=False, default=-1)
