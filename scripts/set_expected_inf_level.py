@@ -1,6 +1,8 @@
 import pandas as pd
-from pathlib import Path
 import json
+
+from emc.util import data_path
+from emc.data.constants import *
 
 
 def main() -> None:
@@ -13,38 +15,36 @@ def main() -> None:
     - The expected infected level is based on the levels from the relevant scenario with 5% buckets
     """
 
-    worm = 'ascaris'
-    data_path = Path.cwd() / '..' / 'data'
-    path = data_path / f'{worm}_monitor_age_merged.csv'
+    worm = Worm.ASCARIS
+    path = data_path() / f'{worm}_monitor_age_merged.csv'
     monitor_age = pd.read_csv(path)
     df = monitor_age.sort_values(['scenario', 'simulation', 'time']).reset_index(drop=True)
 
-    with open(data_path / f'{worm}_metadata.json', 'r') as file:
+    with open(data_path() / f'{worm}_metadata.json', 'r') as file:
         metadata = json.load(file)
 
     bucket_size = 5
-    n_age_cats = 1 if 'merged' in str(path) else 4
-    n_years = 21
+    n_age_cats = 1 if 'merged' in str(path) else N_AGE_CATEGORIES
 
-    for scen in range(16):
+    for scenario in range(N_SCENARIOS):
         # Get right levels
-        data = metadata[scen]
+        data = metadata[scenario]
         mda_freq = data['mda_freq']
         mda_strategy = data['mda_strategy']
 
         freq_str = f'{mda_freq}year' if mda_freq else 'any_freq'
-        strat_str = mda_strategy if mda_strategy else 'anyone'
-        fname = f'{worm}_{bucket_size}_{freq_str}_{strat_str}.json'
+        strategy_str = mda_strategy if mda_strategy else 'anyone'
+        file_name = f'{worm}_{bucket_size}_{freq_str}_{strategy_str}.json'
 
-        with open(data_path / 'levels' / fname, 'r') as file:
+        with open(data_path() / 'levels' / file_name, 'r') as file:
             levels = json.load(file)
 
-        for sim in range(1000):
-            start = n_age_cats * n_years * (1000 * scen + sim)
+        for sim in range(N_SIMULATIONS):
+            start = n_age_cats * N_YEARS * (N_SIMULATIONS * scenario + sim)
 
-            print(scen, sim)
+            print(scenario, sim)
 
-            for time in range(n_years):
+            for time in range(N_YEARS):
                 prev = time - 1 if time > 0 else 0
 
                 for age_cat in range(n_age_cats):

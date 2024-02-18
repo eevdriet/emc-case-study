@@ -10,17 +10,20 @@ relevant_cols = c("time", "age_cat", "n_host", "n_host_eggpos", "a_epg_obs")
 
 # Extract all survey information for each of the worms
 extract_surveys <- function(df) {
-    name = deparse(substitute(df))
+    name <- deparse(substitute(df))
 
     for (scenario in 1:n_scenarios) {
         for (simulation in 1:n_simulations) {
             print(sprintf("Scenario %d:  %d", scenario, simulation))
             
-            df_inner = df[[simulation]][[scenario]]$monitor_age
-            epi_survey <- subset(df_inner, select=relevant_cols)
+            df_inner <- df[[simulation]][[scenario]]$monitor_age
+            df_inner <- subset(df_inner, select=relevant_cols)
             
-            file = sprintf("../csv/%s_monitor_ageSC%02dSIM%04d.csv", name, scenario, simulation)
-            write.csv(epi_survey, row.names = FALSE, file = file)
+            df_inner$scenario <- scenario
+            df_inner$simulation <- simulation
+            
+            file <- sprintf("../csv/%s_monitor_ageSC%02dSIM%04d.csv", name, scenario, simulation)
+            write.csv(df_inner, row.names = FALSE, file = file)
         }
     }
 }
