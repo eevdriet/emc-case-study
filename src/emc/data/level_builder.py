@@ -21,7 +21,7 @@ class LevelBuilder:
     """
     __RES_MODES = ["none", "dominant", "codominant", "recessive"]
     # __COLORS = ["red", "green", "blue", "yellow"]
-    __COLORS = ["blue", "yellow", "green", "red"]
+    __COLORS = ["blue", "yellow", "green", "pink"]
 
     def __init__(self, scenarios: list[Scenario]):
         # Data
@@ -89,11 +89,15 @@ class LevelBuilder:
             means, sds, mins, maxs = map(np.array, zip(*levels[res_mode]))
 
             # Plot infection level means
-            plt.plot(times, means, '-o', color=color, label=res_mode)
+            # OPTION 1: shaded overlapping regions
+            plt.errorbar(times, means, yerr=sds, label=res_mode, color=color)
+            plt.fill_between(times, means - sds, means + sds, alpha=0.5)
 
             # Plot error levels for the infection level means
-            for time, mean, sd in zip(times, means, sds):
-                plt.vlines(x=time, ymin=mean - sd, ymax=mean + sd, color=color, linestyle='dotted')
+            # OPTION 2: dashed lines
+            # plt.plot(times, means, '-o', color=color, label=res_mode)
+            # for time, mean, sd in zip(times, means, sds):
+            #     plt.vlines(x=time, ymin=mean - sd, ymax=mean + sd, color=color, linestyle='dotted')
 
         plt.xticks(times)
 
