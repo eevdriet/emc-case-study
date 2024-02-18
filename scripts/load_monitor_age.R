@@ -1,6 +1,7 @@
 # Load information for both worms
 ascaris = readRDS("../data/timeline_db_main_ascaris.rds")
 hookworm = readRDS("../data/timeline_db_main_hookworm.rds")
+scenarios = load("../data/scenarios_main.RData")
 
 n_simulations = 1000
 n_scenarios = 16 # scenarios 17-24 are not monogeneic
