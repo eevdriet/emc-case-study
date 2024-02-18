@@ -3,6 +3,7 @@ import numpy as np
 from pathlib import Path
 
 from emc.data.constants import *
+from emc.util import worm_path
 
 
 def rate_of_change(col: pd.Series):
@@ -22,8 +23,8 @@ def main() -> None:
     """
 
     # Load data
-    worm = Worm.ASCARIS
-    path = Path.cwd() / f'{worm}_monitor_age_merged.csv'
+    worm = Worm.HOOKWORM
+    path = worm_path(worm, 'monitor_age', use_merged=True)
     df = pd.read_csv(path)
 
     # Add features

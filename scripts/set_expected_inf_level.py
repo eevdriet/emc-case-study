@@ -1,7 +1,7 @@
 import pandas as pd
 import json
 
-from emc.util import data_path
+from emc.util import worm_path, data_path
 from emc.data.constants import *
 
 
@@ -15,12 +15,12 @@ def main() -> None:
     - The expected infected level is based on the levels from the relevant scenario with 5% buckets
     """
 
-    worm = Worm.ASCARIS
-    path = data_path() / f'{worm}_monitor_age_merged.csv'
+    worm = Worm.HOOKWORM
+    path = worm_path(worm, 'monitor_age', use_merged=True)
     monitor_age = pd.read_csv(path)
     df = monitor_age.sort_values(['scenario', 'simulation', 'time']).reset_index(drop=True)
 
-    with open(data_path() / f'{worm}_metadata.json', 'r') as file:
+    with open(worm_path(worm, 'metadata'), 'r') as file:
         metadata = json.load(file)
 
     bucket_size = 5

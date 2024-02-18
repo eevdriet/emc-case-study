@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import json
 
-from emc.util import data_path
+from emc.util import worm_path
 from emc.data.constants import *
 
 
@@ -15,14 +15,14 @@ def main() -> None:
     E.g. for year 13 in the epidemiological survey, the ERR from time point 13.0 is taken
     """
 
-    worm = Worm.ASCARIS
-    path = data_path() / f'{worm}_monitor_age_merged.csv'
+    worm = Worm.HOOKWORM
+    path = worm_path(worm, 'monitor_age')
     df = pd.read_csv(path)
 
-    drug_efficacy = pd.read_csv(data_path() / f'{worm}_drug_efficacy.csv').reset_index(drop=True)
+    drug_efficacy = pd.read_csv(worm_path(worm, 'drug_efficacy')).reset_index(drop=True)
     df2 = drug_efficacy.groupby(['scenario', 'simulation'])
 
-    with open(data_path() / f'{worm}_metadata.json', 'r') as file:
+    with open(worm_path(worm, 'metadata'), 'r') as file:
         metadata = json.load(file)
 
     n_age_cats = 1 if 'merged' in str(path) else N_AGE_CATEGORIES

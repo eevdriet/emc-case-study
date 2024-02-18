@@ -3,6 +3,7 @@ import numpy as np
 from pathlib import Path
 
 from emc.data.constants import *
+from emc.util import worm_path
 
 
 def main() -> None:
@@ -12,9 +13,9 @@ def main() -> None:
     """
 
     # Parameters
-    worm = Worm.ASCARIS
-    data_path = Path.cwd() / f'{worm}_monitor_age.csv'
-    df = pd.read_csv(data_path)
+    worm = Worm.HOOKWORM
+    path = worm_path(worm, 'monitor_age', use_merged=False)
+    df = pd.read_csv(path)
 
     def weighted_mean(values: pd.Series, weights: pd.Series):
         if weights.sum() == 0:
@@ -62,7 +63,7 @@ def main() -> None:
         path.unlink()
 
     # Write the merged csv
-    data_path = Path.cwd() / f'{worm}_monitor_age_merged.csv'
+    data_path = worm_path(worm, 'monitor_age', use_merged=True)
     df_merged.to_csv(data_path, index=False)
 
 

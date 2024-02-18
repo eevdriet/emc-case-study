@@ -20,7 +20,9 @@ extract_surveys <- function(df) {
       print(sprintf("Scenario %d: %d", scenario, simulation))
       
       de_survey <- df[[simulation]][[scenario]]$drug_efficacy
-      required_columns <- c('treat_time', 'host', 'pre', 'post')
+      names(de_survey)[names(de_survey) == "treat_time"] <- "time"
+
+      required_columns <- c('time', 'host', 'pre', 'post')
       
       # Check if all required columns are present
       missing_columns <- setdiff(required_columns, names(de_survey))
