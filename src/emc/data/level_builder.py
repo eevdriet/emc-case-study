@@ -112,7 +112,7 @@ class LevelBuilder:
         # Labels
         plt.xlabel("Time (years)")
         plt.ylabel("Infection level")
-        # plt.ylim(0, 1)
+        plt.ylim(0, 1)
         plt.legend(title="Resistance mode")
         plt.show()
 
@@ -139,12 +139,10 @@ class LevelBuilder:
 
                 for simulation in scenario:
                     df = simulation.monitor_age
-                    age_cats = df.groupby('age_cat')
 
                     # Only include simulations that start at the requested baseline infection level
-                    for _, group in age_cats:
-                        if baseline <= 100 * group.iloc[0]['inf_level'] < baseline + self.bucket_size:
-                            data = pd.concat([data, group])
+                    if baseline <= 100 * df.iloc[0]['inf_level'] < baseline + self.bucket_size:
+                        data = pd.concat([data, df])
 
             if data.empty:
                 continue
@@ -202,22 +200,23 @@ def main():
 
     # Load in the data
     worm = 'ascaris'
-    loader = DataLoader(worm, use_merged=False, load_efficacy=False)
+    loader = DataLoader(worm, use_merged=True, load_efficacy=False)
     scenarios = loader.load_scenarios()
 
     # Set up a level builder and build all possible levels
     builder = LevelBuilder(scenarios)
 
-    for bucket_size in [5, 10, 20]:
-        mda_strategy = [None, 'sac', 'community']
-        mda_freq = [None, 1, 2]
-
-        for strat, freq in product(mda_strategy, mda_freq):
-            print(f"-- {bucket_size} with {freq=}, {strat=}")
-            builder.build(bucket_size, mda_strategy=strat, mda_freq=freq)
+    # for bucket_size in [5, 10, 20]:
+    #     mda_strategy = [None, 'sac', 'community']
+    #     mda_freq = [None, 1, 2]
+    #
+    #     for strat, freq in product(mda_strategy, mda_freq):
+    #         print(f"-- {bucket_size} with {freq=}, {strat=}")
+    #         builder.build(bucket_size, mda_strategy=strat, mda_freq=freq)
 
     # Demonstration of plotting
-    builder.plot(40, save=True)
+    builder.build(10)
+    builder.plot(0, save=True)
     print("Done")
 
 
