@@ -71,4 +71,7 @@ class Policy:
                 self.policy_models[tuple(subset)] = None
     
     def generateModels(self) -> dict:
-        return None
+        return self.policy_models
+    
+    def updateEpiSurvey(self, newPolicy: list[bool]) -> None:
+        self.epi_surveys = newPolicy
