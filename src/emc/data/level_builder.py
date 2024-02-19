@@ -11,7 +11,7 @@ from emc.model.scenario import Scenario
 from emc.util import data_path
 from emc.data.constants import *
 
-Level = tuple[float, float, float, float]  # mean, sd, min, max
+Level = tuple[float, float, float, float, int]  # mean, sd, min, max, no. observations
 Levels = dict[str, list[Level]]
 ModeLevels = dict[str, Levels]
 
@@ -162,6 +162,7 @@ class LevelBuilder:
                     group['inf_level'].std(),
                     group['inf_level'].min(),
                     group['inf_level'].max(),
+                    len(group['inf_level'])
                 )
                 bucket_levels.append(level)
 
@@ -212,7 +213,7 @@ def main():
 
             for strat, freq in product(mda_strategy, mda_freq):
                 print(f"-- {bucket_size} with {freq=}, {strat=}")
-                builder.build(bucket_size, mda_strategy=strat, mda_freq=freq)
+                builder.build(bucket_size, mda_strategy=strat, mda_freq=freq, overwrite=True)
 
         # Demonstration of plotting
         # builder.build(5, overwrite=True)
