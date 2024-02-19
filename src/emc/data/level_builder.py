@@ -9,6 +9,7 @@ import pandas as pd
 
 from emc.model.scenario import Scenario
 from emc.util import data_path
+from emc.data.constants import *
 
 Level = tuple[float, float, float, float]  # mean, sd, min, max
 Levels = dict[str, list[Level]]
@@ -21,7 +22,7 @@ class LevelBuilder:
     """
     __RES_MODES = ["none", "dominant", "codominant", "recessive"]
     # __COLORS = ["red", "green", "blue", "yellow"]
-    __COLORS = ["blue", "yellow", "green", "red"]
+    __COLORS = ["blue", "yellow", "green", "pink"]
 
     def __init__(self, scenarios: list[Scenario]):
         # Data
@@ -83,19 +84,23 @@ class LevelBuilder:
             return
 
         levels = self.mode_levels[str(baseline)]
-        times = range(21)
+        times = range(19)
 
         for res_mode, color in zip(self.__RES_MODES, self.__COLORS):
             means, sds, mins, maxs = map(np.array, zip(*levels[res_mode]))
+            times = range(len(means))
 
             # Plot infection level means
-            plt.plot(times, means, '-o', color=color, label=res_mode)
+            # OPTION 1: shaded overlapping regions
+            plt.errorbar(times, means, yerr=sds, label=res_mode, color=color)
+            plt.fill_between(times, means - sds, means + sds, alpha=0.5)
 
             # Plot error levels for the infection level means
-            for time, mean, sd in zip(times, means, sds):
-                plt.vlines(x=time, ymin=mean - sd, ymax=mean + sd, color=color, linestyle='dotted')
-
-        plt.xticks(times)
+            # OPTION 2: dashed lines
+            # plt.plot(times, means, '-o', color=color, label=res_mode)
+            # for time, mean, sd in zip(times, means, sds):
+            #     plt.vlines(x=time, ymin=mean - sd, ymax=mean + sd, color=color, linestyle='dotted')
+            plt.xticks(range(21))
 
         # Titles
         worm = self.all_scenarios[0].species
@@ -108,7 +113,7 @@ class LevelBuilder:
         # Labels
         plt.xlabel("Time (years)")
         plt.ylabel("Infection level")
-        # plt.ylim(0, 1)
+        plt.ylim(0, 1)
         plt.legend(title="Resistance mode")
         plt.show()
 
@@ -127,20 +132,22 @@ class LevelBuilder:
         for res_mode in self.__RES_MODES:
             data = pd.DataFrame()
 
-            for scenario in self.scenarios:
+            for scenario in self.all_scenarios:
                 if scenario.res_mode != res_mode:
+                    continue
+                if self.mda_freq is not None and scenario.mda_freq != self.mda_freq:
+                    continue
+                if self.mda_strategy is not None and scenario.mda_strategy != self.mda_strategy:
                     continue
 
                 print(scenario.id)
 
                 for simulation in scenario:
                     df = simulation.monitor_age
-                    age_cats = df.groupby('age_cat')
 
                     # Only include simulations that start at the requested baseline infection level
-                    for _, group in age_cats:
-                        if baseline <= 100 * group.iloc[0]['inf_level'] < baseline + self.bucket_size:
-                            data = pd.concat([data, group])
+                    if baseline <= 100 * df.iloc[0]['inf_level'] < baseline + self.bucket_size:
+                        data = pd.concat([data, df])
 
             if data.empty:
                 continue
@@ -170,11 +177,6 @@ class LevelBuilder:
         scenarios = []
 
         for scenario in self.all_scenarios:
-            if mda_freq is not None and scenario.mda_freq != mda_freq:
-                continue
-            if mda_strategy is not None and scenario.mda_strategy != mda_strategy:
-                continue
-
             scenarios.append(scenario)
 
         return scenarios
@@ -197,23 +199,26 @@ def main():
     from itertools import product
 
     # Load in the data
-    worm = 'ascaris'
-    loader = DataLoader(worm, use_merged=False, load_efficacy=False)
-    scenarios = loader.load_scenarios()
+    for worm in Worm:
+        loader = DataLoader(worm, use_merged=True, load_efficacy=False)
+        scenarios = loader.load_scenarios()
 
-    # Set up a level builder and build all possible levels
-    builder = LevelBuilder(scenarios)
+        # Set up a level builder and build all possible levels
+        builder = LevelBuilder(scenarios)
 
-    for bucket_size in [5, 10, 20]:
-        mda_strategy = [None, 'sac', 'community']
-        mda_freq = [None, 1, 2]
+        for bucket_size in [5, 10, 20]:
+            mda_strategy = [None, 'sac', 'community']
+            mda_freq = [None, 1, 2]
 
-        for strat, freq in product(mda_strategy, mda_freq):
-            print(f"-- {bucket_size} with {freq=}, {strat=}")
-            builder.build(bucket_size, mda_strategy=strat, mda_freq=freq)
+            for strat, freq in product(mda_strategy, mda_freq):
+                print(f"-- {bucket_size} with {freq=}, {strat=}")
+                builder.build(bucket_size, mda_strategy=strat, mda_freq=freq)
 
-    # Demonstration of plotting
-    builder.plot(40, save=True)
+        # Demonstration of plotting
+        # builder.build(5, overwrite=True)
+        builder.build(10, mda_freq=2, mda_strategy='community')
+        builder.plot(0)
+
     print("Done")
 
 

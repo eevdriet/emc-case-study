@@ -17,7 +17,7 @@ def data_path():
     return source_path().parent.parent / 'data'
 
 
-def worm_path(worm: str, typ: str, use_merged: bool = False) -> Path:
+def worm_path(worm: str, typ: str, use_merged: bool = True) -> Path:
     """
     Utility function to access the path of the data for a
     - specific worm species
@@ -28,11 +28,11 @@ def worm_path(worm: str, typ: str, use_merged: bool = False) -> Path:
     :param use_merged: Whether to use the merged data source
     :return: Path to the data file
     """
-    merge_str = '_merged' if use_merged else ''
+    merge_str = '_merged' if use_merged and typ == 'monitor_age' else ''
     ext = {
         'monitor_age': 'csv',
         'metadata': 'json',
         'drug_efficacy': 'csv'
     }[typ]
 
-    return data_path() / f'{worm}_{typ}{merge_str}.{ext}'
+    return data_path() / typ / f'{worm}{merge_str}.{ext}'

@@ -1,14 +1,13 @@
 import json
-import numpy as np
 
 import pandas as pd
-import pyreadr
 
 from typing import Optional
 
 from emc.model.scenario import Scenario, Simulation
 from emc.model.label import Label
 from emc.util import worm_path
+from emc.data.constants import *
 
 
 class DataLoader:
@@ -19,7 +18,7 @@ class DataLoader:
     - Metadata of the surveys
     """
 
-    def __init__(self, species: str, *, use_merged: bool = False, load_efficacy: bool = False):
+    def __init__(self, species: str, *, use_merged: bool = True, load_efficacy: bool = True):
         self.species = species
         self.use_merged = use_merged
         self.load_efficacy = load_efficacy
@@ -34,7 +33,7 @@ class DataLoader:
         :return: Scenarios that were loaded from the data sets
         """
 
-        return [self._load_scenario(scen_id, scenario) for scen_id, scenario in
+        return [self._load_scenario(scenario_id, scenario) for scenario_id, scenario in
                 enumerate(self.metadata, start=1)]
 
     def _load_scenario(self, scen_id: int, metadata: dict) -> Scenario:
@@ -90,8 +89,9 @@ class DataLoader:
 
         # Load monitor age
         df = self.monitor_age
-        step = 21 if self.use_merged else 84
-        start = step * (1000 * (scenario.id - 1) + sim_id - 1)
+        coeff = 1 if self.use_merged else N_AGE_CATEGORIES
+        step = coeff * N_YEARS
+        start = step * (N_SIMULATIONS * (scenario.id - 1) + sim_id - 1)
         monitor_age = df.iloc[start:start + step]
 
         # Load drug efficacy (if required)
@@ -107,7 +107,7 @@ class DataLoader:
         Load the metadata for all scenarios
         :return: Metadata if available
         """
-        path = worm_path(self.species, 'metadata')
+        path = worm_path(self.species, 'metadata', self.use_merged)
         if not path.exists():
             print(f"Path {path} does not exist, cannot load in meta data!")
             return None
@@ -125,19 +125,33 @@ class DataLoader:
             print(f"Path {path} does not exist, cannot load in epidemiological survey!")
             return None
 
-        return pd.read_csv(path)
+        # Correctly order the columns and set data types
+        df = pd.read_csv(path)
+        # df = df[MA_COLUMNS]
+        # df[MA_INT_COLUMNS] = df[MA_INT_COLUMNS].astype('Int64')
+
+        # Index based on the simulation/scenario
+        if not isinstance(df.index, pd.MultiIndex):
+            df.set_index(['scenario', 'simulation'], inplace=True)
+
+        return df
 
     def _load_drug_efficacy(self) -> Optional[pd.DataFrame]:
         """
         Load the drug efficacy survey data for all simulations
         :return: Survey data if available
         """
-        path = worm_path(self.species, 'drug_efficacy')
+        path = worm_path(self.species, 'drug_efficacy', self.use_merged)
         if not path.exists():
             print(f"Path {path} does not exist, cannot load in drug efficacy survey!")
             return None
 
+        # Correctly order the columns and set data types
         df = pd.read_csv(path)
+        # df = df[DE_COLUMNS]
+        # df[DE_INT_COLUMNS] = df[DE_INT_COLUMNS].astype('Int64')
+
+        # Index based on the simulation/scenario
         if not isinstance(df.index, pd.MultiIndex):
             df.set_index(['scenario', 'simulation'], inplace=True)
 
