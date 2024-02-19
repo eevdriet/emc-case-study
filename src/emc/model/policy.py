@@ -21,9 +21,6 @@ class Policy:
     # At which moments in time to conduct an epidemiological survey or not
     epi_surveys: list[bool] = [True] * 21
 
-    surveys_b: list[bool] = [True] * 21
-    surveys_i: list[int] = [1] * 21
-
     @property
     def total_cost(self, de_survey: pd.DataFrame):
         survey_cost = self.__consumable(de_survey) + self.__personnel(de_survey) + self.__transportation(de_survey)
@@ -44,10 +41,10 @@ class Policy:
     def __personnel(self, de_survey: pd.DataFrame):
         return self.__days(de_survey) * 4 * 22.50
 
-    def __transportation(self, de_survey: pd.DataFrame):
+    def __transportation(self, de_survey: pd.DataFrame) -> int:
         return self.__days(de_survey) * 90
 
-    def __days(self, de_survey: pd.DataFrame):
+    def __days(self, de_survey: pd.DataFrame) -> int:
         workers = 4  # Under assumption of single mobile field team: 1 nurse, three technicians
         timeAvailable = workers * 4 * 60 * 60  # In seconds
         N_baseline = de_survey['total_useful_tests'] + de_survey['skipped_NaN_tests']
@@ -61,3 +58,13 @@ class Policy:
         time_post = N_follow_up * (Time_Costs.KATO_KATZ.get('demography') + Time_Costs.KATO_KATZ.get('duplicate_prep') +
                                   Time_Costs.KATO_KATZ.get('duplicate_record')) + count_post
         return math.ceil((time_pre + time_post) / timeAvailable)
+    
+    def __generateSubPolicies(self) -> list[bool]:
+        subsets = []
+        for i in range(len(self.epi_surveys)):
+            if self.epi_surveys[i] == 1:
+                subsets.append(self.epi_surveys[:i] + [0] * (len(self.epi_surveys) - i))
+        return subsets
+    
+    def generateModels(self) -> dict:
+        return None
