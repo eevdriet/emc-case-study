@@ -22,7 +22,7 @@ class Policy:
     epi_surveys: list[bool] = [True] * 21
 
     # models connected to subpolicies
-    sub_policy: dict
+    sub_policy: dict = {}
 
     @property
     def total_cost(self, de_survey: pd.DataFrame):

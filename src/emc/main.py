@@ -4,6 +4,7 @@ from emc.data.constants import *
 
 def main():
     worm = Worm.ASCARIS
+    worm = worm.value
     loader = DataLoader(worm)
     df = loader.monitor_age
 
