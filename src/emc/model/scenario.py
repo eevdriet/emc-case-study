@@ -1,11 +1,8 @@
-import pandas as pd
-from attrs import define
-
-from emc.data.data_model import DataModel
-from emc.model.label import Label
-from emc.model.simulation import Simulation
-
 from typing import Iterator
+
+from attrs import define, field
+
+from emc.model.simulation import Simulation
 
 
 @define
@@ -13,26 +10,29 @@ class Scenario:
     """
     Combines all information about the simulations of a single scenario
     Survey data is split into monitor_age (epidemiological) and drug_efficacy (drug efficacy) data frames
+    Note that scenarios are only compared on their pre-determined settings, such as target population
     """
-    id: int
 
     # Worm species ("hook", "asc")
     species: str
 
-    # De-worming frequency per year
+    # De-worming frequency per year (annually: 1, bi-annually: 2)
     mda_freq: int
 
     # Targeted population ("sac" for school-age children, "community" for the wider community)
     mda_strategy: str
 
-    # Initial frequency of resistant alleles in the worm population
-    res_freq: int
+    # Initial frequency of resistant alleles in the worm population (between 0 and 1)
+    res_freq: float = field(eq=False)
 
-    # Mode of inheritance of resistance ("none", "recessive", "co-dominant", "dominant)
-    res_mode: str
+    # Mode of inheritance of resistance ("none", "recessive", "co-dominant", "dominant")
+    res_mode: str = field(eq=False)
+
+    # Identifier of the scenario
+    id: int = field(eq=False, default=-1)
 
     # Information about the simulation for this specific scenario
-    simulations: list[Simulation] = []
+    simulations: list[Simulation] = field(default=list(), eq=False, repr=False)
 
     def __getitem__(self, sim_idx: int):
         """
@@ -57,6 +57,3 @@ class Scenario:
         :return: The next simulation
         """
         return next(iter(self.simulations))
-
-    def filter_cond(self, df: pd.DataFrame):
-        return df['scen'] == self.id

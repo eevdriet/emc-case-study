@@ -1,5 +1,6 @@
 import math
-class Time:
+
+class Time_Costs:
     """
     Helper static class with the time constants that are used throughout the surveys
     """
@@ -29,4 +30,15 @@ class Time:
         'duplicate_record': 0
     }
 
+    @staticmethod
+    def __countKK(count: int):
+        return pow(10, 2.3896 + 0.0661 * pow(math.log10(count + 1), 2))
+
+    @staticmethod
+    def __countMF(count: int):
+        return pow(10, 2.5154 + 0.0661 * pow(math.log10(count + 1), 2))
+
+    @staticmethod
+    def __countFEC(count: int):
+        return pow(10, 1.8349 + 0.1731 * pow(math.log10(count + 1), 2))
 

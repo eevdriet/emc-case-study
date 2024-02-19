@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 
 from emc.model import Label
-from emc.data import DataModel
 from emc.model.scenario import Scenario
 
 
@@ -17,7 +16,6 @@ class Classifier(ABC):
 
     def __init__(self):
         self.data: pd.DataFrame = pd.DataFrame()
-
 
     def run(self, data: pd.DataFrame) -> float:
         """
@@ -60,12 +58,13 @@ class Classifier(ABC):
                 for simulation in scenario:
                     simulation.monitor_age = simulation.monitor_age[simulation.monitor_age['age_cat'] == 5]
                     simulation.monitor_age = simulation.monitor_age.drop(columns=['age_cat'])
-                    features.append(simulation.monitor_age['n_host_eggpos'].tolist() + simulation.monitor_age['a_epg_obs'].tolist() + simulation.monitor_age['inf_level'].tolist())
+                    features.append(simulation.monitor_age['n_host_eggpos'].tolist() + simulation.monitor_age[
+                        'a_epg_obs'].tolist() + simulation.monitor_age['inf_level'].tolist())
                     target.append(simulation.label.value)
 
         return features, target
 
-    @abstractmethod 
+    @abstractmethod
     def _train(self, X_train: np.ndarray, y_train: int):
         """
         Train the classifier on the training data

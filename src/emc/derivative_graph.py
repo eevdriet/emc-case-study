@@ -1,5 +1,5 @@
 from emc.data import DataLoader
-from emc.data.infection_tree import InfectionTree
+from emc.data.level_builder import LevelBuilder
 from emc.classifiers import GradientBoosting
 from emc.data import LabelGenerator
 from collections import Counter
@@ -10,26 +10,29 @@ import matplotlib.pyplot as plt
 import scipy.optimize as opt
 import seaborn as sns
 
+
 def fit_polynomial_with_uncertainty(x, y, y_err, degree):
     # Fit the polynomial with weights and get covariance matrix
-    weights = 1 / y_err**2
+    weights = 1 / y_err ** 2
     coeffs, cov_matrix = np.polyfit(x, y, degree, w=weights, cov=True)
-    
+
     # Polynomial and its derivative
     p = np.poly1d(coeffs)
     p_derivative = p.deriv()
     print(p)
     print(p_derivative)
-    
+
     return p, p_derivative, cov_matrix
+
 
 def derivative_variance(x, degree, cov_matrix):
     # Calculate the matrix of derivatives of the polynomial w.r.t its coefficients
-    J = np.array([x**i for i in range(degree, -1, -1)]).T
+    J = np.array([x ** i for i in range(degree, -1, -1)]).T
 
     # The variance of the derivative is J * Cov * J.T (matrix multiplication)
     var_derivative = np.sum((J @ cov_matrix) * J, axis=1)
     return var_derivative
+
 
 def main():
     # loader = DataLoader('ascaris')

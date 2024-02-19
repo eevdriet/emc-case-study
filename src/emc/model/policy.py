@@ -4,7 +4,7 @@ import pandas as pd
 from attrs import define
 
 from emc.model.costs import Costs
-from emc.model.time import Time
+from emc.model.time_costs import Time_Costs
 from emc.model.scenario import Scenario
 
 @define
@@ -56,21 +56,8 @@ class Policy:
         c_post = de_survey['true_a_post']  # TODO: This is true number of eggs in individual, aliquots is on observed
         count_pre = self.__countKK(self, c_pre)
         count_post = self.__countKK(self, 2 * c_post)
-        time_pre = N_baseline * (Time.KATO_KATZ.get('demography') + Time.KATO_KATZ.get('single_prep') +
-                                 Time.KATO_KATZ.get('single_record')) + count_pre
-        time_post = N_follow_up * (Time.KATO_KATZ.get('demography') + Time.KATO_KATZ.get('duplicate_prep') +
-                                  Time.KATO_KATZ.get('duplicate_record')) + count_post
+        time_pre = N_baseline * (Time_Costs.KATO_KATZ.get('demography') + Time_Costs.KATO_KATZ.get('single_prep') +
+                                 Time_Costs.KATO_KATZ.get('single_record')) + count_pre
+        time_post = N_follow_up * (Time_Costs.KATO_KATZ.get('demography') + Time_Costs.KATO_KATZ.get('duplicate_prep') +
+                                  Time_Costs.KATO_KATZ.get('duplicate_record')) + count_post
         return math.ceil((time_pre + time_post) / timeAvailable)
-
-    # TODO: Add to time class if possible
-    @staticmethod
-    def __countKK(count: int):
-        return pow(10, 2.3896 + 0.0661 * pow(math.log10(count + 1), 2))
-
-    @staticmethod
-    def __countMF(count: int):
-        return pow(10, 2.5154 + 0.0661 * pow(math.log10(count + 1), 2))
-
-    @staticmethod
-    def __countFEC(count: int):
-        return pow(10, 1.8349 + 0.1731 * pow(math.log10(count + 1), 2))
