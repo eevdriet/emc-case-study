@@ -5,64 +5,44 @@ import numpy as np
 
 import pandas as pd
 
-from emc.model import Label
 from emc.model.scenario import Scenario
 
 
 class Classifier(ABC):
-    TRAIN_TEST_SPLIT_SIZE: float = 0.2
-    TRAIN_VAL_SPLIT_SIZE: float = 0.25
     SEED: int = 76
 
-    def __init__(self):
-        self.data: pd.DataFrame = pd.DataFrame()
+    def __init__(self, data: pd.DataFrame):
+        self.data = data
 
     def run(self, data: pd.DataFrame) -> float:
         """
         Run the classifier to find the labels of the given data
         :return: Results from the classifier
         """
-        features, target = self._preprocess(data)
-        X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=self.TRAIN_TEST_SPLIT_SIZE,
-                                                            random_state=self.SEED)
+        X_data, y_data = self._preprocess(data)
 
-        self._train(X_train, y_train)
-        predictions = self._test(X_test, y_test)
+        self._train(X_data, y_data)
+        # predictions = self._test(X_test, y_test)
 
-        accuracy = accuracy_score(y_test, predictions)
-        precision = precision_score(y_test, predictions, average='weighted')
-        recall = recall_score(y_test, predictions, average='weighted')
-        f1 = f1_score(y_test, predictions, average='weighted')
+        # accuracy = accuracy_score(y_test, predictions)
+        # precision = precision_score(y_test, predictions, average='weighted')
+        # recall = recall_score(y_test, predictions, average='weighted')
+        # f1 = f1_score(y_test, predictions, average='weighted')
 
-        return {
-            'accuracy': accuracy,
-            'precision': precision,
-            'recall': recall,
-            'f1_score': f1
-        }
-
-    @abstractmethod
-    def _preprocess(self, data: list[Scenario]):
+        # return {
+        #     'accuracy': accuracy,
+        #     'precision': precision,
+        #     'recall': recall,
+        #     'f1_score': f1
+        # }
+    
+    def _preprocess(self, train: pd.DataFrame, val: pd.DataFrame):
         """
-        Preprocess the given data to
-        - standardize data
-        - remove columns that cannot be observed from epidemiological surveys
-        - ...
+        Preprocess the training data
+            Standardise all features
+            Create X_train, y_train, X_test, y_test
         """
-
-        features = []
-        target = []
-
-        for scenario in data:
-            if scenario.mda_freq == 2 and scenario.mda_strategy == 'community':
-                for simulation in scenario:
-                    simulation.monitor_age = simulation.monitor_age[simulation.monitor_age['age_cat'] == 5]
-                    simulation.monitor_age = simulation.monitor_age.drop(columns=['age_cat'])
-                    features.append(simulation.monitor_age['n_host_eggpos'].tolist() + simulation.monitor_age[
-                        'a_epg_obs'].tolist() + simulation.monitor_age['inf_level'].tolist())
-                    target.append(simulation.label.value)
-
-        return features, target
+        ...
 
     @abstractmethod
     def _train(self, X_train: np.ndarray, y_train: int):

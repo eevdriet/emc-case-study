@@ -6,9 +6,16 @@ from emc.classifiers import Classifier
 from emc.model import Label
 
 
-class GradientBoosting(Classifier):
-    def _preprocess(self, features: pd.DataFrame) -> pd.DataFrame:
-        return super()._preprocess(features)
+class SingleGradientBooster(Classifier):
+    def _preprocess(self, data: pd.DataFrame) -> pd.DataFrame:
+        
+        
+        # Transposing and flattening the DataFrame to create the features (X)
+        X_data = data.to_numpy().T.flatten()
+        # Extracting the target (y) - the final value of the last column
+        y_data = np.array([data.iloc[-1, -1]])
+
+        return X_data, y_data
 
     def _train(self, X_train: pd.DataFrame, y_train: pd.Series):
         self.xgb = XGBClassifier(random_state=self.SEED, missing=np.NaN)

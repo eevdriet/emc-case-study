@@ -1,5 +1,6 @@
-from emc.data import DataLoader
+# from emc.data import DataLoader
 from emc.data.constants import *
+from emc.data.data_loader import DataLoader
 
 
 def main():
