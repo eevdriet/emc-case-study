@@ -1,11 +1,13 @@
 import math
 
 import pandas as pd
-from attrs import define
+from attrs import define, field
+from typing import Generator
 
 from emc.model.costs import Costs
 from emc.model.time_costs import Time_Costs
-from emc.model.scenario import Scenario
+from emc.data.constants import *
+
 
 @define
 class Policy:
@@ -15,25 +17,37 @@ class Policy:
     - a drug efficacy survey (when a signal of drug resistance is suspected)
     """
 
-    # At which moments in time to conduct a drug efficacy survey or not
-    drug_surveys: list[bool] = [False] * 21
-
     # At which moments in time to conduct an epidemiological survey or not
-    epi_surveys: list[bool] = [True] * 21
+    epi_surveys: tuple[bool]
 
-    # models connected to subpolicies
-    sub_policy: dict
+    # At which moments in time to conduct a drug efficacy survey or not
+    drug_surveys: tuple[bool] = field(default=(False,) * N_YEARS)
 
-    @property
-    def total_cost(self, de_survey: pd.DataFrame):
+    def calculate_cost(self, de_survey: pd.DataFrame):
         survey_cost = self.__consumable(de_survey) + self.__personnel(de_survey) + self.__transportation(de_survey)
 
-        cost = 1 / 2 * survey_cost * sum(self.epSurvey)
-        cost += survey_cost * sum(self.deSurvey)
+        cost = 0
+        cost += (1 / 2) * survey_cost * sum(self.epi_surveys)
+        cost += survey_cost * sum(self.drug_surveys)
 
         return cost
 
-    def __consumable(self, de_survey: pd.DataFrame):
+    def __hash__(self):
+        return hash(self.epi_surveys)
+
+    @property
+    def sub_policies(self) -> Generator["Policy", None, None]:
+        for time in range(N_YEARS):
+            if self.epi_surveys[time]:
+                surveys = self.epi_surveys[:time + 1] + (False,) * (N_YEARS - time - 1)
+                yield Policy(surveys)
+
+    @property
+    def time_points(self) -> list[int]:
+        return [time for time, do_survey in enumerate(self.epi_surveys) if do_survey]
+
+    @classmethod
+    def __consumable(cls, de_survey: pd.DataFrame):
         N_baseline = de_survey['total_useful_tests'] + de_survey['skipped_NaN_tests']
         N_follow_up = de_survey['total_useful_tests']
         baseline_costs = N_baseline * (Costs.EQUIPMENT + Costs.FIXED_COST + Costs.KATO_KATZ.get('single_sample'))
@@ -47,28 +61,24 @@ class Policy:
     def __transportation(self, de_survey: pd.DataFrame) -> int:
         return self.__days(de_survey) * 90
 
-    def __days(self, de_survey: pd.DataFrame) -> int:
+    @classmethod
+    def __days(cls, de_survey: pd.DataFrame) -> int:
         workers = 4  # Under assumption of single mobile field team: 1 nurse, three technicians
         timeAvailable = workers * 4 * 60 * 60  # In seconds
         N_baseline = de_survey['total_useful_tests'] + de_survey['skipped_NaN_tests']
         N_follow_up = de_survey['total_useful_tests']
         c_pre = de_survey['true_a_pre']  # TODO: Use average egg observations per time stamp AND include duplicate KK
         c_post = de_survey['true_a_post']  # TODO: This is true number of eggs in individual, aliquots is on observed
-        count_pre = self.__countKK(self, c_pre)
-        count_post = self.__countKK(self, 2 * c_post)
-        time_pre = N_baseline * (Time_Costs.KATO_KATZ.get('demography') + Time_Costs.KATO_KATZ.get('single_prep') +
+        count_pre = Time_Costs.countKK(c_pre)
+        count_post = Time_Costs.countKK(2 * c_post)
+        time_pre = N_baseline * (Time_Costs.KATO_KATZ['demography'] + Time_Costs.KATO_KATZ.get('single_prep') +
                                  Time_Costs.KATO_KATZ.get('single_record')) + count_pre
         time_post = N_follow_up * (Time_Costs.KATO_KATZ.get('demography') + Time_Costs.KATO_KATZ.get('duplicate_prep') +
-                                  Time_Costs.KATO_KATZ.get('duplicate_record')) + count_post
+                                   Time_Costs.KATO_KATZ.get('duplicate_record')) + count_post
         return math.ceil((time_pre + time_post) / timeAvailable)
-    
-    def __generateSubPolicies(self) -> None:
-        subsets = []
-        for i in range(len(self.epi_surveys)):
-            if self.epi_surveys[i] == 1:
-                subset = self.epi_surveys[:i] + [0] * (len(self.epi_surveys) - i)
-                subsets.append(subset)
-                self.sub_policy[tuple(subset)] = None
-    
-    def generateModels(self) -> dict:
-        return None
+
+
+if __name__ == '__main__':
+    import inspect
+
+    print(inspect.getsource(Policy.__hash__))
