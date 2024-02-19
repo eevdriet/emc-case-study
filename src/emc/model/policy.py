@@ -21,6 +21,9 @@ class Policy:
     # At which moments in time to conduct an epidemiological survey or not
     epi_surveys: list[bool] = [True] * 21
 
+    # models connected to subpolicies
+    sub_policy: dict
+
     @property
     def total_cost(self, de_survey: pd.DataFrame):
         survey_cost = self.__consumable(de_survey) + self.__personnel(de_survey) + self.__transportation(de_survey)
@@ -59,12 +62,13 @@ class Policy:
                                   Time_Costs.KATO_KATZ.get('duplicate_record')) + count_post
         return math.ceil((time_pre + time_post) / timeAvailable)
     
-    def __generateSubPolicies(self) -> list[bool]:
+    def __generateSubPolicies(self) -> None:
         subsets = []
         for i in range(len(self.epi_surveys)):
             if self.epi_surveys[i] == 1:
-                subsets.append(self.epi_surveys[:i] + [0] * (len(self.epi_surveys) - i))
-        return subsets
+                subset = self.epi_surveys[:i] + [0] * (len(self.epi_surveys) - i)
+                subsets.append(subset)
+                self.sub_policy[tuple(subset)] = None
     
     def generateModels(self) -> dict:
         return None
