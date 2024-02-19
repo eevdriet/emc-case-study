@@ -22,7 +22,7 @@ class Policy:
     epi_surveys: list[bool] = [True] * 21
 
     # models connected to subpolicies
-    sub_policy: dict
+    policy_models: dict
 
     @property
     def total_cost(self, de_survey: pd.DataFrame):
@@ -68,7 +68,7 @@ class Policy:
             if self.epi_surveys[i] == 1:
                 subset = self.epi_surveys[:i] + [0] * (len(self.epi_surveys) - i)
                 subsets.append(subset)
-                self.sub_policy[tuple(subset)] = None
+                self.policy_models[tuple(subset)] = None
     
     def generateModels(self) -> dict:
         return None
