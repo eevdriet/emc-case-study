@@ -1,7 +1,7 @@
-from enum import StrEnum
+from enum import Enum
 
 
-class Worm(StrEnum):
+class Worm(Enum):
     ASCARIS = 'ascaris'
     HOOKWORM = 'hookworm'
 
