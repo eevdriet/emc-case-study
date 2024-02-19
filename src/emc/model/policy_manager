@@ -2,4 +2,4 @@ from attrs import define
 
 @define
 class Policy_Manager:
-    
+    hallo : bool = True
