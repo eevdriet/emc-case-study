@@ -91,8 +91,21 @@ class PolicyManager:
         test_sims = simulations[:split_idx]
 
         print("Merging...")
-        train_df = pd.concat([sim.monitor_age for sim in train_sims])
-        test_df = pd.concat([sim.monitor_age for sim in test_sims])
+
+        cols = ['n_host', 'n_host_eggpos', 'a_epg_obs', 'target', 'inf_level', 'inf_level_change',
+                'a_epg_obs_change', 'exp_inf_level']
+        df = pd.concat([simulation.monitor_age for simulation in simulations])
+
+        for col in set(cols) - {'a_epg_obs_change', 'inf_level_change'}:
+            min_col = df[col].min()
+            max_col = df[col].max()
+
+            df[col] = (df[col] - min_col) / (max_col - min_col)
+
+        split_idx = int(len(df) * self.TRAIN_TEST_SPLIT_SIZE)
+
+        train_df = df.iloc[:split_idx]
+        test_df = df.iloc[split_idx:]
 
         print("Created train/test")
         return train_sims, train_df, test_sims, test_df

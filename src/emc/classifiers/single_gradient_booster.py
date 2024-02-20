@@ -14,7 +14,6 @@ class SingleGradientBooster(Classifier):
 
         for _, df in groups:
             target = df.reset_index(drop=True).loc[0, 'target']
-            del df['target']
             targets.append(target)
 
             row = df.to_numpy().T.flatten()
