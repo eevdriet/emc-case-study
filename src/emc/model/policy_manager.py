@@ -96,7 +96,7 @@ class PolicyManager:
                 'a_epg_obs_change', 'exp_inf_level']
         df = pd.concat([simulation.monitor_age for simulation in simulations])
 
-        for col in set(cols) - {'a_epg_obs_change', 'inf_level_change'}:
+        for col in set(cols) - {'a_epg_obs_change', 'inf_level_change', 'target'}:
             min_col = df[col].min()
             max_col = df[col].max()
 
