@@ -1,13 +1,7 @@
-from emc.data import DataLoader
-from emc.data.level_builder import LevelBuilder
-from emc.classifiers import GradientBoosting
-from emc.data import LabelGenerator
-from collections import Counter
 from emc.util import Paths
 
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy.optimize as opt
 import seaborn as sns
 
 

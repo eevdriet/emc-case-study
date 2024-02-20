@@ -1,19 +1,22 @@
 import pandas as pd
 import random
 
+from typing import Tuple, TypeVar
+
 from emc.model.policy import Policy
 from emc.model.scenario import Scenario
 from emc.model.simulation import Simulation
 from emc.data.constants import *
 
 from emc.classifiers.single_gradient_booster import SingleGradientBooster
-from emc.util import normalised
-
-Simulations = list[Simulation]
-SplitData = tuple[tuple[Simulations, Simulations], tuple[pd.DataFrame, pd.DataFrame]]
+from emc.util import normalised, Pair
 
 
 class PolicyManager:
+    # Data is split into pairs of train/test data
+    # The data consists of the simulations and their (combined) data as data frame
+    SplitData = tuple[Pair[list[Simulation]], Pair[pd.DataFrame]]
+
     """
     Manages the classification of different policies and their sub-policies
     """

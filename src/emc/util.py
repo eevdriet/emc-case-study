@@ -1,5 +1,10 @@
 from pathlib import Path
+from typing import Tuple, TypeVar
 import pandas as pd
+
+# Type definitions
+T = TypeVar('T')
+Pair = Tuple[T, T]
 
 
 def normalised(series: pd.Series, missing_val: float = 0.5):
