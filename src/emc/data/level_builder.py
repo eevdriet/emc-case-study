@@ -28,7 +28,6 @@ class LevelBuilder:
         # Data
         self.all_scenarios = scenarios
         self.scenarios = []
-        self.path = data_path()
 
         # Parameters
         self.bucket_size: float = 0.1
@@ -58,9 +57,11 @@ class LevelBuilder:
         self.scenarios = self.__find_scenarios(mda_freq, mda_strategy)
 
         # Verify whether the levels were previously generated and should be overwritten
-        self.path = self.__construct_path()
-        if self.path.exists() and not overwrite:
-            with open(self.path, 'r') as file:
+        name = self.__construct_name()
+        path = data_path() / 'levels' / f'{name}.json'
+
+        if path.exists() and not overwrite:
+            with open(path, 'r') as file:
                 self.mode_levels = json.load(file)
                 return self.mode_levels
 
@@ -68,16 +69,17 @@ class LevelBuilder:
         for baseline in self.buckets:
             self.__build_levels(baseline)
 
-        with open(self.path, 'w') as file:
+        with open(path, 'w') as file:
             json.dump(self.mode_levels, file, allow_nan=True, indent=4)
 
         return self.mode_levels
 
-    def plot(self, baseline: int, save: bool = False):
+    def plot(self, baseline: int, save: bool = False, show: bool = True):
         """
         Plot the most recently created infection levels
         :param baseline: Baseline infection level for which to plot
         :param save: Whether to save the plot
+        :param show: Whether to show the plot
         """
         if not self.mode_levels:
             print("Levels do not exist, build first using `build_levels`")
@@ -115,13 +117,17 @@ class LevelBuilder:
         plt.ylabel("Infection level")
         plt.ylim(0, 1)
         plt.legend(title="Resistance mode")
-        # plt.show()
 
+        if show:
+            plt.show()
         if save:
-            plt.savefig(self.path.parent / self.path.stem)
+            name = self.__construct_name()
+            path = data_path() / 'levels' / 'figures' / f'{name}_{baseline}%'
+            plt.savefig(path)
+
         plt.clf()
 
-    def __build_levels(self, baseline: int) -> Levels:
+    def __build_levels(self, baseline: int):
         """
         Build the infection levels for a given baseline infection level
         :param baseline: Baseline infection level
@@ -183,7 +189,7 @@ class LevelBuilder:
 
         return scenarios
 
-    def __construct_path(self) -> Path:
+    def __construct_name(self) -> str:
         """
         Construct the path of the data of a certain scenario
         :return: Path to the level data
@@ -191,9 +197,8 @@ class LevelBuilder:
         worm = self.all_scenarios[0].species
         freq_str = f'{self.mda_freq}year' if self.mda_freq else 'any_freq'
         strat_str = self.mda_strategy if self.mda_strategy else 'anyone'
-        fname = f'{worm}_{self.bucket_size}_{freq_str}_{strat_str}.json'
 
-        return data_path() / 'levels' / fname
+        return f'{worm}_{self.bucket_size}_{freq_str}_{strat_str}'
 
 
 def main():
@@ -217,11 +222,8 @@ def main():
                 print(f"-- {bucket_size} with {freq=}, {strat=}")
                 builder.build(bucket_size, mda_strategy=strat, mda_freq=freq, overwrite=False)
 
-                # Demonstration of plotting
-                # builder.build(5, overwrite=True)
-                # builder.build(10, mda_freq=2, mda_strategy='community')
                 for baseline in range(0, 70, bucket_size):
-                    builder.plot(baseline, save=True)
+                    builder.plot(baseline, save=True, show=False)
 
     print("Done")
 

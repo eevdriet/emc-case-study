@@ -51,7 +51,7 @@ class PolicyManager:
             #   for every time t from t = 0 to t = n
             #       if epi_survey[t]:
             #           totalCosts += epi_survey_costs at time t
-            #       if de_survey[t]:
+            #       if de_survey [t]:
             #           totalCosts += de_survey_costs at time t
             #           if de_survey result < 0.85:
             #               continue

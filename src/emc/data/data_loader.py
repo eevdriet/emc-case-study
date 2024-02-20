@@ -128,15 +128,7 @@ class DataLoader:
             return None
 
         # Correctly order the columns and set data types
-        df = pd.read_csv(path)
-        # df = df[MA_COLUMNS]
-        # df[MA_INT_COLUMNS] = df[MA_INT_COLUMNS].astype('Int64')
-
-        # Index based on the simulation/scenario
-        # if not isinstance(df.index, pd.MultiIndex):
-        #     df.set_index(['scenario', 'simulation'], inplace=True)
-
-        return df
+        return pd.read_csv(path)
 
     def _load_drug_efficacy(self) -> Optional[pd.DataFrame]:
         """
@@ -150,10 +142,9 @@ class DataLoader:
 
         # Correctly order the columns and set data types
         df = pd.read_csv(path)
-        # df = df[DE_COLUMNS]
-        # df[DE_INT_COLUMNS] = df[DE_INT_COLUMNS].astype('Int64')
 
         # Index based on the simulation/scenario
+        # NOTE: this is REQUIRED, since not every simulation has the same number of observations
         if not isinstance(df.index, pd.MultiIndex):
             df.set_index(['scenario', 'simulation'], inplace=True)
 
