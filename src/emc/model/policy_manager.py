@@ -94,6 +94,7 @@ class PolicyManager:
 
         cols = ['n_host', 'n_host_eggpos', 'a_epg_obs', 'target', 'inf_level', 'inf_level_change',
                 'a_epg_obs_change', 'exp_inf_level']
+        df = df[cols]
         df = pd.concat([simulation.monitor_age for simulation in simulations])
 
         for col in set(cols) - {'a_epg_obs_change', 'inf_level_change', 'target'}:
