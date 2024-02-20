@@ -21,12 +21,15 @@ class PolicyManager:
         self.scenarios: list[Scenario] = scenarios
         self.policy_classifiers = {}
 
+        self.train_simulations = []
         self.train_df = pd.DataFrame()
+
+        self.test_simulations = []
         self.test_df = pd.DataFrame()
 
     def manage(self):
         # Split the data into train/validation data for the classifiers
-        self.train_df, self.test_df = self.__split_data()
+        self.train_simulations, self.train_df, self.test_simulations, self.test_df = self.__split_data()
 
         #
         policy = self.__create_init_policy()
@@ -43,8 +46,14 @@ class PolicyManager:
             classifier = SingleGradientBooster(sub_policy, train, test)
             classifier.run()
 
-            # generate all classifier models per subpolicy train on train set, test on test set
+            # Store the classifier results
+            self.policy_classifiers[sub_policy] = classifier
 
+            for simulation, df in zip(self.test_simulations, self.test_df):
+                res = classifier.test(df)
+                cost = simulation.calculate_cost(policy)
+
+            # for
             # totalCosts = 0
             # per simulation in test set:
             #   from generated classifiers construct de_survey schedule
@@ -78,17 +87,18 @@ class PolicyManager:
         split_idx = int(len(simulations) * self.TRAIN_TEST_SPLIT_SIZE)
         #
         print("Splitting...")
-        train = simulations[split_idx:]
-        test = simulations[:split_idx]
+        train_sims = simulations[split_idx:]
+        test_sims = simulations[:split_idx]
 
         print("Merging...")
-        train_df = pd.concat([sim.monitor_age for sim in train])
-        test_df = pd.concat([sim.monitor_age for sim in test])
+        train_df = pd.concat([sim.monitor_age for sim in train_sims])
+        test_df = pd.concat([sim.monitor_age for sim in test_sims])
 
         print("Created train/test")
-        return train_df, test_df
+        return train_sims, train_df, test_sims, test_df
 
-    def __filter_data(self, df: pd.DataFrame, policy: Policy) -> pd.DataFrame:
+    @classmethod
+    def __filter_data(cls, df: pd.DataFrame, policy: Policy) -> pd.DataFrame:
         time_points = policy.time_points
         df = df[df['time'].isin(time_points)]
 
