@@ -1,6 +1,7 @@
 import json
 
 import pandas as pd
+import numpy as np
 
 from typing import Optional
 
@@ -128,7 +129,9 @@ class DataLoader:
             return None
 
         # Correctly order the columns and set data types
-        return pd.read_csv(path)
+        df = pd.read_csv(path)
+        df.replace([np.inf, -np.inf], np.nan, inplace=True)
+        return df
 
     def _load_drug_efficacy(self) -> Optional[pd.DataFrame]:
         """
