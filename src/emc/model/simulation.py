@@ -4,7 +4,8 @@ import pandas as pd
 from attrs import define, field
 
 from emc.model.label import Label
-from emc.model.policy import Policy
+
+# from emc.model.policy import Policy
 
 # Required to avoid circular dependency
 if typing.TYPE_CHECKING:
@@ -42,5 +43,5 @@ class Simulation:
     # Identifier of the simulation
     id: int = field(eq=False, default=-1)
 
-    def calculate_cost(self, policy: Policy):
+    def calculate_cost(self, policy):
         return policy.calculate_cost(self.drug_efficacy_s)
