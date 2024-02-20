@@ -40,7 +40,7 @@ class PolicyManager:
             train = self.__filter_data(self.train_df, sub_policy)
             test = self.__filter_data(self.test_df, sub_policy)
 
-            classifier = SingleGradientBooster(train, test)
+            classifier = SingleGradientBooster(sub_policy, train, test)
             classifier.run()
 
             # generate all classifier models per subpolicy train on train set, test on test set
@@ -66,7 +66,6 @@ class PolicyManager:
 
         return Policy(epi_surveys)
 
-    @property
     def __split_data(self):
         # Combine all simulations from all scenarios
         simulations: list[Simulation] = []

@@ -6,12 +6,14 @@ import numpy as np
 import pandas as pd
 
 from emc.model.scenario import Scenario
+from emc.model.policy import Policy
 
 
 class Classifier(ABC):
     SEED: int = 76
 
-    def __init__(self, train: pd.DataFrame, test: pd.DataFrame):
+    def __init__(self, policy: Policy, train: pd.DataFrame, test: pd.DataFrame):
+        self.policy = policy
         self.data = train
         self.test = test
 
@@ -38,7 +40,7 @@ class Classifier(ABC):
         # }
 
     @abstractmethod
-    def _preprocess(self, data: pd.DataFrame):
+    def _preprocess(self, data: pd.DataFrame) -> tuple[np.ndarray, np.array]:
         """
         Preprocess the training data
             Standardise all features

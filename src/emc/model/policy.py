@@ -35,6 +35,9 @@ class Policy:
     def __hash__(self):
         return hash(self.epi_surveys)
 
+    def __len__(self):
+        return sum(self.epi_surveys)
+
     @property
     def sub_policies(self) -> Generator["Policy", None, None]:
         for time in range(N_YEARS):

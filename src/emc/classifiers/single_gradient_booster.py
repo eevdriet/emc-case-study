@@ -6,31 +6,24 @@ from emc.classifiers import Classifier
 
 
 class SingleGradientBooster(Classifier):
-    def _preprocess(self, data: pd.DataFrame) -> np.ndarray:
-        groups = data.groupby(data.index)
+    def _preprocess(self, data: pd.DataFrame) -> tuple[np.ndarray, np.array]:
+        groups = data.groupby(['scenario', 'simulation'])
 
-        empty_array = np.empty((0, num_columns))
-
-        n_cols = data.index.value_counts()[0]
-        X_data = np.empty((0, n_cols))
+        features = []
+        targets = []
 
         for _, df in groups:
-            row = np.empty((0, n_cols))
+            target = df.reset_index(drop=True).loc[0, 'target']
+            del df['target']
+            targets.append(target)
 
-            for name, series in df.items():
-                cols = series.to_numpy().T.flatten()
-
-                if name == 'target':
-                    y_data = row
-                else:
-                    row = np.append(row, cols)
-
-            X_data = np.vstack((X_data, row))
+            row = df.to_numpy().flatten()
+            features.append(row)
 
         # Transposing and flattening the DataFrame to create the features (X)
         # Extracting the target (y) - the final value of the last column
 
-        return X_data, y_data
+        return np.vstack(features), np.array(targets)
 
     def _train(self, X_train: pd.DataFrame, y_train: pd.Series):
         self.xgb = XGBClassifier(random_state=self.SEED, missing=np.NaN)
