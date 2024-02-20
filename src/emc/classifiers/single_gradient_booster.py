@@ -3,6 +3,7 @@ import pandas as pd
 from xgboost import XGBClassifier, XGBRegressor
 
 from emc.classifiers import Classifier
+from math import isnan
 
 
 class SingleGradientBooster(Classifier):
@@ -13,7 +14,9 @@ class SingleGradientBooster(Classifier):
         targets = []
 
         for _, df in groups:
-            target = df.reset_index(drop=True).loc[0, 'target']
+            target = df.reset_index(drop=True).loc[-1, 'target']
+            if isnan(target):
+                continue
             del df['target']
             targets.append(target)
 
@@ -32,6 +35,6 @@ class SingleGradientBooster(Classifier):
         print(f"Fitting with {len(X_train)} simulations...")
         self.xgb.fit(X_train, y_train)
 
-    def _test(self, X_test: pd.DataFrame, y_test: pd.Series):
+    def test(self, X_test: pd.DataFrame, y_test: pd.Series):
         print(f"Predicting with {len(X_test)} simulations...")
         return self.xgb.predict(X_test)
