@@ -1,5 +1,6 @@
 from typing import Iterator
 
+import pandas as pd
 from attrs import define, field
 
 from emc.model.simulation import Simulation
@@ -21,6 +22,8 @@ class Scenario:
 
     # Targeted population ("sac" for school-age children, "community" for the wider community)
     mda_strategy: str
+
+    _monitor_age: pd.DataFrame
 
     # Initial frequency of resistant alleles in the worm population (between 0 and 1)
     res_freq: float = field(eq=False)

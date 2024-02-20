@@ -3,8 +3,10 @@ import random
 
 from emc.model.policy import Policy
 from emc.model.scenario import Scenario
-from emc.model.simulation import Simulation
 from emc.data.constants import *
+
+
+# from emc.classifiers.single_gradient_booster import SingleGradientBooster
 
 
 class PolicyManager:
@@ -16,7 +18,7 @@ class PolicyManager:
     """
 
     def __init__(self, scenarios: list[Scenario]):
-        self.scenarios = scenarios
+        self.scenarios: list[Scenario] = scenarios
         self.policy_classifiers = {}
 
         self.train_df = pd.DataFrame()
@@ -24,7 +26,7 @@ class PolicyManager:
 
     def manage(self):
         # Split the data into train/validation data for the classifiers
-        self.train_df, self.test_df = self.__split_data()
+        self.train_df, self.test_df = self.__split_data
 
         #
         policy = self.__create_init_policy()
@@ -38,7 +40,7 @@ class PolicyManager:
             train = self.__filter_data(self.train_df, sub_policy)
             test = self.__filter_data(self.test_df, sub_policy)
 
-            # classifier = Classifier(train)
+            # classifier = SingleGradientBooster(train, test)
             # classifier.run()
 
             # generate all classifier models per subpolicy train on train set, test on test set
@@ -64,6 +66,7 @@ class PolicyManager:
 
         return Policy(epi_surveys)
 
+    @property
     def __split_data(self):
         # Combine all simulations from all scenarios
         simulations: list[Simulation] = []
@@ -71,16 +74,19 @@ class PolicyManager:
             simulations += scenario.simulations
 
         # Randomly order the simulations and split into train/validation
+        random.seed(SEED)
         random.shuffle(simulations)
         split_idx = int(len(simulations) * self.TRAIN_TEST_SPLIT_SIZE)
-
+        #
+        print("Splitting...")
         train = simulations[split_idx:]
         test = simulations[:split_idx]
 
-        # Extract the monitor_age data from the train/validation simulations
-        train_df = pd.concat([sim.monitor_age for sim in train], axis=0)
-        test_df = pd.concat([sim.monitor_age for sim in test], axis=0)
+        print("Merging...")
+        train_df = pd.concat([sim.monitor_age for sim in train])
+        test_df = pd.concat([sim.monitor_age for sim in test])
 
+        print("Created train/test")
         return train_df, test_df
 
     def __filter_data(self, df: pd.DataFrame, policy: Policy) -> pd.DataFrame:

@@ -40,3 +40,5 @@ DE_COLUMNS = COLUMNS + ['total_useful_tests', 'skipped_NaN_tests',
                         'true_a_pre', 'true_a_post', 'true_total_pre', 'true_total_post',
                         'ERR', 'EPG_change']
 DE_INT_COLUMNS = INT_COLUMNS + ['total_useful_tests', 'skipped_NaN_tests']
+
+SEED = 76

@@ -4,7 +4,8 @@ import pandas as pd
 
 from typing import Optional
 
-from emc.model.scenario import Scenario, Simulation
+from emc.model.scenario import Scenario
+from emc.model.simulation import Simulation
 from emc.model.label import Label
 from emc.util import worm_path
 from emc.data.constants import *
@@ -52,7 +53,8 @@ class DataLoader:
         res_mode = metadata['pheno_SNP']
 
         scenario = Scenario(id=scen_id, species=self.species, mda_freq=mda_freq,
-                            mda_strategy=mda_strategy, res_freq=res_freq, res_mode=res_mode)
+                            mda_strategy=mda_strategy, res_freq=res_freq, res_mode=res_mode,
+                            monitor_age=self.monitor_age)
 
         # Load in its relevant simulations
         simulations = self._load_simulations(scenario, metadata)
@@ -131,8 +133,8 @@ class DataLoader:
         # df[MA_INT_COLUMNS] = df[MA_INT_COLUMNS].astype('Int64')
 
         # Index based on the simulation/scenario
-        if not isinstance(df.index, pd.MultiIndex):
-            df.set_index(['scenario', 'simulation'], inplace=True)
+        # if not isinstance(df.index, pd.MultiIndex):
+        #     df.set_index(['scenario', 'simulation'], inplace=True)
 
         return df
 
