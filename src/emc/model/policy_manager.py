@@ -47,11 +47,11 @@ class PolicyManager:
             classifier.run()
 
             # Store the classifier results
-            self.policy_classifiers[sub_policy] = classifier
+            # self.policy_classifiers[sub_policy] = classifier
 
-            for simulation, df in zip(self.test_simulations, self.test_df):
-                res = classifier.test(df)
-                cost = simulation.calculate_cost(policy)
+            # for simulation, df in zip(self.test_simulations, self.test_df):
+            #     res = classifier.test(df)
+            #     cost = simulation.calculate_cost(policy)
 
             # for
             # totalCosts = 0
@@ -92,12 +92,9 @@ class PolicyManager:
 
         print("Merging...")
 
-        cols = ['n_host', 'n_host_eggpos', 'a_epg_obs', 'target', 'inf_level', 'inf_level_change',
-                'a_epg_obs_change', 'exp_inf_level']
         df = pd.concat([simulation.monitor_age for simulation in simulations])
-        df = df[cols]
 
-        for col in set(cols) - {'a_epg_obs_change', 'inf_level_change', 'target'}:
+        for col in {'n_host', 'n_host_eggpos', 'a_epg_obs'}:
             min_col = df[col].min()
             max_col = df[col].max()
 
@@ -105,8 +102,8 @@ class PolicyManager:
 
         split_idx = int(len(df) * self.TRAIN_TEST_SPLIT_SIZE)
 
-        train_df = df.iloc[:split_idx]
-        test_df = df.iloc[split_idx:]
+        train_df = df.iloc[split_idx:]
+        test_df = df.iloc[:split_idx]
 
         print("Created train/test")
         return train_sims, train_df, test_sims, test_df

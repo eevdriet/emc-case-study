@@ -14,7 +14,10 @@ class SingleGradientBooster(Classifier):
         targets = []
 
         for _, df in groups:
-            target = df.reset_index(drop=True).loc[-1, 'target']
+            df = df.drop(columns=['simulation', 'scenario', 'time', 'ERR'])
+
+            df = df.reset_index(drop=True)
+            target = df['target'].iloc[-1]
             if isnan(target):
                 continue
             del df['target']

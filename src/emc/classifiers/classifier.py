@@ -15,7 +15,7 @@ class Classifier(ABC):
     def __init__(self, policy: Policy, train: pd.DataFrame, test: pd.DataFrame):
         self.policy = policy
         self.data = train
-        self.test = test
+        self.test_data = test
 
     def run(self) -> float:
         """
@@ -23,10 +23,10 @@ class Classifier(ABC):
         :return: Results from the classifier
         """
         X_data, y_data = self._preprocess(self.data)
-        X_test, y_test = self._preprocess(self.test)
+        X_test, y_test = self._preprocess(self.test_data)
 
         self._train(X_data, y_data)
-        predictions = self._test(X_test, y_test)
+        predictions = self.test(X_test, y_test)
 
         # threshold
         y_test = (y_test < 0.85).astype(int)
@@ -62,7 +62,7 @@ class Classifier(ABC):
         ...
 
     @abstractmethod
-    def test(self, X_test: pd.DataFrame) -> float:
+    def test(self, X_test: np.ndarray, y_test: np.array) -> float:
         """
         Test the classifier by finding the label fitting its data
         :return: Multi-Criteria Decision Analysis composite score
