@@ -87,7 +87,7 @@ class LevelBuilder:
         times = range(19)
 
         for res_mode, color in zip(self.__RES_MODES, self.__COLORS):
-            means, sds, mins, maxs = map(np.array, zip(*levels[res_mode]))
+            means, sds, mins, maxs, n_hosts = map(np.array, zip(*levels[res_mode]))
             times = range(len(means))
 
             # Plot infection level means
@@ -115,10 +115,11 @@ class LevelBuilder:
         plt.ylabel("Infection level")
         plt.ylim(0, 1)
         plt.legend(title="Resistance mode")
-        plt.show()
+        # plt.show()
 
         if save:
             plt.savefig(self.path.parent / self.path.stem)
+        plt.clf()
 
     def __build_levels(self, baseline: int) -> Levels:
         """
@@ -201,6 +202,7 @@ def main():
 
     # Load in the data
     for worm in Worm:
+        worm = worm.value
         loader = DataLoader(worm, use_merged=True, load_efficacy=False)
         scenarios = loader.load_scenarios()
 
@@ -213,12 +215,13 @@ def main():
 
             for strat, freq in product(mda_strategy, mda_freq):
                 print(f"-- {bucket_size} with {freq=}, {strat=}")
-                builder.build(bucket_size, mda_strategy=strat, mda_freq=freq, overwrite=True)
+                builder.build(bucket_size, mda_strategy=strat, mda_freq=freq, overwrite=False)
 
-        # Demonstration of plotting
-        # builder.build(5, overwrite=True)
-        builder.build(10, mda_freq=2, mda_strategy='community')
-        builder.plot(0)
+                # Demonstration of plotting
+                # builder.build(5, overwrite=True)
+                # builder.build(10, mda_freq=2, mda_strategy='community')
+                for baseline in range(0, 70, bucket_size):
+                    builder.plot(baseline, save=True)
 
     print("Done")
 
