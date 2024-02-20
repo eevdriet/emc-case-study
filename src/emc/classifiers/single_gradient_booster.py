@@ -3,17 +3,32 @@ import pandas as pd
 from xgboost import XGBClassifier
 
 from emc.classifiers import Classifier
-from emc.model import Label
 
 
 class SingleGradientBooster(Classifier):
-    def _preprocess(self, data: pd.DataFrame) -> pd.DataFrame:
-        
-        
+    def _preprocess(self, data: pd.DataFrame) -> np.ndarray:
+        groups = data.groupby(data.index)
+
+        empty_array = np.empty((0, num_columns))
+
+        n_cols = data.index.value_counts()[0]
+        X_data = np.empty((0, n_cols))
+
+        for _, df in groups:
+            row = np.empty((0, n_cols))
+
+            for name, series in df.items():
+                cols = series.to_numpy().T.flatten()
+
+                if name == 'target':
+                    y_data = row
+                else:
+                    row = np.append(row, cols)
+
+            X_data = np.vstack((X_data, row))
+
         # Transposing and flattening the DataFrame to create the features (X)
-        X_data = data.to_numpy().T.flatten()
         # Extracting the target (y) - the final value of the last column
-        y_data = np.array([data.iloc[-1, -1]])
 
         return X_data, y_data
 

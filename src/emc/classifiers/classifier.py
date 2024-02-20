@@ -11,15 +11,16 @@ from emc.model.scenario import Scenario
 class Classifier(ABC):
     SEED: int = 76
 
-    def __init__(self, data: pd.DataFrame):
-        self.data = data
+    def __init__(self, train: pd.DataFrame, test: pd.DataFrame):
+        self.data = train
+        self.test = test
 
-    def run(self, data: pd.DataFrame) -> float:
+    def run(self) -> float:
         """
         Run the classifier to find the labels of the given data
         :return: Results from the classifier
         """
-        X_data, y_data = self._preprocess(data)
+        X_data, y_data = self._preprocess(self.data)
 
         self._train(X_data, y_data)
         # predictions = self._test(X_test, y_test)
@@ -35,8 +36,9 @@ class Classifier(ABC):
         #     'recall': recall,
         #     'f1_score': f1
         # }
-    
-    def _preprocess(self, train: pd.DataFrame, val: pd.DataFrame):
+
+    @abstractmethod
+    def _preprocess(self, data: pd.DataFrame):
         """
         Preprocess the training data
             Standardise all features
@@ -45,7 +47,7 @@ class Classifier(ABC):
         ...
 
     @abstractmethod
-    def _train(self, X_train: np.ndarray, y_train: int):
+    def _train(self, X_train: np.ndarray, y_train: np.array):
         """
         Train the classifier on the training data
         """
