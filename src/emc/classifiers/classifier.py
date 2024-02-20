@@ -23,21 +23,27 @@ class Classifier(ABC):
         :return: Results from the classifier
         """
         X_data, y_data = self._preprocess(self.data)
+        X_test, y_test = self._preprocess(self.test)
 
-        # self._train(X_data, y_data)
-        # predictions = self._test(X_test, y_test)
+        self._train(X_data, y_data)
+        predictions = self._test(X_test, y_test)
 
-        # accuracy = accuracy_score(y_test, predictions)
-        # precision = precision_score(y_test, predictions, average='weighted')
-        # recall = recall_score(y_test, predictions, average='weighted')
-        # f1 = f1_score(y_test, predictions, average='weighted')
+        # threshold
+        y_test = (y_test < 0.85).astype(int)
+        predictions = (predictions < 0.85).astype(int)
 
-        # return {
-        #     'accuracy': accuracy,
-        #     'precision': precision,
-        #     'recall': recall,
-        #     'f1_score': f1
-        # }
+        # check scores
+        accuracy = accuracy_score(y_test, predictions)
+        precision = precision_score(y_test, predictions, average='weighted')
+        recall = recall_score(y_test, predictions, average='weighted')
+        f1 = f1_score(y_test, predictions, average='weighted')
+
+        return {
+            'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall,
+            'f1_score': f1
+        }
 
     @abstractmethod
     def _preprocess(self, data: pd.DataFrame) -> tuple[np.ndarray, np.array]:

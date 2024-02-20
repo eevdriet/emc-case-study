@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from xgboost import XGBClassifier
+from xgboost import XGBClassifier, XGBRegressor
 
 from emc.classifiers import Classifier
 
@@ -23,15 +23,15 @@ class SingleGradientBooster(Classifier):
         # Transposing and flattening the DataFrame to create the features (X)
         # Extracting the target (y) - the final value of the last column
         features = np.vstack(features)
-        target = np.array(target)
+        targets = np.array(targets)
 
         return features, targets
 
     def _train(self, X_train: pd.DataFrame, y_train: pd.Series):
-        self.xgb = XGBClassifier(random_state=self.SEED, missing=np.NaN)
-        print(f"Fitting with {X_train[0]} simulations...")
+        self.xgb = XGBRegressor(random_state=self.SEED, missing=np.NaN)
+        print(f"Fitting with {len(X_train)} simulations...")
         self.xgb.fit(X_train, y_train)
 
     def _test(self, X_test: pd.DataFrame, y_test: pd.Series):
-        print(f"Predicting with {X_test[0]} simulations...")
+        print(f"Predicting with {len(X_test)} simulations...")
         return self.xgb.predict(X_test)
