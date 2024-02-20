@@ -17,13 +17,15 @@ class SingleGradientBooster(Classifier):
             del df['target']
             targets.append(target)
 
-            row = df.to_numpy().flatten()
+            row = df.to_numpy().T.flatten()
             features.append(row)
 
         # Transposing and flattening the DataFrame to create the features (X)
         # Extracting the target (y) - the final value of the last column
+        features = np.vstack(features)
+        target = np.array(target)
 
-        return np.vstack(features), np.array(targets)
+        return features, targets
 
     def _train(self, X_train: pd.DataFrame, y_train: pd.Series):
         self.xgb = XGBClassifier(random_state=self.SEED, missing=np.NaN)

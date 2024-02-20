@@ -73,11 +73,12 @@ class LevelBuilder:
 
         return self.mode_levels
 
-    def plot(self, baseline: int, save: bool = False):
+    def plot(self, baseline: int, save: bool = False, show: bool = True):
         """
         Plot the most recently created infection levels
         :param baseline: Baseline infection level for which to plot
         :param save: Whether to save the plot
+        :param show: Whether to show the plot
         """
         if not self.mode_levels:
             print("Levels do not exist, build first using `build_levels`")
@@ -115,13 +116,15 @@ class LevelBuilder:
         plt.ylabel("Infection level")
         plt.ylim(0, 1)
         plt.legend(title="Resistance mode")
-        # plt.show()
 
+        if show:
+            plt.show()
         if save:
             plt.savefig(self.path.parent / self.path.stem)
+
         plt.clf()
 
-    def __build_levels(self, baseline: int) -> Levels:
+    def __build_levels(self, baseline: int):
         """
         Build the infection levels for a given baseline infection level
         :param baseline: Baseline infection level
@@ -221,7 +224,7 @@ def main():
                 # builder.build(5, overwrite=True)
                 # builder.build(10, mda_freq=2, mda_strategy='community')
                 for baseline in range(0, 70, bucket_size):
-                    builder.plot(baseline, save=True)
+                    builder.plot(baseline, save=True, show=False)
 
     print("Done")
 
