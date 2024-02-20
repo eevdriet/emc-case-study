@@ -1,15 +1,13 @@
 import math
 
 import pandas as pd
-from attrs import define, field
-from typing import Generator
+from typing import Generator, Iterable
 
 from emc.model.costs import Costs
 from emc.model.time_costs import Time_Costs
 from emc.data.constants import *
 
 
-@define
 class Policy:
     """
     States at which point times a survey is conducted, which can be
@@ -17,11 +15,16 @@ class Policy:
     - a drug efficacy survey (when a signal of drug resistance is suspected)
     """
 
-    # At which moments in time to conduct an epidemiological survey or not
-    epi_surveys: tuple[bool]
+    def __init__(self, epi_surveys: Iterable[bool]):
+        # Store the surveys as tuples for hashing purposes
+        self.epi_surveys = tuple(epi_surveys)
+        assert len(self.epi_surveys) == N_YEARS
 
-    # At which moments in time to conduct a drug efficacy survey or not
-    drug_surveys: tuple[bool] = field(default=(False,) * N_YEARS)
+        # Find all time points for which the epidemiological surveys are scheduled
+        self.time_points = [time for time, do_survey in enumerate(self.epi_surveys) if do_survey]
+
+        # Initially schedule no drug efficacy surveys
+        self.drug_surveys = (False,) * N_YEARS
 
     def calculate_cost(self, de_survey: pd.DataFrame):
         survey_cost = self.__consumable(de_survey) + self.__personnel(de_survey) + self.__transportation(de_survey)
@@ -38,16 +41,25 @@ class Policy:
     def __len__(self):
         return sum(self.epi_surveys)
 
-    @property
-    def sub_policies(self) -> Generator["Policy", None, None]:
-        for time in range(N_YEARS):
-            if self.epi_surveys[time]:
-                surveys = self.epi_surveys[:time + 1] + (False,) * (N_YEARS - time - 1)
-                yield Policy(surveys)
+    def __repr__(self):
+        name = self.__class__.__name__
+        return f"{name}({self.time_points})"
 
     @property
-    def time_points(self) -> list[int]:
-        return [time for time, do_survey in enumerate(self.epi_surveys) if do_survey]
+    def sub_policies(self) -> Generator["Policy", None, None]:
+        """
+        Generate all sub-policies of the given policy
+        :return:
+        """
+        for time in range(N_YEARS):
+            if self.epi_surveys[time]:
+                # Conduct all surveys up to and including the current year
+                curr_years = self.epi_surveys[:time + 1]
+
+                # Ignore any further years
+                next_years = (False,) * (N_YEARS - time - 1)
+
+                yield Policy(curr_years + next_years)
 
     @classmethod
     def __consumable(cls, de_survey: pd.DataFrame):

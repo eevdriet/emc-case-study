@@ -38,6 +38,8 @@ class Classifier(ABC):
         recall = recall_score(y_test, predictions, average='weighted')
         f1 = f1_score(y_test, predictions, average='weighted')
 
+        print(f"F1 score for {self.policy}: {f1}")
+
         return {
             'accuracy': accuracy,
             'precision': precision,
