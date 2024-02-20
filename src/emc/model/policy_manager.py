@@ -49,7 +49,9 @@ class PolicyManager:
             # Store the classifier results
             self.policy_classifiers[sub_policy] = classifier
 
-            for simulation in self.test_simulations:
+            for simulation, df in zip(self.test_simulations, self.test_df):
+                res = classifier.test(df)
+                cost = simulation.calculate_cost(policy)
 
             # for
             # totalCosts = 0
@@ -95,7 +97,8 @@ class PolicyManager:
         print("Created train/test")
         return train_sims, train_df, test_sims, test_df
 
-    def __filter_data(self, df: pd.DataFrame, policy: Policy) -> pd.DataFrame:
+    @classmethod
+    def __filter_data(cls, df: pd.DataFrame, policy: Policy) -> pd.DataFrame:
         time_points = policy.time_points
         df = df[df['time'].isin(time_points)]
 

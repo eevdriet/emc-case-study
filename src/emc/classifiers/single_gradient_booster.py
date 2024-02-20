@@ -32,6 +32,6 @@ class SingleGradientBooster(Classifier):
         print(f"Fitting with {X_train[0]} simulations...")
         self.xgb.fit(X_train, y_train)
 
-    def _test(self, X_test: pd.DataFrame, y_test: pd.Series):
+    def test(self, X_test: pd.DataFrame):
         print(f"Predicting with {X_test[0]} simulations...")
         return self.xgb.predict(X_test)

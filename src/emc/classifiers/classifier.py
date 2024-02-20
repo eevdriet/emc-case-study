@@ -56,7 +56,7 @@ class Classifier(ABC):
         ...
 
     @abstractmethod
-    def _test(self, X_test: pd.DataFrame, y_test: pd.Series) -> float:
+    def test(self, X_test: pd.DataFrame) -> float:
         """
         Test the classifier by finding the label fitting its data
         :return: Multi-Criteria Decision Analysis composite score
