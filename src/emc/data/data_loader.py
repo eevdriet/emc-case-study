@@ -89,16 +89,16 @@ class DataLoader:
 
         label = Label.NO_SIGNAL if scenario.res_mode == 'none' else Label.SIGNAL
 
-        # Load monitor age
-        df = self.monitor_age
+        # Determines rows that belong to the current simulation
         coeff = 1 if self.use_merged else N_AGE_CATEGORIES
         step = coeff * N_YEARS
         start = step * (N_SIMULATIONS * (scenario.id - 1) + sim_id - 1)
-        monitor_age = df.iloc[start:start + step]
+
+        # Load monitor age
+        monitor_age = self.monitor_age.iloc[start:start + step]
 
         # Load drug efficacy (if required)
-        df = self.drug_efficacy
-        drug_efficacy_s = df.loc[(scenario.id, sim_id)] if self.load_efficacy else None
+        drug_efficacy_s = self.drug_efficacy.loc[(scenario.id, sim_id)] if self.load_efficacy else None
 
         return Simulation(id=sim_id, scenario=scenario, mda_time=mda_time,
                           mda_age=mda_age, mda_cov=mda_cov, monitor_age=monitor_age, drug_efficacy_s=drug_efficacy_s,

@@ -15,38 +15,40 @@ def main() -> None:
     E.g. for year 13 in the epidemiological survey, the ERR from time point 13.0 is taken
     """
 
-    worm = Worm.HOOKWORM
-    path = worm_path(worm, 'monitor_age')
-    df = pd.read_csv(path)
+    for worm in Worm:
+        worm = worm.value
 
-    drug_efficacy = pd.read_csv(worm_path(worm, 'drug_efficacy')).reset_index(drop=True)
-    df2 = drug_efficacy.groupby(['scenario', 'simulation'])
+        path = worm_path(worm, 'monitor_age')
+        df = pd.read_csv(path)
 
-    with open(worm_path(worm, 'metadata'), 'r') as file:
-        metadata = json.load(file)
+        drug_efficacy = pd.read_csv(worm_path(worm, 'drug_efficacy')).reset_index(drop=True)
+        df2 = drug_efficacy.groupby(['scenario', 'simulation'])
 
-    n_age_cats = 1 if 'merged' in str(path) else N_AGE_CATEGORIES
+        with open(worm_path(worm, 'metadata'), 'r') as file:
+            metadata = json.load(file)
 
-    for scenario in range(N_SCENARIOS):
-        # Get right levels
-        data = metadata[scenario]
-        mda_freq = data['mda_freq']
+        n_age_cats = 1 if 'merged' in str(path) else N_AGE_CATEGORIES
 
-        for sim in range(N_SIMULATIONS):
-            start_ma = N_YEARS * n_age_cats * (N_SIMULATIONS * scenario + sim)
-            df3 = df2.get_group((scenario + 1, sim + 1)).reset_index(drop=True)
+        for scenario in range(N_SCENARIOS):
+            # Get right levels
+            data = metadata[scenario]
+            mda_freq = data['mda_freq']
 
-            print(scenario, sim)
+            for sim in range(N_SIMULATIONS):
+                start_ma = N_YEARS * n_age_cats * (N_SIMULATIONS * scenario + sim)
+                df3 = df2.get_group((scenario + 1, sim + 1)).reset_index(drop=True)
 
-            for time in range(N_YEARS):
-                start_de = mda_freq * time
-                series = df3.loc[start_de:start_de + mda_freq - 1, 'ERR']
-                target = series.iloc[0] if series.first_valid_index() is not None else np.nan
+                print(scenario, sim)
 
-                for age_cat in range(n_age_cats):
-                    df.loc[start_ma + n_age_cats * time + age_cat, 'target'] = target
+                for time in range(N_YEARS):
+                    start_de = mda_freq * time
+                    series = df3.loc[start_de:start_de + mda_freq - 1, 'ERR']
+                    err = series.iloc[0] if series.first_valid_index() is not None else np.nan
 
-    df.to_csv(path, index=False)
+                    for age_cat in range(n_age_cats):
+                        df.loc[start_ma + n_age_cats * time + age_cat, 'ERR'] = err
+
+        df.to_csv(path, index=False)
 
 
 if __name__ == '__main__':

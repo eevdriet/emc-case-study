@@ -6,7 +6,7 @@ scenarios = load("../data/scenarios_main.RData")
 n_simulations = 1000
 n_scenarios = 16 # scenarios 17-24 are not monogeneic
 
-relevant_cols = c("time", "age_cat", "n_host", "n_host_eggpos", "a_epg_obs")
+relevant_cols = c("time", "age_cat", "n_host", "n_host_eggpos", "a_epg_obs", "a_drug_efficacy_true")
 
 # Extract all survey information for each of the worms
 extract_surveys <- function(df) {

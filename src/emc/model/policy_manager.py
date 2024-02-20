@@ -3,10 +3,10 @@ import random
 
 from emc.model.policy import Policy
 from emc.model.scenario import Scenario
+from emc.model.simulation import Simulation
 from emc.data.constants import *
 
-
-# from emc.classifiers.single_gradient_booster import SingleGradientBooster
+from emc.classifiers.single_gradient_booster import SingleGradientBooster
 
 
 class PolicyManager:
@@ -26,7 +26,7 @@ class PolicyManager:
 
     def manage(self):
         # Split the data into train/validation data for the classifiers
-        self.train_df, self.test_df = self.__split_data
+        self.train_df, self.test_df = self.__split_data()
 
         #
         policy = self.__create_init_policy()
@@ -40,8 +40,8 @@ class PolicyManager:
             train = self.__filter_data(self.train_df, sub_policy)
             test = self.__filter_data(self.test_df, sub_policy)
 
-            # classifier = SingleGradientBooster(train, test)
-            # classifier.run()
+            classifier = SingleGradientBooster(train, test)
+            classifier.run()
 
             # generate all classifier models per subpolicy train on train set, test on test set
 
