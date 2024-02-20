@@ -6,32 +6,35 @@ from emc.data.constants import *
 from emc.util import worm_path
 
 
-def main() -> None:
+def weighted_mean(values: pd.Series, weights: pd.Series):
+    if weights.sum() == 0:
+        return np.nan
+
+    return (weights * values).sum() / weights.sum()
+
+
+def merge_age_cats() -> None:
     """
     Combines the CSV files generated from the `load_*.R` into one CSV
     :return: Nothing, just combines separate CSV files into one large one
     """
-
-    def weighted_mean(values: pd.Series, weights: pd.Series):
-        if weights.sum() == 0:
-            return np.nan
-
-        return (weights * values).sum() / weights.sum()
 
     # Parameters
     for worm in Worm:
         worm = worm.value
 
         path = worm_path(worm, 'monitor_age', use_merged=False)
+        assert path.exists(), "Make sure to run the `merge_csv` script"
+
         df = pd.read_csv(path)
 
         # Go through all individual monitor_age dataframes
         for scenario in range(N_SCENARIOS):
+            print(scenario)
             df_merged = pd.DataFrame()
 
             for simulation in range(N_SIMULATIONS):
                 start = N_YEARS * N_AGE_CATEGORIES * (N_SIMULATIONS * scenario + simulation)
-                print(scenario, simulation)
 
                 for time in range(N_YEARS):
                     n_host = df.loc[start:start + N_AGE_CATEGORIES - 1, 'n_host']
@@ -72,4 +75,4 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    main()
+    merge_age_cats()

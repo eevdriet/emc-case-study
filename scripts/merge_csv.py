@@ -7,7 +7,7 @@ from emc.data.constants import *
 from emc.util import worm_path
 
 
-def main() -> None:
+def merge_csv() -> None:
     """
     Combines the CSV files generated from the `load_*.R` into one CSV
     :return: Nothing, just combines separate CSV files into one large one
@@ -21,13 +21,13 @@ def main() -> None:
 
         # Go through all individual monitor_age dataframes
         for scenario in range(N_SCENARIOS):
-            df_combined = pd.DataFrame()
+            print(scenario)
             dfs = []
 
             for simulation in range(N_SIMULATIONS):
-                print(scenario, simulation)
-
                 path = csv_path / f'{worm}_monitor_ageSC{scenario + 1:02}SIM{simulation + 1:04}.csv'
+                assert path.exists(), "Make sure to run the `load_monitor_age.R` script"
+
                 df = pd.read_csv(path).reset_index(drop=True)
 
                 # Verify whether additional rows need to be added for missing years
@@ -47,12 +47,13 @@ def main() -> None:
                     rows = []
                     for year in range(last_year_c + 1, N_YEARS):
                         for age_cat in AGE_CATEGORIES:
-                            row = {'age_cat': [age_cat], 'time': [year], 'n_host': [np.nan], 'n_host_eggpos': [np.nan],
-                                   'a_epg_obs': [np.nan], 'scenario': scenario + 1, 'simulation': simulation + 1,
-                                   'a_drug_efficacy_true_': [np.nan]}
+                            row = pd.DataFrame(
+                                {'age_cat': [age_cat], 'time': [year], 'n_host': [np.nan], 'n_host_eggpos': [np.nan],
+                                 'a_epg_obs': [np.nan], 'scenario': scenario + 1, 'simulation': simulation + 1,
+                                 'a_drug_efficacy_true_': [np.nan]})
                             rows.append(row)
 
-                    df = pd.concat([df, rows])
+                    df = pd.concat([df] + rows)
 
                 assert len(df) == N_AGE_CATEGORIES * N_YEARS
                 dfs.append(df)
@@ -90,4 +91,4 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    main()
+    merge_csv()

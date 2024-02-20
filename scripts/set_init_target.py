@@ -6,7 +6,7 @@ from emc.util import worm_path
 from emc.data.constants import *
 
 
-def main() -> None:
+def set_target() -> None:
     """
     Computes the initial target level for all simulations
     :return: Nothing, just updates the given monitor age CSV with an `target` column
@@ -18,7 +18,9 @@ def main() -> None:
     for worm in Worm:
         worm = worm.value
 
-        path = worm_path(worm, 'monitor_age')
+        path = worm_path(worm, 'monitor_age', use_merged=True)
+        assert path.exists(), "Make sure to run the `merge` scripts"
+
         df = pd.read_csv(path)
 
         drug_efficacy = pd.read_csv(worm_path(worm, 'drug_efficacy')).reset_index(drop=True)
@@ -30,6 +32,8 @@ def main() -> None:
         n_age_cats = 1 if 'merged' in str(path) else N_AGE_CATEGORIES
 
         for scenario in range(N_SCENARIOS):
+            print(scenario)
+
             # Get right levels
             data = metadata[scenario]
             mda_freq = data['mda_freq']
@@ -37,8 +41,6 @@ def main() -> None:
             for sim in range(N_SIMULATIONS):
                 start_ma = N_YEARS * n_age_cats * (N_SIMULATIONS * scenario + sim)
                 df3 = df2.get_group((scenario + 1, sim + 1)).reset_index(drop=True)
-
-                print(scenario, sim)
 
                 for time in range(N_YEARS):
                     start_de = mda_freq * time
@@ -52,4 +54,4 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    main()
+    set_target()

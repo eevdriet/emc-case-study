@@ -201,7 +201,7 @@ class LevelBuilder:
         return f'{worm}_{self.bucket_size}_{freq_str}_{strat_str}'
 
 
-def main():
+def build_levels(overwrite):
     from emc.data.data_loader import DataLoader
     from itertools import product
 
@@ -220,7 +220,7 @@ def main():
 
             for strat, freq in product(mda_strategy, mda_freq):
                 print(f"-- {bucket_size} with {freq=}, {strat=}")
-                builder.build(bucket_size, mda_strategy=strat, mda_freq=freq, overwrite=False)
+                builder.build(bucket_size, mda_strategy=strat, mda_freq=freq, overwrite=overwrite)
 
                 for baseline in range(0, 70, bucket_size):
                     builder.plot(baseline, save=True, show=False)
@@ -229,4 +229,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    build_levels(overwrite=False)

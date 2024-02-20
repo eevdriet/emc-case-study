@@ -5,13 +5,15 @@ from emc.data.constants import *
 from emc.util import worm_path
 
 
-def main() -> None:
+def save_pretty() -> None:
     """
     Reformat the CSV files to have the right column order and integer columns where needed
     :return: Nothing, just reformat existing CSV files
     """
 
     for worm in Worm:
+        worm = worm.value
+
         for data_type in ['monitor_age', 'drug_efficacy']:
             print(f"Reformatting the {worm} {data_type} data...")
             path = worm_path(worm, data_type, use_merged=True)
@@ -26,4 +28,4 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    main()
+    save_pretty()
