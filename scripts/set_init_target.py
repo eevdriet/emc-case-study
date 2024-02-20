@@ -18,16 +18,19 @@ def set_target() -> None:
     for worm in Worm:
         worm = worm.value
 
+        # Load monitor age data
         path = Paths.worm_data(worm, 'monitor_age', use_merged=True)
         n_age_cats = 1 if 'merged' in str(path) else N_AGE_CATEGORIES
         assert path.exists(), "Make sure to run the `merge` scripts"
-        df = pd.read_csv(path)
+        df_ma = pd.read_csv(path)
 
+        # Load drug efficacy data and group per simulation
         path = Paths.worm_data(worm, 'drug_efficacy')
-        df2 = pd.read_csv(path)
-        df2.reset_index(drop=True, inplace=True)
-        df2 = df2.groupby(['scenario', 'simulation'])
+        drug_efficacy = pd.read_csv(path)
+        drug_efficacy.reset_index(drop=True, inplace=True)
+        drug_efficacy = drug_efficacy.groupby(['scenario', 'simulation'])
 
+        # Load metadata
         path = Paths.worm_data(worm, 'meta_data')
         with open(path, 'r') as file:
             metadata = json.load(file)
@@ -36,23 +39,30 @@ def set_target() -> None:
         for scenario in range(N_SCENARIOS):
             print(f"\t- {scenario}")
 
-            # Get right levels
+            # Determine how often PC is applied
             data = metadata[scenario]
             mda_freq = data['mda_freq']
 
-            for sim in range(N_SIMULATIONS):
-                start_ma = N_YEARS * n_age_cats * (N_SIMULATIONS * scenario + sim)
-                df3 = df2.get_group((scenario + 1, sim + 1)).reset_index(drop=True)
+            for simulation in range(N_SIMULATIONS):
+                # Determine which rows to take in the monitor age survey and get the corresponding drug efficacy survey
+                start_ma = N_YEARS * n_age_cats * (N_SIMULATIONS * scenario + simulation)
+                df_de = drug_efficacy.get_group((scenario + 1, simulation + 1)).reset_index(drop=True)
 
                 for time in range(N_YEARS):
+                    # Determine which rows to take in the drug efficacy survey
                     start_de = mda_freq * time
-                    series = df3.loc[start_de:start_de + mda_freq - 1, 'ERR']
-                    err = series.iloc[0] if series.first_valid_index() is not None else np.nan
+                    end_de = start_de + mda_freq - 1
 
+                    # Determine the ERR column and take the first value if any
+                    err = df_de.loc[start_de:end_de, 'ERR']
+                    err_val = err.iloc[0] if err.first_valid_index() is not None else np.nan
+
+                    # Add the ERR feature to the monitor age survey for each age category
                     for age_cat in range(n_age_cats):
-                        df.loc[start_ma + n_age_cats * time + age_cat, 'ERR'] = err
+                        df_ma.loc[start_ma + n_age_cats * time + age_cat, 'ERR'] = err_val
 
-        df.to_csv(path, index=False)
+        # Save monitor age data with ERR feature
+        df_ma.to_csv(path, index=False)
 
 
 if __name__ == '__main__':

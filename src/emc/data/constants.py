@@ -5,6 +5,9 @@ class Worm(Enum):
     ASCARIS = 'ascaris'
     HOOKWORM = 'hookworm'
 
+    def __str__(self):
+        return self.name
+
 
 """
 Numerical constants

@@ -14,17 +14,18 @@ def set_expected_infection_level() -> None:
     given the infection level at the PREVIOUS step (prev)
     - The expected infected level is based on the levels from the relevant scenario with 5% buckets
     """
+    from emc.data.level_builder import LevelBuilder
 
     for worm in Worm:
         worm = worm.value
 
+        # Load monitor age data
         path = Paths.worm_data(worm, 'monitor_age', use_merged=True)
-        assert path.exists(), "Make sure to run the `merge` scripts"
-
         monitor_age = pd.read_csv(path)
         df = monitor_age.sort_values(['scenario', 'simulation', 'time']).reset_index(drop=True)
         assert "inf_level" in df.columns, "Make sure to run the `add_features` script"
 
+        # Load metadata
         path = Paths.worm_data(worm, 'metadata')
         with open(path, 'r') as file:
             metadata = json.load(file)
@@ -36,15 +37,12 @@ def set_expected_infection_level() -> None:
         for scenario in range(N_SCENARIOS):
             print(f"\t- {scenario}")
 
-            # Get right levels
+            # Get levels from the right JSON file
             data = metadata[scenario]
             mda_freq = data['mda_freq']
             mda_strategy = data['mda_strategy']
 
-            freq_str = f'{mda_freq}year' if mda_freq else 'any_freq'
-            strategy_str = mda_strategy if mda_strategy else 'anyone'
-            file_name = f'{worm}_{bucket_size}_{freq_str}_{strategy_str}.json'
-
+            file_name = LevelBuilder.levels_name(worm, mda_freq, mda_strategy)
             path = Paths.data('levels') / file_name
             assert path.exists(), "Make sure to run the `build_levels` script in LevelBuilder"
 

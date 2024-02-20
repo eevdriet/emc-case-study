@@ -56,7 +56,8 @@ class LevelBuilder:
         self.scenarios = self.__find_scenarios(mda_freq, mda_strategy)
 
         # Verify whether the levels were previously generated and should be overwritten
-        name = self.__construct_name()
+        worm = self.scenarios[0].species
+        name = self.levels_name(worm, self.mda_freq, self.mda_strategy)
         path = Paths.data('levels') / f'{name}.json'
 
         if path.exists() and not overwrite:
@@ -84,8 +85,8 @@ class LevelBuilder:
             print("Levels do not exist, build first using `build_levels`")
             return
 
+        # Plot the levels for each resistance mode
         levels = self.mode_levels[str(baseline)]
-        times = range(19)
 
         for res_mode, color in zip(self.__RES_MODES, self.__COLORS):
             means, sds, mins, maxs, n_hosts = map(np.array, zip(*levels[res_mode]))
@@ -117,13 +118,16 @@ class LevelBuilder:
         plt.ylim(0, 1)
         plt.legend(title="Resistance mode")
 
+        # Optionally show and save the plot to the user
         if show:
             plt.show()
         if save:
-            name = self.__construct_name()
-            path = Paths.data('levels') / 'figures' / f'{name}_{baseline}%'
+            worm = self.scenarios[0].species
+            name = self.levels_name(worm, self.mda_freq, self.mda_strategy)
+            path = Paths.data('levels') / 'figures' / f'{name}_{baseline}base'
             plt.savefig(path)
 
+        # Reset the plot
         plt.clf()
 
     def __build_levels(self, baseline: int):
@@ -138,12 +142,8 @@ class LevelBuilder:
         for res_mode in self.__RES_MODES:
             data = pd.DataFrame()
 
-            for scenario in self.all_scenarios:
+            for scenario in self.scenarios:
                 if scenario.res_mode != res_mode:
-                    continue
-                if self.mda_freq is not None and scenario.mda_freq != self.mda_freq:
-                    continue
-                if self.mda_strategy is not None and scenario.mda_strategy != self.mda_strategy:
                     continue
 
                 print(scenario.id)
@@ -163,14 +163,15 @@ class LevelBuilder:
             bucket_levels = []
 
             for time, group in groups:
-                level = (
-                    group['inf_level'].mean(),
-                    group['inf_level'].std(),
-                    group['inf_level'].min(),
-                    group['inf_level'].max(),
-                    len(group['inf_level'])
+                inf_levels = group['inf_level']
+                bucket_level = (
+                    inf_levels.mean(),
+                    inf_levels.std(),
+                    inf_levels.min(),
+                    inf_levels.max(),
+                    len(inf_levels)
                 )
-                bucket_levels.append(level)
+                bucket_levels.append(bucket_level)
 
             self.mode_levels[str(baseline)][res_mode] = bucket_levels
 
@@ -184,20 +185,28 @@ class LevelBuilder:
         scenarios = []
 
         for scenario in self.all_scenarios:
+            if self.mda_freq is not None and scenario.mda_freq != mda_freq:
+                continue
+            if self.mda_strategy is not None and scenario.mda_strategy != mda_strategy:
+                continue
+
             scenarios.append(scenario)
 
         return scenarios
 
-    def __construct_name(self) -> str:
+    @classmethod
+    def levels_name(cls, worm: str, bucket_size: int, mda_freq: Optional[int], mda_strategy: Optional[str]):
         """
-        Construct the path of the data of a certain scenario
-        :return: Path to the level data
+        :param worm: Name of the worm
+        :param bucket_size: Size of the bucket for the baseline infection level
+        :param mda_freq: De-worming frequency, if relevant
+        :param mda_strategy: De-worming population, if relevant
+        :return: Name of the levels in the data
         """
-        worm = self.all_scenarios[0].species
-        freq_str = f'{self.mda_freq}year' if self.mda_freq else 'any_freq'
-        strat_str = self.mda_strategy if self.mda_strategy else 'anyone'
+        freq_str = f'{mda_freq}year' if mda_freq else 'any_freq'
+        strategy_str = mda_strategy if mda_strategy else 'anyone'
 
-        return f'{worm}_{self.bucket_size}_{freq_str}_{strat_str}'
+        return f'{worm}_{bucket_size}_{freq_str}_{strategy_str}'
 
 
 def build_levels(overwrite):

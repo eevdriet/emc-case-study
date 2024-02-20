@@ -5,17 +5,12 @@ from emc.data.constants import *
 from emc.util import Paths
 
 
-def rate_of_change(col: pd.Series):
-    new = col
-    old = col.shift(1)
-
-    if old == 0 or new - old == 0:
-        return np.nan
-    else:
-        return (new - old) / old
-
-
 def add_features_group(group):
+    """
+    Add features per grouped data
+    :param group: Group of data per simulation
+    :return: Group with features added
+    """
     group['inf_level'] = group['n_host_eggpos'] / group['n_host']
     group['inf_level_change'] = group['inf_level'].pct_change()
     group['a_epg_obs_change'] = group['a_epg_obs'].pct_change()
@@ -25,24 +20,23 @@ def add_features_group(group):
 
 def add_features() -> None:
     """
-    Combines the CSV files generated from the `load_*.R` into one CSV
-    :return: Nothing, just combines separate CSV files into one large one
+    Add additional features to the CSV data files
+    :return: Nothing, just adds to existing CSV files
     """
 
     # Load data
     for worm in Worm:
         worm = worm.value
 
+        # Load data
         path = Paths.worm_data(worm, 'monitor_age', use_merged=True)
         assert path.exists(), "Make sure to run the `merge` scripts"
-
         df = pd.read_csv(path)
 
-        # Add features
-
+        # Add features per simulation
         df = df.groupby(['scenario', 'simulation']).apply(add_features_group).reset_index(drop=True)
 
-        # Write back
+        # Save data
         df.to_csv(path, index=False)
 
 
