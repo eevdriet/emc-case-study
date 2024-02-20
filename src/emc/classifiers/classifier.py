@@ -24,7 +24,7 @@ class Classifier(ABC):
         """
         X_data, y_data = self._preprocess(self.data)
 
-        self._train(X_data, y_data)
+        # self._train(X_data, y_data)
         # predictions = self._test(X_test, y_test)
 
         # accuracy = accuracy_score(y_test, predictions)
