@@ -1,10 +1,9 @@
 import json
 from scipy import stats
 from emc.data.constants import *
-from emc.util import data_path
+from emc.util import Paths
 from itertools import product
 from collections import defaultdict
-from pathlib import Path
 from math import isnan
 
 
@@ -75,7 +74,7 @@ def main():
             freq_str = f'{freq}year'
             strat_str = strat
             fname = f'{worm}_{bucket_size}_{freq_str}_{strat_str}.json'
-            path = data_path() / 'levels' / fname
+            path = Paths.data('levels') / fname
 
             with open(path, 'r') as file:
                 levels = json.load(file)
@@ -90,7 +89,8 @@ def main():
 
             stats[str(key)] = stat
 
-    with open(Path.cwd() / 'stats.json', 'w') as file:
+    path = Paths.data('statistics') / 'stats.json'
+    with open(path, 'w') as file:
         json.dump(stats, file, allow_nan=True, indent=4)
 
 

@@ -1,10 +1,9 @@
 import pandas as pd
 import numpy as np
-from pathlib import Path
 from math import ceil, floor
 
 from emc.data.constants import *
-from emc.util import worm_path
+from emc.util import Paths
 
 
 def merge_csv() -> None:
@@ -12,20 +11,19 @@ def merge_csv() -> None:
     Combines the CSV files generated from the `load_*.R` into one CSV
     :return: Nothing, just combines separate CSV files into one large one
     """
-
-    # Parameters
-    csv_path = Path.cwd() / '..' / 'csv'
+    assert Paths.data('csv').exists(), "Make sure to create a 'csv' directory under the 'data' directory"
 
     for worm in Worm:
         worm = worm.value
 
         # Go through all individual monitor_age dataframes
+        print("Merging the CSVs for scenarios...")
         for scenario in range(N_SCENARIOS):
-            print(scenario)
+            print(f"\t- {scenario}")
             dfs = []
 
             for simulation in range(N_SIMULATIONS):
-                path = csv_path / f'{worm}_monitor_ageSC{scenario + 1:02}SIM{simulation + 1:04}.csv'
+                path = Paths.data('csv') / f'{worm}_monitor_ageSC{scenario + 1:02}SIM{simulation + 1:04}.csv'
                 assert path.exists(), "Make sure to run the `load_monitor_age.R` script"
 
                 df = pd.read_csv(path).reset_index(drop=True)
@@ -61,14 +59,14 @@ def merge_csv() -> None:
             df_combined = pd.concat(dfs)
 
             # Export per scenario (to speed up merging)
-            path = Path.cwd() / f'{worm}_monitor_age_{scenario}.csv'
+            path = Paths.data('csv') / f'{worm}_monitor_age_{scenario}.csv'
             df_combined.to_csv(path, index=False)
 
         # Merge dataframes of all scenarios together
         df_combined = pd.DataFrame()
 
         for scenario in range(N_SCENARIOS):
-            path = Path.cwd() / f'{worm}_monitor_age_{scenario}.csv'
+            path = Paths.data('csv') / f'{worm}_monitor_age_{scenario}.csv'
             df = pd.read_csv(path)
 
             # Merge and delete temporary scenario .csv file
@@ -86,7 +84,7 @@ def merge_csv() -> None:
         df_combined = df_combined.astype(dtypes)
 
         # Write the merged csv
-        path = worm_path(worm, 'monitor_age', use_merged=False)
+        path = Paths.worm_data(worm, 'monitor_age', use_merged=False)
         df_combined.to_csv(path, index=False)
 
 

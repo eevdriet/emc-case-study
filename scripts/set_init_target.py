@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import json
 
-from emc.util import worm_path
+from emc.util import Paths
 from emc.data.constants import *
 
 
@@ -18,21 +18,23 @@ def set_target() -> None:
     for worm in Worm:
         worm = worm.value
 
-        path = worm_path(worm, 'monitor_age', use_merged=True)
+        path = Paths.worm_data(worm, 'monitor_age', use_merged=True)
+        n_age_cats = 1 if 'merged' in str(path) else N_AGE_CATEGORIES
         assert path.exists(), "Make sure to run the `merge` scripts"
-
         df = pd.read_csv(path)
 
-        drug_efficacy = pd.read_csv(worm_path(worm, 'drug_efficacy')).reset_index(drop=True)
-        df2 = drug_efficacy.groupby(['scenario', 'simulation'])
+        path = Paths.worm_data(worm, 'drug_efficacy')
+        df2 = pd.read_csv(path)
+        df2.reset_index(drop=True, inplace=True)
+        df2 = df2.groupby(['scenario', 'simulation'])
 
-        with open(worm_path(worm, 'metadata'), 'r') as file:
+        path = Paths.worm_data(worm, 'meta_data')
+        with open(path, 'r') as file:
             metadata = json.load(file)
 
-        n_age_cats = 1 if 'merged' in str(path) else N_AGE_CATEGORIES
-
+        print("Setting the expected infection level for scenarios...")
         for scenario in range(N_SCENARIOS):
-            print(scenario)
+            print(f"\t- {scenario}")
 
             # Get right levels
             data = metadata[scenario]

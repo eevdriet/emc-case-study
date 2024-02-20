@@ -1,38 +1,45 @@
 from pathlib import Path
 
 
-def source_path():
+class Paths:
     """
-    Utility function to access the source path of the project from anywhere
-    :return: Root folder of the project
+    Utility class to quickly navigate the folder structure of the project
     """
-    return Path(__file__).parent
+    __ROOT = Path(__file__).parent.parent.parent
 
+    @classmethod
+    def source(cls) -> Path:
+        """
+        Utility function to access the source path of the project from anywhere
+        :return: Root folder of the project
+        """
+        return cls.__ROOT / 'src' / 'emc'
 
-def data_path():
-    """
-    Utility function to access the data path of the project from anywhere
-    :return: Data folder of the project
-    """
-    return source_path().parent.parent / 'data'
+    @classmethod
+    def data(cls, typ: str = '.') -> Path:
+        """
+        Utility function to access the data path of the project from anywhere
+        :return: Data folder of the project
+        """
+        return cls.__ROOT / 'data' / typ
 
+    @classmethod
+    def worm_data(cls, worm: str, typ: str, use_merged: bool = True) -> Path:
+        """
+        Utility function to access the data path of the project for a
+        - specific worm species
+        - specific data source (monitor_age / drug_efficacy)
+        - merged or normal data
+        :param worm: Type of worm
+        :param typ: Type of data source
+        :param use_merged: Whether to use the merged data source
+        :return: Path to the data file
+        """
+        merge_str = '_merged' if use_merged and typ == 'monitor_age' else ''
+        ext = {
+            'monitor_age': 'csv',
+            'metadata': 'json',
+            'drug_efficacy': 'csv'
+        }[typ]
 
-def worm_path(worm: str, typ: str, use_merged: bool = True) -> Path:
-    """
-    Utility function to access the path of the data for a
-    - specific worm species
-    - specific data source (monitor_age / drug_efficacy)
-    - merged or normal data
-    :param worm: Type of worm
-    :param typ: Type of data source
-    :param use_merged: Whether to use the merged data source
-    :return: Path to the data file
-    """
-    merge_str = '_merged' if use_merged and typ == 'monitor_age' else ''
-    ext = {
-        'monitor_age': 'csv',
-        'metadata': 'json',
-        'drug_efficacy': 'csv'
-    }[typ]
-
-    return data_path() / typ / f'{worm}{merge_str}.{ext}'
+        return cls.data(typ) / f'{worm}{merge_str}.{ext}'

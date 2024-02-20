@@ -3,7 +3,7 @@ from emc.data.level_builder import LevelBuilder
 from emc.classifiers import GradientBoosting
 from emc.data import LabelGenerator
 from collections import Counter
-from emc.util import data_path
+from emc.util import Paths
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -43,7 +43,7 @@ def main():
     # Levels are currently saved in data, so you can instead retrieve them directly
     # tree = InfectionTree(scenarios, loader.monitor_age)
 
-    path = data_path() / 'levels.txt'
+    path = Paths.data() / 'levels.txt'
     if not path.exists():
         print("Levels does not exist, generate from InfectionTree")
         return

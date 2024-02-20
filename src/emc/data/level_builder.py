@@ -1,6 +1,5 @@
 import json
 from collections import defaultdict
-from pathlib import Path
 from typing import Optional
 
 import matplotlib.pyplot as plt
@@ -8,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from emc.model.scenario import Scenario
-from emc.util import data_path
+from emc.util import Paths
 from emc.data.constants import *
 
 Level = tuple[float, float, float, float, int]  # mean, sd, min, max, no. observations
@@ -58,7 +57,7 @@ class LevelBuilder:
 
         # Verify whether the levels were previously generated and should be overwritten
         name = self.__construct_name()
-        path = data_path() / 'levels' / f'{name}.json'
+        path = Paths.data('levels') / f'{name}.json'
 
         if path.exists() and not overwrite:
             with open(path, 'r') as file:
@@ -122,7 +121,7 @@ class LevelBuilder:
             plt.show()
         if save:
             name = self.__construct_name()
-            path = data_path() / 'levels' / 'figures' / f'{name}_{baseline}%'
+            path = Paths.data('levels') / 'figures' / f'{name}_{baseline}%'
             plt.savefig(path)
 
         plt.clf()

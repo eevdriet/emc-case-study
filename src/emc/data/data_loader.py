@@ -8,7 +8,7 @@ from typing import Optional
 from emc.model.scenario import Scenario
 from emc.model.simulation import Simulation
 from emc.model.label import Label
-from emc.util import worm_path
+from emc.util import Paths
 from emc.data.constants import *
 
 
@@ -110,7 +110,7 @@ class DataLoader:
         Load the metadata for all scenarios
         :return: Metadata if available
         """
-        path = worm_path(self.species, 'metadata', self.use_merged)
+        path = Paths.worm_data(self.species, 'metadata', self.use_merged)
         if not path.exists():
             print(f"Path {path} does not exist, cannot load in meta data!")
             return None
@@ -123,7 +123,7 @@ class DataLoader:
         Load the epidemiological survey data for all simulations
         :return: Survey data if available
         """
-        path = worm_path(self.species, 'monitor_age', self.use_merged)
+        path = Paths.worm_data(self.species, 'monitor_age', self.use_merged)
         if not path.exists():
             print(f"Path {path} does not exist, cannot load in epidemiological survey!")
             return None
@@ -138,7 +138,7 @@ class DataLoader:
         Load the drug efficacy survey data for all simulations
         :return: Survey data if available
         """
-        path = worm_path(self.species, 'drug_efficacy', self.use_merged)
+        path = Paths.worm_data(self.species, 'drug_efficacy', self.use_merged)
         if not path.exists():
             print(f"Path {path} does not exist, cannot load in drug efficacy survey!")
             return None

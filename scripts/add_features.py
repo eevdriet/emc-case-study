@@ -1,9 +1,8 @@
 import pandas as pd
 import numpy as np
-from pathlib import Path
 
 from emc.data.constants import *
-from emc.util import worm_path
+from emc.util import Paths
 
 
 def rate_of_change(col: pd.Series):
@@ -34,7 +33,7 @@ def add_features() -> None:
     for worm in Worm:
         worm = worm.value
 
-        path = worm_path(worm, 'monitor_age', use_merged=True)
+        path = Paths.worm_data(worm, 'monitor_age', use_merged=True)
         assert path.exists(), "Make sure to run the `merge` scripts"
 
         df = pd.read_csv(path)

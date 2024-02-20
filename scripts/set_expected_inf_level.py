@@ -1,7 +1,7 @@
 import pandas as pd
 import json
 
-from emc.util import worm_path, data_path
+from emc.util import Paths
 from emc.data.constants import *
 
 
@@ -18,21 +18,23 @@ def set_expected_infection_level() -> None:
     for worm in Worm:
         worm = worm.value
 
-        path = worm_path(worm, 'monitor_age', use_merged=True)
+        path = Paths.worm_data(worm, 'monitor_age', use_merged=True)
         assert path.exists(), "Make sure to run the `merge` scripts"
 
         monitor_age = pd.read_csv(path)
         df = monitor_age.sort_values(['scenario', 'simulation', 'time']).reset_index(drop=True)
         assert "inf_level" in df.columns, "Make sure to run the `add_features` script"
 
-        with open(worm_path(worm, 'metadata'), 'r') as file:
+        path = Paths.worm_data(worm, 'metadata')
+        with open(path, 'r') as file:
             metadata = json.load(file)
 
         bucket_size = 5
         n_age_cats = 1 if 'merged' in str(path) else N_AGE_CATEGORIES
 
+        print("Setting the expected infection level for scenarios...")
         for scenario in range(N_SCENARIOS):
-            print(scenario)
+            print(f"\t- {scenario}")
 
             # Get right levels
             data = metadata[scenario]
@@ -43,8 +45,8 @@ def set_expected_infection_level() -> None:
             strategy_str = mda_strategy if mda_strategy else 'anyone'
             file_name = f'{worm}_{bucket_size}_{freq_str}_{strategy_str}.json'
 
-            path = data_path() / 'levels' / file_name
-            assert not path.exists(), "Make sure to run the `build_levels` script in LevelBuilder"
+            path = Paths.data('levels') / file_name
+            assert path.exists(), "Make sure to run the `build_levels` script in LevelBuilder"
 
             with open(path, 'r') as file:
                 levels = json.load(file)
@@ -74,7 +76,7 @@ def set_expected_infection_level() -> None:
                         best_level = levels[str(best_baseline)]["none"][time][0]
                         df.loc[start + n_age_cats * time + age_cat, 'exp_inf_level'] = best_level
 
-        path = worm_path(worm, 'monitor_age', use_merged=True)
+        path = Paths.worm_data(worm, 'monitor_age', use_merged=True)
         df.to_csv(path, index=False)
 
 

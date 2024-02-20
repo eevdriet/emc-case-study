@@ -1,8 +1,7 @@
 import pandas as pd
-import numpy as np
 
 from emc.data.constants import *
-from emc.util import worm_path
+from emc.util import Paths
 
 
 def save_pretty() -> None:
@@ -16,7 +15,7 @@ def save_pretty() -> None:
 
         for data_type in ['monitor_age', 'drug_efficacy']:
             print(f"Reformatting the {worm} {data_type} data...")
-            path = worm_path(worm, data_type, use_merged=True)
+            path = Paths.worm_data(worm, data_type, use_merged=True)
             df = pd.read_csv(path).reset_index(drop=True)
 
             cols = DE_COLUMNS if data_type == 'drug_efficacy' else MA_COLUMNS

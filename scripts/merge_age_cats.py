@@ -1,9 +1,8 @@
 import pandas as pd
 import numpy as np
-from pathlib import Path
 
 from emc.data.constants import *
-from emc.util import worm_path
+from emc.util import Paths
 
 
 def weighted_mean(values: pd.Series, weights: pd.Series):
@@ -23,14 +22,15 @@ def merge_age_cats() -> None:
     for worm in Worm:
         worm = worm.value
 
-        path = worm_path(worm, 'monitor_age', use_merged=False)
+        path = Paths.worm_data(worm, 'monitor_age', use_merged=False)
         assert path.exists(), "Make sure to run the `merge_csv` script"
 
         df = pd.read_csv(path)
 
         # Go through all individual monitor_age dataframes
+        print("Merging the age categories for scenarios...")
         for scenario in range(N_SCENARIOS):
-            print(scenario)
+            print(f"\t- {scenario}")
             df_merged = pd.DataFrame()
 
             for simulation in range(N_SIMULATIONS):
@@ -55,14 +55,14 @@ def merge_age_cats() -> None:
                     start += N_AGE_CATEGORIES
 
             # Export per scenario (to speed up merging)
-            path = Path.cwd() / f'{worm}_monitor_age_merged_{scenario}.csv'
+            path = Paths.data('csv') / f'{worm}_monitor_age_merged_{scenario}.csv'
             df_merged.to_csv(path, index=False)
 
         # Merge dataframes of all scenarios together
         df_merged = pd.DataFrame()
 
         for scenario in range(N_SCENARIOS):
-            path = Path.cwd() / f'{worm}_monitor_age_merged_{scenario}.csv'
+            path = Paths.data('csv') / f'{worm}_monitor_age_merged_{scenario}.csv'
             df = pd.read_csv(path)
 
             # Merge and delete temporary scenario .csv file
@@ -70,8 +70,8 @@ def merge_age_cats() -> None:
             path.unlink()
 
         # Write the merged csv
-        data_path = worm_path(worm, 'monitor_age', use_merged=True)
-        df_merged.to_csv(data_path, index=False)
+        path = Paths.worm_data(worm, 'monitor_age', use_merged=True)
+        df_merged.to_csv(path, index=False)
 
 
 if __name__ == '__main__':
