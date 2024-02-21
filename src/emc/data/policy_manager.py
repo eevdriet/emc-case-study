@@ -85,7 +85,7 @@ class PolicyManager:
         :return: Initial policy
         """
         self.scenarios = self.scenarios
-        epi_surveys = (True,) * N_YEARS
+        epi_surveys = (True, False,) * (N_YEARS // 2) + (True,)
 
         return Policy(epi_surveys)
 
@@ -142,7 +142,7 @@ def main():
     for worm in Worm:
         worm = worm.value
 
-        loader = DataLoader(worm.value)
+        loader = DataLoader(worm)
         all_scenarios = loader.load_scenarios()
 
         for frequency in MDA_FREQUENCIES:
