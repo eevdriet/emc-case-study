@@ -139,13 +139,23 @@ def main():
     from emc.data.data_loader import DataLoader
 
     # Get the data
-    worm = Worm.ASCARIS
-    loader = DataLoader(worm.value)
-    scenarios = loader.load_scenarios()
+    for worm in Worm:
+        worm = worm.value
 
-    # Use the policy manager
-    manager = PolicyManager(scenarios)
-    manager.manage()
+        loader = DataLoader(worm.value)
+        all_scenarios = loader.load_scenarios()
+
+        for frequency in MDA_FREQUENCIES:
+            for strategy in MDA_STRATEGIES:
+                scenarios = [
+                    s for s in all_scenarios
+                    if s.mda_freq == frequency and s.mda_strategy == strategy
+                ]
+
+                # Use the policy manager
+                print(f"\n\n\n-- {worm}: {strategy} with {frequency} --")
+                manager = PolicyManager(scenarios)
+                manager.manage()
 
 
 if __name__ == '__main__':
