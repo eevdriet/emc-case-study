@@ -10,26 +10,22 @@ class SingleGradientBoosterDefault(Classifier):
     def _preprocess(self, data: pd.DataFrame) -> tuple[np.ndarray, np.array]:
         groups = data.groupby(['scenario', 'simulation'])
 
-        features = []
-        targets = []
+        features = {}
+        targets = {}
 
-        for _, df in groups:
+        for key, df in groups:
             df = df.drop(columns=['simulation', 'scenario', 'time', 'ERR'])
 
             df = df.reset_index(drop=True)
             target = df['target'].iloc[-1]
             if isnan(target):
                 continue
+
             del df['target']
-            targets.append(target)
+            targets[key] = target
 
             row = df.to_numpy().T.flatten()
-            features.append(row)
-
-        # Transposing and flattening the DataFrame to create the features (X)
-        # Extracting the target (y) - the final value of the last column
-        features = np.vstack(features)
-        targets = np.array(targets)
+            features[key] = row
 
         return features, targets
 
@@ -38,7 +34,7 @@ class SingleGradientBoosterDefault(Classifier):
         print(f"Fitting with {len(X_train)} simulations...")
         self.xgb.fit(X_train, y_train)
 
-    def test(self, X_test: pd.DataFrame, y_test: pd.Series = None):
+    def test(self, X_test: pd.DataFrame, y_test: pd.Series = np.array([])):
         print(f"Predicting with {len(X_test)} simulations...")
         predictions = self.xgb.predict(X_test)
         return predictions

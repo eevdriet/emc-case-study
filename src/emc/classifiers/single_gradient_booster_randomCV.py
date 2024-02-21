@@ -11,26 +11,22 @@ class SingleGradientBoosterRandomCV(Classifier):
     def _preprocess(self, data: pd.DataFrame) -> tuple[np.ndarray, np.array]:
         groups = data.groupby(['scenario', 'simulation'])
 
-        features = []
-        targets = []
+        features = {}
+        targets = {}
 
-        for _, df in groups:
+        for key, df in groups:
             df = df.drop(columns=['simulation', 'scenario', 'time', 'ERR'])
 
             df = df.reset_index(drop=True)
             target = df['target'].iloc[-1]
             if isnan(target):
                 continue
+
             del df['target']
-            targets.append(target)
+            targets[key] = target
 
             row = df.to_numpy().T.flatten()
-            features.append(row)
-
-        # Transposing and flattening the DataFrame to create the features (X)
-        # Extracting the target (y) - the final value of the last column
-        features = np.vstack(features)
-        targets = np.array(targets)
+            features[key] = row
 
         return features, targets
 
@@ -64,7 +60,7 @@ class SingleGradientBoosterRandomCV(Classifier):
         print(f"Best parameters found: {random_search.best_params_}")
         print(f"Best score: {random_search.best_score_}")
 
-    def test(self, X_test: pd.DataFrame, y_test: pd.Series = None):
+    def test(self, X_test: pd.DataFrame, y_test: pd.Series = np.array([])):
         print(f"Predicting with {len(X_test)} simulations...")
         predictions = self.xgb.predict(X_test)
         return predictions

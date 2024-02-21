@@ -1,8 +1,6 @@
 import pandas as pd
 import random
 
-from typing import Tuple, TypeVar
-
 from emc.model.policy import Policy
 from emc.model.scenario import Scenario
 from emc.model.simulation import Simulation
@@ -55,6 +53,9 @@ class PolicyManager:
 
             classifier = SingleGradientBoosterBayesian(sub_policy, train, test)
             classifier.run()
+
+        for simulation in self.train_simulations:
+            ...
 
             # Store the classifier results
             # self.policy_classifiers[sub_policy] = classifier
