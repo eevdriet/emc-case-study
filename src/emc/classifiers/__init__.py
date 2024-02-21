@@ -1,2 +1,4 @@
 from .classifier import Classifier
-from .single_gradient_booster import SingleGradientBooster
+from .single_gradient_booster_default import SingleGradientBoosterDefault
+from .single_gradient_booster_randomCV import SingleGradientBoosterRandomCV
+from .single_gradient_booster_bayesian import SingleGradientBoosterBayesian

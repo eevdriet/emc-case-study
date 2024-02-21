@@ -1,12 +1,12 @@
 import numpy as np
 import pandas as pd
-from xgboost import XGBClassifier, XGBRegressor
+from xgboost import XGBRegressor
 
 from emc.classifiers import Classifier
 from math import isnan
 
 
-class SingleGradientBooster(Classifier):
+class SingleGradientBoosterDefault(Classifier):
     def _preprocess(self, data: pd.DataFrame) -> tuple[np.ndarray, np.array]:
         groups = data.groupby(['scenario', 'simulation'])
 
@@ -38,6 +38,7 @@ class SingleGradientBooster(Classifier):
         print(f"Fitting with {len(X_train)} simulations...")
         self.xgb.fit(X_train, y_train)
 
-    def test(self, X_test: pd.DataFrame, y_test: pd.Series):
+    def test(self, X_test: pd.DataFrame, y_test: pd.Series = None):
         print(f"Predicting with {len(X_test)} simulations...")
-        return self.xgb.predict(X_test)
+        predictions = self.xgb.predict(X_test)
+        return predictions
