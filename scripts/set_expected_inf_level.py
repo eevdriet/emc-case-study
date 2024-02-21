@@ -14,8 +14,6 @@ def set_expected_infection_level() -> None:
     given the infection level at the PREVIOUS step (prev)
     - The expected infected level is based on the levels from the relevant scenario with 5% buckets
     """
-    from emc.data.level_builder import LevelBuilder
-
     for worm in Worm:
         worm = worm.value
 
@@ -42,8 +40,7 @@ def set_expected_infection_level() -> None:
             mda_freq = data['mda_freq']
             mda_strategy = data['mda_strategy']
 
-            file_name = LevelBuilder.levels_name(worm, mda_freq, mda_strategy)
-            path = Paths.data('levels') / file_name
+            path = Paths.levels(worm, mda_freq, mda_strategy)
             assert path.exists(), "Make sure to run the `build_levels` script in LevelBuilder"
 
             with open(path, 'r') as file:

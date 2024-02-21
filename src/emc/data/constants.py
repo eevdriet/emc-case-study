@@ -46,4 +46,12 @@ DE_COLUMNS = COLUMNS + ['total_useful_tests', 'skipped_NaN_tests',
                         'ERR', 'EPG_change']
 DE_INT_COLUMNS = INT_COLUMNS + ['total_useful_tests', 'skipped_NaN_tests']
 
+# Levels
+BUCKET_SIZES = [5, 10, 20]
+MDA_FREQUENCIES = [1, 2]
+MDA_STRATEGIES = ['sac', 'community']
+
+# Other
 SEED = 76
+
+RESISTANCE_MODES = ["none", "dominant", "codominant", "recessive"]

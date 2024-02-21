@@ -19,7 +19,6 @@ class LevelBuilder:
     """
     Determines the infection levels for a given bucket size and plot them if available
     """
-    __RES_MODES = ["none", "dominant", "codominant", "recessive"]
     # __COLORS = ["red", "green", "blue", "yellow"]
     __COLORS = ["blue", "yellow", "green", "pink"]
 
@@ -29,7 +28,7 @@ class LevelBuilder:
         self.scenarios = []
 
         # Parameters
-        self.bucket_size: float = 0.1
+        self.bucket_size: int = 5
         self.mda_freq: Optional[int] = None
         self.mda_strategy: Optional[str] = None
         self.buckets: np.arange = np.arange(0, 1.0, self.bucket_size)
@@ -47,6 +46,8 @@ class LevelBuilder:
         :param overwrite: Whether to overwrite saved infection levels data if existing
         :return: Infection levels for the scenario
         """
+        self.mode_levels.clear()
+
         self.bucket_size = bucket_size
         self.mda_freq = mda_freq
         self.mda_strategy = mda_strategy
@@ -57,8 +58,7 @@ class LevelBuilder:
 
         # Verify whether the levels were previously generated and should be overwritten
         worm = self.scenarios[0].species
-        name = self.levels_name(worm, self.mda_freq, self.mda_strategy)
-        path = Paths.data('levels') / f'{name}.json'
+        path = Paths.levels(worm, bucket_size=self.bucket_size, mda_freq=self.mda_freq, mda_strategy=mda_strategy)
 
         if path.exists() and not overwrite:
             with open(path, 'r') as file:
@@ -74,7 +74,9 @@ class LevelBuilder:
 
         return self.mode_levels
 
-    def plot(self, baseline: int, save: bool = False, show: bool = True):
+    def plot(self, baseline: Optional[int] = None, *, save: bool = False, show: bool = True):
+        baselines = [baseline] if baseline is not None else range(0, 100, self.bucket_size)
+
         """
         Plot the most recently created infection levels
         :param baseline: Baseline infection level for which to plot
@@ -85,50 +87,47 @@ class LevelBuilder:
             print("Levels do not exist, build first using `build_levels`")
             return
 
-        # Plot the levels for each resistance mode
-        levels = self.mode_levels[str(baseline)]
+        # Plot the levels for each resistance mode for each base line
+        for baseline in baselines:
+            # Levels for the given baseline do not exist, so skip the plot
+            if str(baseline) not in self.mode_levels:
+                continue
 
-        for res_mode, color in zip(self.__RES_MODES, self.__COLORS):
-            means, sds, mins, maxs, n_hosts = map(np.array, zip(*levels[res_mode]))
-            times = range(len(means))
+            levels = self.mode_levels[str(baseline)]
+            times = range(N_YEARS)
 
-            # Plot infection level means
-            # OPTION 1: shaded overlapping regions
-            plt.errorbar(times, means, yerr=sds, label=res_mode, color=color)
-            plt.fill_between(times, means - sds, means + sds, alpha=0.5)
+            for res_mode, color in zip(RESISTANCE_MODES, self.__COLORS):
+                means, sds, mins, maxs, n_hosts = map(np.array, zip(*levels[res_mode]))
 
-            # Plot error levels for the infection level means
-            # OPTION 2: dashed lines
-            # plt.plot(times, means, '-o', color=color, label=res_mode)
-            # for time, mean, sd in zip(times, means, sds):
-            #     plt.vlines(x=time, ymin=mean - sd, ymax=mean + sd, color=color, linestyle='dotted')
-            plt.xticks(range(21))
+                # Plot infection level means
+                # OPTION 1: shaded overlapping regions
+                plt.errorbar(times, means, yerr=sds, label=res_mode, color=color)
+                plt.fill_between(times, means - sds, means + sds, alpha=0.5)
 
-        # Titles
-        worm = self.all_scenarios[0].species
-        plt.title(f"Infection levels for the {worm} worm with a [{baseline}%, {baseline + self.bucket_size}%) baseline")
+                # Plot error levels for the infection level means
+                # OPTION 2: dashed lines
+                # plt.plot(times, means, '-o', color=color, label=res_mode)
+                # for time, mean, sd in zip(times, means, sds):
+                #     plt.vlines(x=time, ymin=mean - sd, ymax=mean + sd, color=color, linestyle='dotted')
+                plt.xticks(range(21))
 
-        freq = f"{self.mda_freq}x PC/year" if self.mda_freq is not None else "Any PC strategy"
-        strat = self.mda_strategy if self.mda_strategy is not None else "Any target population"
-        plt.text(0.05, 0.92, f'{freq}\n{strat}', horizontalalignment='left', transform=plt.gca().transAxes)
+            # Labels
+            plt.xlabel("Time (years)")
+            plt.ylabel("Infection level")
+            plt.ylim(0, 1)
+            plt.legend(title="Resistance mode")
 
-        # Labels
-        plt.xlabel("Time (years)")
-        plt.ylabel("Infection level")
-        plt.ylim(0, 1)
-        plt.legend(title="Resistance mode")
+            # Optionally show and save the plot to the user
+            if show:
+                plt.show()
+            if save:
+                worm = self.scenarios[0].species
+                path = Paths.levels(worm, bucket_size=self.bucket_size, mda_freq=self.mda_freq,
+                                    mda_strategy=self.mda_strategy, baseline=baseline)
+                plt.savefig(path)
 
-        # Optionally show and save the plot to the user
-        if show:
-            plt.show()
-        if save:
-            worm = self.scenarios[0].species
-            name = self.levels_name(worm, self.mda_freq, self.mda_strategy)
-            path = Paths.data('levels') / 'figures' / f'{name}_{baseline}base'
-            plt.savefig(path)
-
-        # Reset the plot
-        plt.clf()
+            # Reset the plot
+            plt.clf()
 
     def __build_levels(self, baseline: int):
         """
@@ -139,7 +138,7 @@ class LevelBuilder:
 
         print(f'[{baseline}, {baseline + self.bucket_size})')
 
-        for res_mode in self.__RES_MODES:
+        for res_mode in RESISTANCE_MODES:
             data = pd.DataFrame()
 
             for scenario in self.scenarios:
@@ -194,20 +193,6 @@ class LevelBuilder:
 
         return scenarios
 
-    @classmethod
-    def levels_name(cls, worm: str, bucket_size: int, mda_freq: Optional[int], mda_strategy: Optional[str]):
-        """
-        :param worm: Name of the worm
-        :param bucket_size: Size of the bucket for the baseline infection level
-        :param mda_freq: De-worming frequency, if relevant
-        :param mda_strategy: De-worming population, if relevant
-        :return: Name of the levels in the data
-        """
-        freq_str = f'{mda_freq}year' if mda_freq else 'any_freq'
-        strategy_str = mda_strategy if mda_strategy else 'anyone'
-
-        return f'{worm}_{bucket_size}_{freq_str}_{strategy_str}'
-
 
 def build_levels(overwrite):
     from emc.data.data_loader import DataLoader
@@ -222,19 +207,14 @@ def build_levels(overwrite):
         # Set up a level builder and build all possible levels
         builder = LevelBuilder(scenarios)
 
-        for bucket_size in [5, 10, 20]:
-            mda_strategy = [None, 'sac', 'community']
-            mda_freq = [None, 1, 2]
-
-            for strat, freq in product(mda_strategy, mda_freq):
-                print(f"-- {bucket_size} with {freq=}, {strat=}")
-                builder.build(bucket_size, mda_strategy=strat, mda_freq=freq, overwrite=overwrite)
-
-                for baseline in range(0, 70, bucket_size):
-                    builder.plot(baseline, save=True, show=False)
+        for bucket_size in BUCKET_SIZES:
+            for strategy, freq in product(MDA_STRATEGIES + [None], MDA_FREQUENCIES + [None]):
+                print(f"-- {bucket_size} with {freq=}, {strategy=}")
+                builder.build(bucket_size, mda_strategy=strategy, mda_freq=freq, overwrite=overwrite)
+                builder.plot(save=True, show=False)
 
     print("Done")
 
 
 if __name__ == "__main__":
-    build_levels(overwrite=False)
+    build_levels(overwrite=True)
