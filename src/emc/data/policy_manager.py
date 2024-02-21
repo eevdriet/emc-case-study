@@ -1,12 +1,11 @@
 import pandas as pd
 import random
 
-from typing import Tuple, TypeVar
-
 from emc.model.policy import Policy
 from emc.model.scenario import Scenario
 from emc.model.simulation import Simulation
 from emc.data.constants import *
+from emc.data.neighborhood_descent import NeighborhoodDescent
 
 from emc.classifiers.single_gradient_booster import SingleGradientBooster
 from emc.util import normalised, Pair
@@ -34,6 +33,7 @@ class PolicyManager:
 
         self.train_df = pd.DataFrame()
         self.test_df = pd.DataFrame()
+        self.neighborhood_descent = NeighborhoodDescent()
 
     def manage(self):
         # Split the data into train/validation data for the classifiers
