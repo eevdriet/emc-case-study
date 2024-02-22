@@ -9,6 +9,7 @@ from math import isnan
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
+
 class SingleGradientBoosterBayesian(Classifier):
     def _preprocess(self, data: pd.DataFrame) -> tuple[np.ndarray, np.array]:
         groups = data.groupby(['scenario', 'simulation'])
@@ -56,7 +57,7 @@ class SingleGradientBoosterBayesian(Classifier):
             print(f"Trial {trial.number} MSE: {mse}")
 
             return mse
-
+          
         study = optuna.create_study(direction='minimize')
         print("Optimization process started...")
         study.optimize(objective, n_trials=100, timeout=600)

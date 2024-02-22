@@ -1,11 +1,12 @@
 import math
 
 import pandas as pd
-from typing import Generator, Iterable
+from typing import Generator, Iterable, Optional
 
 from emc.model.costs import Costs
 from emc.model.time_costs import Time_Costs
 from emc.data.constants import *
+from emc.util import first_or_mean
 
 
 class Policy:
@@ -20,30 +21,80 @@ class Policy:
         self.epi_surveys = tuple(epi_surveys)
         assert len(self.epi_surveys) == N_YEARS
 
-        # Find all time points for which the epidemiological surveys are scheduled
-        self.time_points = [time for time, do_survey in enumerate(self.epi_surveys) if do_survey]
-
         # Initially schedule no drug efficacy surveys
         self.drug_surveys = (False,) * N_YEARS
 
-    def calculate_cost(self, de_survey: pd.DataFrame):
-        survey_cost = self.__consumable(de_survey) + self.__personnel(de_survey) + self.__transportation(de_survey)
+    def calculate_cost(self, de_survey: pd.DataFrame) -> float:
+        total_cost = 0
 
-        cost = 0
-        cost += (1 / 2) * survey_cost * sum(self.epi_surveys)
-        cost += survey_cost * sum(self.drug_surveys)
+        # Calculate the cost of the drug efficacy surveys and add them to the total costs if relevant
+        if len(self.drug_time_points) == 0:
+            drug_surveys_costs = [self.__calculate_drug_cost(de_survey)]
+        else:
+            drug_surveys_costs = [self.__calculate_drug_cost(de_survey, year) for year in self.drug_time_points]
+            total_cost += sum(drug_surveys_costs)
 
-        return cost
+        # Use half of the average drug efficacy survey cost for the epidemiological survey cost
+        epi_surveys_costs = (1 / 2) * sum(drug_surveys_costs) / len(drug_surveys_costs) * sum(self.epi_surveys)
+        total_cost += epi_surveys_costs
+
+        return total_cost
+
+    def __calculate_drug_cost(self, de_survey: pd.DataFrame, year: Optional[int] = None):
+        """
+        Calculate the cost of scheduling a drug efficacy survey in the given year
+        :param de_survey: Data to base costs on
+        :param year: Year to schedule if any, otherwise take an average over all years
+        :return: Cost of scheduling the survey
+        """
+        return self.__consumable(de_survey, year) + self.__personnel(de_survey, year) + self.__transportation(de_survey,
+                                                                                                              year)
 
     def __hash__(self):
         return hash(self.epi_surveys)
+
+    def __eq__(self, other):
+        if not isinstance(other, Policy):
+            return False
+
+        return self.epi_surveys == other.epi_surveys
 
     def __len__(self):
         return sum(self.epi_surveys)
 
     def __repr__(self):
         name = self.__class__.__name__
-        return f"{name}({self.time_points})"
+        return f"{name}({self.epi_time_points})"
+
+    @property
+    def last_year(self):
+        """
+        Last year an epidemiological survey is taken
+        :return: Year of the last epidemiological survey
+        """
+        # Default value in case no epidemiological survey is scheduled
+        # This allows for scheduling a drug efficacy survey "one year after", i.e. at time 0
+        if len(self.epi_time_points) < 1:
+            return -1
+
+        return self.epi_time_points[-1]
+
+    @property
+    def epi_time_points(self):
+        return [time for time, do_survey in enumerate(self.epi_surveys) if do_survey]
+
+    @property
+    def drug_time_points(self):
+        return [time for time, do_survey in enumerate(self.drug_surveys) if do_survey]
+
+    def with_drug_survey(self) -> "Policy":
+        year = self.last_year + 1
+        assert 0 <= year < N_YEARS, "Year to schedule drug survey needs to be valid"
+
+        # Create a new policy with an additional drug efficacy survey
+        policy = Policy(self.epi_surveys)
+        policy.drug_surveys = policy.drug_surveys[:year] + (True,) + policy.drug_surveys[year + 1:]
+        return policy
 
     @property
     def sub_policies(self) -> Generator["Policy", None, None]:
@@ -62,28 +113,67 @@ class Policy:
                 yield Policy(curr_years + next_years)
 
     @classmethod
-    def __consumable(cls, de_survey: pd.DataFrame):
-        N_baseline = de_survey['total_useful_tests'] + de_survey['skipped_NaN_tests']
-        N_follow_up = de_survey['total_useful_tests']
+    def __consumable(cls, de_survey: pd.DataFrame, year: Optional[int] = None):
+        """
+        Calculate the consumable costs
+        :param de_survey: Survey data to base costs on
+        :param year: Year to schedule if any, otherwise take an average over all years
+        :return: Consumable costs
+        """
+        # Get data
+        total_useful_tests = first_or_mean(de_survey['total_useful_tests'], year)
+        skipped_NaN_tests = first_or_mean(de_survey['skipped_NaN_tests'], year)
+
+        # Calculate costs
+        N_baseline = total_useful_tests + skipped_NaN_tests
+        N_follow_up = total_useful_tests
         baseline_costs = N_baseline * (Costs.EQUIPMENT + Costs.FIXED_COST + Costs.KATO_KATZ.get('single_sample'))
         follow_up_costs = N_follow_up * (
                 Costs.EQUIPMENT + Costs.FIXED_COST + 2 * Costs.KATO_KATZ.get('duplicate_sample'))
         return baseline_costs + follow_up_costs
 
-    def __personnel(self, de_survey: pd.DataFrame):
-        return self.__days(de_survey) * 4 * 22.50
+    def __personnel(self, de_survey: pd.DataFrame, year: Optional[int] = None):
+        """
+        Calculate the personnel costs of a drug efficacy survey
+        :param de_survey: Survey data to base costs on
+        :param year: Year to schedule if any, otherwise take an average over all years
+        :return: Personnel costs
+        """
+        return self.__days(de_survey, year) * 4 * 22.50
 
-    def __transportation(self, de_survey: pd.DataFrame) -> int:
-        return self.__days(de_survey) * 90
+    def __transportation(self, de_survey: pd.DataFrame, year: Optional[int] = None) -> int:
+        """
+        Calculate the transportation costs of a drug efficacy survey
+        :param de_survey: Survey data to base costs on
+        :param year: Year to schedule if any, otherwise take an average over all years
+        :return: Transportation costs
+        """
+        return self.__days(de_survey, year) * 90
 
     @classmethod
-    def __days(cls, de_survey: pd.DataFrame) -> int:
+    def __days(cls, de_survey: pd.DataFrame, year: Optional[int] = None) -> int:
+        """
+        Calculate the number of days required to take a drug efficacy survey
+        :param de_survey: Survey data to base the calculation on
+        :param year: Year to schedule if any, otherwise take an average over all years
+        :return: Survey days
+        """
+        # Get data
+        total_useful_tests = first_or_mean(de_survey['total_useful_tests'], year)
+        skipped_NaN_tests = first_or_mean(de_survey['skipped_NaN_tests'], year)
+        true_a_pre = first_or_mean(de_survey['true_a_pre'], year)
+        true_a_post = first_or_mean(de_survey['true_a_post'], year)
+
+        # Set parameters
         workers = 4  # Under assumption of single mobile field team: 1 nurse, three technicians
         timeAvailable = workers * 4 * 60 * 60  # In seconds
-        N_baseline = de_survey['total_useful_tests'] + de_survey['skipped_NaN_tests']
-        N_follow_up = de_survey['total_useful_tests']
-        c_pre = de_survey['true_a_pre']  # TODO: Use average egg observations per time stamp AND include duplicate KK
-        c_post = de_survey['true_a_post']  # TODO: This is true number of eggs in individual, aliquots is on observed
+
+        # Calculate costs
+        N_baseline = total_useful_tests + skipped_NaN_tests
+        N_follow_up = total_useful_tests
+        c_pre = true_a_pre  # TODO: Use average egg observations per time stamp AND include duplicate KK
+        c_post = true_a_post  # TODO: This is true number of eggs in individual, aliquots is on observed
+
         count_pre = Time_Costs.countKK(c_pre)
         count_post = Time_Costs.countKK(2 * c_post)
         time_pre = N_baseline * (Time_Costs.KATO_KATZ['demography'] + Time_Costs.KATO_KATZ.get('single_prep') +
