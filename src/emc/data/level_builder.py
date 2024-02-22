@@ -116,6 +116,7 @@ class LevelBuilder:
             plt.ylabel("Infection level")
             plt.ylim(0, 1)
             plt.legend(title="Resistance mode")
+            plt.subplots_adjust(left=0.08, right=0.98, top=0.98, bottom=0.08)
 
             # Optionally show and save the plot to the user
             if show:
@@ -217,4 +218,4 @@ def build_levels(overwrite):
 
 
 if __name__ == "__main__":
-    build_levels(overwrite=True)
+    build_levels(overwrite=False)
