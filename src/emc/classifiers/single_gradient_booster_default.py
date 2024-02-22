@@ -41,13 +41,11 @@ class SingleGradientBoosterDefault(Classifier):
             "reg_alpha": 0,
             "reg_lambda": 1,
             "scale_pos_weight": 1,
-            "random_state": self.SEED,
-            "missing": np.NaN
         }
         
         self.parameters = params
 
-        self.xgb = XGBRegressor(**params)
+        self.xgb = XGBRegressor(**params, random_state=self.SEED, missing=np.nan)
         print(f"Fitting with {len(X_train)} simulations...")
         self.xgb.fit(X_train, y_train)
 

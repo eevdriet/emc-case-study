@@ -4,6 +4,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 import numpy as np
 
 import pandas as pd
+from xgboost import XGBRegressor
 
 from emc.model.scenario import Scenario
 from emc.model.policy import Policy
@@ -20,7 +21,7 @@ class Classifier(ABC):
         self.data = train
         self.test_data = test
         self.predictions: dict[tuple[int, int], bool] = {}
-        self.parameters: dict [str, float]= {}
+        self.parameters: dict [str, float] = False
 
         # Preprocessed data
         self.features_data: Optional["X"] = None
@@ -40,7 +41,13 @@ class Classifier(ABC):
         # Merge the simulation data into usable arrays for the regressor and start training
         X_data = np.vstack(tuple(self.features_data.values()))
         y_data = np.array(tuple(self.targets_data.values()))
-        self._train(X_data, y_data)
+
+        if self.parameters:
+            print("Using already stored hyperparameters")
+            self._train_basic(X_data, y_data)
+        else:
+            print("Generating new hyperparameters")
+            self._train(X_data, y_data)
 
         # Train
         X_test = np.vstack(tuple(self.features_test.values()))
@@ -82,6 +89,12 @@ class Classifier(ABC):
         """
         ...
 
+    def _train_basic(self, X_train: pd.DataFrame, y_train: pd.Series):
+        params = self.parameters
+        self.xgb = XGBRegressor(**params, random_state=self.SEED, missing=np.nan)
+        print(f"Fitting with {len(X_train)} simulations...")
+        self.xgb.fit(X_train, y_train)
+
     @abstractmethod
     def test(self, X_test: np.ndarray, y_test: np.array) -> float:
         """
@@ -96,3 +109,9 @@ class Classifier(ABC):
         :return: dict containing the hyperparameters
         """
         return self.parameters
+    
+    def setParameters(self, params) -> None:
+        """
+        Set the already found hyperparameters
+        """
+        self.parameters = params

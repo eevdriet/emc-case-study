@@ -163,3 +163,19 @@ class Writer:
         data = cls.__read_json_file(path)
         data[key] = value
         cls.__write_json_file(path, data)
+
+    @classmethod
+    def get_value_from_json(cls, path, key):
+        try:
+            with open(path, 'r') as file:
+                data = json.load(file)
+                if key in data:
+                    return data[key]
+                else:
+                    return False
+        except FileNotFoundError:
+            # print(f"File not found: {path}")
+            return False
+        except json.JSONDecodeError:
+            print(f"Invalid JSON format in the file: {path}")
+            return False
