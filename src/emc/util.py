@@ -135,6 +135,11 @@ class Paths:
         path = cls.data('statistics') / 'stats.json'
         return cls.__safe_path(path)
 
+    @classmethod
+    def log(cls):
+        path = cls.__ROOT / 'log'
+        return cls.__safe_path(path)
+
 
 class Writer:
     """

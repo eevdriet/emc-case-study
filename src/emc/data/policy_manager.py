@@ -1,6 +1,15 @@
 import pandas as pd
 import random
 from collections import defaultdict
+from emc.util import Paths
+import logging
+
+# Configure logging
+logging.basicConfig(
+    filename=Paths.log() / 'policy_manager.log',  # Specify the file name
+    level=logging.DEBUG,  # Set the logging level
+    format='%(asctime)s - %(levelname)s - %(message)s'  # Define the format of log messages
+)
 
 from emc.model.policy import Policy, create_init_policy
 from emc.model.scenario import Scenario
@@ -35,6 +44,8 @@ class PolicyManager:
             2: SingleGradientBoosterBayesian
         }
 
+        self.logger = logging.getLogger(__name__)
+
         # Setup data fields
         self.scenarios: list[Scenario] = scenarios
         self.policy_classifiers = {}
@@ -60,6 +71,7 @@ class PolicyManager:
 
     def manage(self):
         # TODO: figure out whether to use a better search scheme for new policies
+        self.logger.info("Hallootjes")
         best_cost = float('inf')
         best_policy = None
 
@@ -77,7 +89,7 @@ class PolicyManager:
                         costs = self.__calculate_costs(neighbor)
                         policy_costs = {**policy_costs, **costs}
                     except Exception as err:
-                        print(f"Policy {neighbor} raises an exception: {err}")
+                        self.logger.error(f"Policy {neighbor} raises an exception: {err}")
 
             # Update the best policy if an improvement was found
             curr_policy, curr_cost = max(policy_costs.items(), key=lambda pair: pair[1])
