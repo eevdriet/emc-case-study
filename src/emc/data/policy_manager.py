@@ -1,14 +1,24 @@
 import pandas as pd
 import random
+from collections import defaultdict
+from emc.util import Paths
+import logging
 
-from typing import Tuple, TypeVar
+# Configure logging
+logging.basicConfig(
+    filename=Paths.log() / 'policy_manager.log',  # Specify the file name
+    level=logging.DEBUG,  # Set the logging level
+    format='%(asctime)s - %(levelname)s - %(message)s'  # Define the format of log messages
+)
 
-from emc.model.policy import Policy
+from emc.model.policy import Policy, create_init_policy
 from emc.model.scenario import Scenario
 from emc.model.simulation import Simulation
 from emc.data.constants import *
+from emc.util import Writer, Paths
 
-from emc.classifiers.single_gradient_booster import SingleGradientBooster
+from emc.classifiers import *
+from emc.data.neighborhood import Neighborhood
 from emc.util import normalised, Pair
 
 
@@ -21,73 +31,160 @@ class PolicyManager:
     Manages the classification of different policies and their sub-policies
     """
 
+    __N_MAX_ITERS: int = 5
     __TRAIN_TEST_SPLIT_SIZE: float = 0.2
     __TRAIN_VAL_SPLIT_SIZE: float = 0.25
     __NORMALISED_COLS = {'n_host', 'n_host_eggpos', 'a_epg_obs'}
 
-    def __init__(self, scenarios: list[Scenario]):
+    def __init__(self, scenarios: list[Scenario], strategy: str, frequency: str, worm: str, regression_model: int,
+                 neighborhoods: list[Neighborhood]):
+        regressor_constructors = {
+            0: SingleGradientBoosterDefault,
+            1: SingleGradientBoosterRandomCV,
+            2: SingleGradientBoosterBayesian
+        }
+
+        self.logger = logging.getLogger(__name__)
+
+        # Setup data fields
         self.scenarios: list[Scenario] = scenarios
         self.policy_classifiers = {}
+        self.policy_costs = {}
 
-        self.train_simulations = []
-        self.test_simulations = []
-
-        self.train_df = pd.DataFrame()
-        self.test_df = pd.DataFrame()
-
-    def manage(self):
         # Split the data into train/validation data for the classifiers
         simulations, dfs = self.__split_data()
         self.train_simulations, self.test_simulations = simulations
         self.train_df, self.test_df = dfs
 
-        # Go through a policy and its sub-policies
-        policy = self.__create_init_policy()
+        # Setup hyperparameters
+        self.strategy = str(strategy)
+        self.frequency = str(frequency)
+        self.worm = str(worm)
 
+        filename = self.worm + "_" + self.strategy + "_" + self.frequency + "_" + regressor_constructors[
+            regression_model].__name__ + ".json"
+        self.hp_path = Paths.hyperparameter_opt(filename)
+        self.constructor = regressor_constructors[regression_model]
+
+        # Setup local iterative search
+        self.neighborhoods = neighborhoods
+
+    def manage(self):
+        # TODO: figure out whether to use a better search scheme for new policies
+        self.logger.info("Hallootjes")
+        best_cost = float('inf')
+        best_policy = None
+
+        curr_policy = create_init_policy(1)
+        iteration = 0
+
+        while iteration < self.__N_MAX_ITERS:
+            policy_costs = {}
+
+            for neighborhood in self.neighborhoods:
+                for neighbor in neighborhood(curr_policy):
+                    try:
+                        # Get the costs for the current policy and update
+                        self.__build_regressors(neighbor)
+                        costs = self.__calculate_costs(neighbor)
+                        policy_costs = {**policy_costs, **costs}
+                    except Exception as err:
+                        self.logger.error(f"Policy {neighbor} raises an exception: {err}")
+
+            # Update the best policy if an improvement was found
+            curr_policy, curr_cost = max(policy_costs.items(), key=lambda pair: pair[1])
+            if curr_cost < best_cost:
+                best_cost = curr_cost
+                best_policy = curr_policy.copy()
+                iteration = 0
+            else:
+                iteration += 1
+
+        return best_policy
+
+    def __build_regressors(self, policy: Policy) -> None:
+        """
+        Build and train the regressor for a given policy and its sub-policies
+        :param policy: Policy to build regressors for
+        """
         for sub_policy in policy.sub_policies:
-            # Already trained the classifier for the given policy
+            # Already trained the regressor for the given policy
             if sub_policy in self.policy_classifiers:
                 continue
 
-            # Otherwise, filter the train/validation data based on the policy and start classifying
+            # Otherwise, filter the train/validation data based on the policy and start regressing
             train = self.__filter_data(self.train_df, sub_policy)
             test = self.__filter_data(self.test_df, sub_policy)
 
-            classifier = SingleGradientBooster(sub_policy, train, test)
-            classifier.run()
+            # Build the regressor with previously found hyperparameters if they exist
+            found = Writer.get_value_from_json(self.hp_path, str(hash(sub_policy)))
+            regressor = self.constructor(sub_policy, train, test)
+            regressor.setParameters(found)
+            regressor.run()
 
-            # Store the classifier results
-            # self.policy_classifiers[sub_policy] = classifier
+            # Update best hyperparameters for the regressor
+            if not found:
+                Writer.update_json_file(self.hp_path, str(hash(sub_policy)), regressor.getParameters())
 
-            # for simulation, df in zip(self.test_simulations, self.test_df):
-            #     res = classifier.test(df)
-            #     cost = simulation.calculate_cost(policy)
+            # Store the regressor results
+            self.policy_classifiers[sub_policy] = regressor
 
-            # for
-            # totalCosts = 0
-            # per simulation in test set:
-            #   from generated classifiers construct de_survey schedule
-            #   for every time t from t = 0 to t = n
-            #       if epi_survey[t]:
-            #           totalCosts += epi_survey_costs at time t
-            #       if de_survey [t]:
-            #           totalCosts += de_survey_costs at time t
-            #           if de_survey result < 0.85:
-            #               continue
-            #   if (de_efficacy < 0.85 but not found):
-            #       totalCosts += 100000 (costs if not found)
-            # averageCosts = totalCosts / len(simulation in test_set)
-            # TODO: hoe goed is de policy = averageCosts
-
-    def __create_init_policy(self) -> Policy:
+    def __calculate_costs(self, policy: Policy):
         """
-        Create an initial policy to start the policy improvement from
-        :return: Initial policy
+        Calculate the cost of a policy and all its sub-policies based on regression under each simulation
+        :param policy: Policy to find costs for
+        :return: Costs of the policy and its sub-policies
         """
-        self.scenarios = self.scenarios
-        epi_surveys = (True, False,) * (N_YEARS // 2) + (True,)
+        # Keep track of the costs of all simulations that terminate in a certain policy
+        # TODO: figure out if costs are being calculated properly
+        policy_simulation_costs: dict[Policy, list] = defaultdict(list)
 
-        return Policy(epi_surveys)
+        for simulation in self.test_simulations:
+            for sub_policy in policy.sub_policies:
+                classifier = self.policy_classifiers[sub_policy]
+
+                # Continue with epidemiological surveys as long as resistance does not seem to be a problem yet
+                epi_signal = classifier.predict(simulation)
+                if epi_signal is None:
+                    continue
+                if epi_signal >= 0.85:
+                    continue
+
+                # Otherwise, verify whether resistance is a problem by scheduling a drug efficacy the year after
+                drug_signal = simulation.predict(sub_policy)
+
+                # If no drug efficacy data is available, penalize the policy for not finding a signal sooner
+                if drug_signal is None:
+                    costs = simulation.calculate_cost(sub_policy)
+                    costs += RESISTANCE_NOT_FOUND_COSTS
+                    policy_simulation_costs[sub_policy].append(costs)
+                    print(
+                        f"Simulation {simulation.scenario.id, simulation.id} -> {sub_policy} with costs {costs} [Epi < 0.85, no drug data]")
+                    break
+
+                # If data is available and resistance is indeed a problem, stop the simulation and register its cost
+                elif drug_signal < 0.85:
+                    drug_policy = sub_policy.with_drug_survey()
+                    costs = simulation.calculate_cost(sub_policy)
+                    print(
+                        f"Simulation {simulation.scenario.id, simulation.id} -> {sub_policy} with costs {costs} [Epi < 0.85, drug < 0.85]")
+                    policy_simulation_costs[drug_policy].append(costs)
+                    break
+
+            # If resistance never becomes a problem under the policy, register its costs without drug efficacy surveys
+            else:
+                costs = simulation.calculate_cost(policy)
+                print(
+                    f"Simulation {simulation.scenario.id, simulation.id} -> {policy} with costs {costs} [Epi>= 0.85, drug >= 0.85]")
+                policy_simulation_costs[policy].append(costs)
+
+        # Average simulation costs per policy
+        policy_costs = {}
+        for policy, simulation_costs in policy_simulation_costs.items():
+            policy_costs[policy] = float('inf') if len(simulation_costs) == 0 else sum(simulation_costs) / len(
+                simulation_costs)
+
+        return policy_costs
 
     def __split_data(self) -> SplitData:
         """
@@ -131,12 +228,13 @@ class PolicyManager:
         :return: Filtered data frame
         """
         # Select only time points that occur in the policy
-        time_points = policy.time_points
+        time_points = policy.epi_time_points
         return df[df['time'].isin(time_points)]
 
 
 def main():
     from emc.data.data_loader import DataLoader
+    from emc.data.neighborhood import flip_neighbors, swap_neighbors
 
     # Get the data
     for worm in Worm:
@@ -154,8 +252,10 @@ def main():
 
                 # Use the policy manager
                 print(f"\n\n\n-- {worm}: {strategy} with {frequency} --")
-                manager = PolicyManager(scenarios)
-                manager.manage()
+                neighborhoods = [flip_neighbors]  # also swap_neighbors
+                manager = PolicyManager(scenarios, strategy, frequency, worm, 0, neighborhoods)
+                best_policy = manager.manage()
+                print(best_policy)
 
 
 if __name__ == '__main__':

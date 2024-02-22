@@ -2,8 +2,10 @@ import typing
 
 import pandas as pd
 from attrs import define, field
+from typing import Optional
 
 from emc.model.label import Label
+from emc.data.constants import *
 
 # from emc.model.policy import Policy
 
@@ -44,4 +46,26 @@ class Simulation:
     id: int = field(eq=False, default=-1)
 
     def calculate_cost(self, policy):
+        """
+        Calculate the cost of a given policy for the simulation
+        :param policy: Policy to determine cost for
+        :return: Cost of the policy
+        """
         return policy.calculate_cost(self.drug_efficacy_s)
+
+    def predict(self, policy) -> Optional[float]:
+        """
+        Predict whether drug efficacy becomes a problem under the given policy
+        :param policy: Policy to find drug efficacy from
+        :return: Drug efficacy of the survey the year after the policy ends
+        """
+        df = self.drug_efficacy_s
+
+        # Determine the year in which the drug efficacy survey would be scheduled
+        # If it falls outside the simulated data, give no prediction
+        year = policy.last_year + 1
+        if year not in df['time'].values:
+            return None
+
+        # Otherwise, use the ERR for the given year as prediction
+        return df.loc[df['time'] == year, 'ERR'].iloc[0]
