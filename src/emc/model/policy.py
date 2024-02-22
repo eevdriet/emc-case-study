@@ -66,6 +66,16 @@ class Policy:
         name = self.__class__.__name__
         return f"{name}({self.epi_time_points})"
 
+    def __getitem__(self, year: int) -> bool:
+        assert 0 <= year < N_YEARS, "Year to schedule epidemiological survey needs to be valid"
+        return self.epi_surveys[year]
+
+    def __setitem__(self, year: int, do_survey: bool) -> "Policy":
+        assert 0 <= year < N_YEARS, "Year to schedule epidemiological survey needs to be valid"
+
+        # Create a new policy by setting the survey
+        self.epi_surveys = self.epi_surveys[:year] + (do_survey,) + self.epi_surveys[year + 1:]
+
     @property
     def last_year(self):
         """
@@ -111,6 +121,9 @@ class Policy:
                 next_years = (False,) * (N_YEARS - time - 1)
 
                 yield Policy(curr_years + next_years)
+
+    def copy(self):
+        return Policy(self.epi_surveys)
 
     @classmethod
     def __consumable(cls, de_survey: pd.DataFrame, year: Optional[int] = None):
@@ -181,6 +194,18 @@ class Policy:
         time_post = N_follow_up * (Time_Costs.KATO_KATZ.get('demography') + Time_Costs.KATO_KATZ.get('duplicate_prep') +
                                    Time_Costs.KATO_KATZ.get('duplicate_record')) + count_post
         return math.ceil((time_pre + time_post) / timeAvailable)
+
+
+def create_init_policy(every_n_years: int) -> Policy:
+    """
+    Create an initial policy to start the policy improvement from
+    :param every_n_years: How often to schedule an epidemiological survey for the initial policy
+    :return: Policy with an epidemiological survey every n years
+    """
+    tests = (True,) + (False,) * (every_n_years - 1)
+    epi_surveys = tests * (N_YEARS // every_n_years) + tests[:N_YEARS % every_n_years]
+
+    return Policy(epi_surveys)
 
 
 if __name__ == '__main__':

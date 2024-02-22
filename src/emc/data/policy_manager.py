@@ -2,13 +2,14 @@ import pandas as pd
 import random
 from collections import defaultdict
 
-from emc.model.policy import Policy
+from emc.model.policy import Policy, create_init_policy
 from emc.model.scenario import Scenario
 from emc.model.simulation import Simulation
 from emc.data.constants import *
 from emc.util import Writer, Paths
 
 from emc.classifiers import *
+from emc.data.neighborhood import Neighborhood
 from emc.util import normalised, Pair
 
 
@@ -21,27 +22,30 @@ class PolicyManager:
     Manages the classification of different policies and their sub-policies
     """
 
+    __N_MAX_ITERS: int = 5
     __TRAIN_TEST_SPLIT_SIZE: float = 0.2
     __TRAIN_VAL_SPLIT_SIZE: float = 0.25
     __NORMALISED_COLS = {'n_host', 'n_host_eggpos', 'a_epg_obs'}
 
-    def __init__(self, scenarios: list[Scenario], strategy: str, frequency: str, worm: str, regression_model: int):
+    def __init__(self, scenarios: list[Scenario], strategy: str, frequency: str, worm: str, regression_model: int,
+                 neighborhoods: list[Neighborhood]):
         regressor_constructors = {
             0: SingleGradientBoosterDefault,
             1: SingleGradientBoosterRandomCV,
             2: SingleGradientBoosterBayesian
         }
 
+        # Setup data fields
         self.scenarios: list[Scenario] = scenarios
         self.policy_classifiers = {}
         self.policy_costs = {}
 
-        self.train_simulations = []
-        self.test_simulations = []
+        # Split the data into train/validation data for the classifiers
+        simulations, dfs = self.__split_data()
+        self.train_simulations, self.test_simulations = simulations
+        self.train_df, self.test_df = dfs
 
-        self.train_df = pd.DataFrame()
-        self.test_df = pd.DataFrame()
-
+        # Setup hyperparameters
         self.strategy = str(strategy)
         self.frequency = str(frequency)
         self.worm = str(worm)
@@ -51,37 +55,76 @@ class PolicyManager:
         self.hp_path = Paths.hyperparameter_opt(filename)
         self.constructor = regressor_constructors[regression_model]
 
+        # Setup local iterative search
+        self.neighborhoods = neighborhoods
+
     def manage(self):
-        # Split the data into train/validation data for the classifiers
-        simulations, dfs = self.__split_data()
-        self.train_simulations, self.test_simulations = simulations
-        self.train_df, self.test_df = dfs
+        # TODO: figure out whether to use a better search scheme for new policies
+        best_cost = float('inf')
+        best_policy = None
 
-        # Go through a policy and its sub-policies
-        policy = self.__create_init_policy()
+        curr_policy = create_init_policy(1)
+        iteration = 0
 
+        while iteration < self.__N_MAX_ITERS:
+            policy_costs = {}
+
+            for neighborhood in self.neighborhoods:
+                for neighbor in neighborhood(curr_policy):
+                    try:
+                        # Get the costs for the current policy and update
+                        self.__build_regressors(neighbor)
+                        costs = self.__calculate_costs(neighbor)
+                        policy_costs = {**policy_costs, **costs}
+                    except Exception as err:
+                        print(f"Policy {neighbor} raises an exception: {err}")
+
+            # Update the best policy if an improvement was found
+            curr_policy, curr_cost = max(policy_costs.items(), key=lambda pair: pair[1])
+            if curr_cost < best_cost:
+                best_cost = curr_cost
+                best_policy = curr_policy.copy()
+                iteration = 0
+            else:
+                iteration += 1
+
+        return best_policy
+
+    def __build_regressors(self, policy: Policy) -> None:
+        """
+        Build and train the regressor for a given policy and its sub-policies
+        :param policy: Policy to build regressors for
+        """
         for sub_policy in policy.sub_policies:
-            # Already trained the classifier for the given policy
+            # Already trained the regressor for the given policy
             if sub_policy in self.policy_classifiers:
                 continue
 
-            # Otherwise, filter the train/validation data based on the policy and start classifying
+            # Otherwise, filter the train/validation data based on the policy and start regressing
             train = self.__filter_data(self.train_df, sub_policy)
             test = self.__filter_data(self.test_df, sub_policy)
 
+            # Build the regressor with previously found hyperparameters if they exist
             found = Writer.get_value_from_json(self.hp_path, str(hash(sub_policy)))
+            regressor = self.constructor(sub_policy, train, test)
+            regressor.setParameters(found)
+            regressor.run()
 
-            classifier = self.constructor(sub_policy, train, test)
-            classifier.setParameters(found)
-            classifier.run()
-
+            # Update best hyperparameters for the regressor
             if not found:
-                Writer.update_json_file(self.hp_path, str(hash(sub_policy)), classifier.getParameters())
+                Writer.update_json_file(self.hp_path, str(hash(sub_policy)), regressor.getParameters())
 
-            # Store the classifier results
-            self.policy_classifiers[sub_policy] = classifier
+            # Store the regressor results
+            self.policy_classifiers[sub_policy] = regressor
 
+    def __calculate_costs(self, policy: Policy):
+        """
+        Calculate the cost of a policy and all its sub-policies based on regression under each simulation
+        :param policy: Policy to find costs for
+        :return: Costs of the policy and its sub-policies
+        """
         # Keep track of the costs of all simulations that terminate in a certain policy
+        # TODO: figure out if costs are being calculated properly
         policy_simulation_costs: dict[Policy, list] = defaultdict(list)
 
         for simulation in self.test_simulations:
@@ -123,27 +166,13 @@ class PolicyManager:
                     f"Simulation {simulation.scenario.id, simulation.id} -> {policy} with costs {costs} [Epi>= 0.85, drug >= 0.85]")
                 policy_simulation_costs[policy].append(costs)
 
-        # Register the average costs of each of the observed sub-policies
+        # Average simulation costs per policy
+        policy_costs = {}
         for policy, simulation_costs in policy_simulation_costs.items():
-            if len(simulation_costs) == 0:
-                continue
+            policy_costs[policy] = float('inf') if len(simulation_costs) == 0 else sum(simulation_costs) / len(
+                simulation_costs)
 
-            self.policy_costs[policy] = sum(simulation_costs) / len(simulation_costs)
-
-        # TODO: neighborhood descent for the next policy
-
-    def __create_init_policy(self) -> Policy:
-        """
-        Create an initial policy to start the policy improvement from
-        :return: Initial policy
-        """
-        self.scenarios = self.scenarios
-
-        every_n_year = 4
-        tests = (True,) + (False,) * (every_n_year - 1)
-        epi_surveys = tests * (N_YEARS // every_n_year) + tests[:N_YEARS % every_n_year]
-
-        return Policy(epi_surveys)
+        return policy_costs
 
     def __split_data(self) -> SplitData:
         """
@@ -193,6 +222,7 @@ class PolicyManager:
 
 def main():
     from emc.data.data_loader import DataLoader
+    from emc.data.neighborhood import flip_neighbors, swap_neighbors
 
     # Get the data
     for worm in Worm:
@@ -210,8 +240,10 @@ def main():
 
                 # Use the policy manager
                 print(f"\n\n\n-- {worm}: {strategy} with {frequency} --")
-                manager = PolicyManager(scenarios, strategy, frequency, worm, 0)
-                manager.manage()
+                neighborhoods = [flip_neighbors]  # also swap_neighbors
+                manager = PolicyManager(scenarios, strategy, frequency, worm, 0, neighborhoods)
+                best_policy = manager.manage()
+                print(best_policy)
 
 
 if __name__ == '__main__':
