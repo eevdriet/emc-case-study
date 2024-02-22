@@ -19,6 +19,8 @@ class SingleGradientBoosterRandomCV(Classifier):
 
             df = df.reset_index(drop=True)
             target = df['target'].iloc[-1]
+
+            # TODO: Consider using isnan or using the last working target value
             if isnan(target):
                 continue
 
