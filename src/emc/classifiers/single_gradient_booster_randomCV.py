@@ -19,6 +19,8 @@ class SingleGradientBoosterRandomCV(Classifier):
 
             df = df.reset_index(drop=True)
             target = df['target'].iloc[-1]
+
+            # TODO: Consider using isnan or using the last working target value
             if isnan(target):
                 continue
 
@@ -31,6 +33,7 @@ class SingleGradientBoosterRandomCV(Classifier):
         return features, targets
 
     def _train(self, X_train: pd.DataFrame, y_train: pd.Series):
+        print("Initializing XGBoost regressor with default parameters...")
         xgb = XGBRegressor(random_state=self.SEED, missing=np.NaN)
 
         # Define the parameter grid to search
@@ -45,20 +48,25 @@ class SingleGradientBoosterRandomCV(Classifier):
             'reg_lambda': [1, 1.5, 2, 3]
         }
 
-        # Initialize RandomizedSearchCV
-        random_search = RandomizedSearchCV(estimator=xgb, param_distributions=param_grid, n_iter=100, 
-                                           scoring='neg_mean_squared_error', n_jobs=-1, cv=5, 
-                                           random_state=self.SEED, verbose=1)
+        print("Setting up Randomized Search CV for hyperparameter optimization...")
+        random_search = RandomizedSearchCV(estimator=xgb, param_distributions=param_grid, n_iter=100,
+                                        scoring='neg_mean_squared_error', n_jobs=-1, cv=5,
+                                        random_state=self.SEED, verbose=1)
 
-        print(f"Fitting with {len(X_train)} simulations...")
+        print(f"Starting fitting process with {len(X_train)} samples...")
         # Fit RandomizedSearchCV
         random_search.fit(X_train, y_train)
+
+        # After fitting
+        print("Fitting complete.")
+        print("Best hyperparameters found:")
+        print(random_search.best_params_)
 
         # Best estimator
         self.xgb = random_search.best_estimator_
 
-        print(f"Best parameters found: {random_search.best_params_}")
-        print(f"Best score: {random_search.best_score_}")
+        self.parameters = random_search.best_params_
+        print("Best estimator and parameters set for the model.")
 
     def test(self, X_test: pd.DataFrame, y_test: pd.Series = np.array([])):
         print(f"Predicting with {len(X_test)} simulations...")

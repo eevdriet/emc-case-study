@@ -6,6 +6,7 @@ from emc.model.policy import Policy
 from emc.model.scenario import Scenario
 from emc.model.simulation import Simulation
 from emc.data.constants import *
+from emc.util import Writer, Paths
 
 from emc.classifiers import *
 from emc.util import normalised, Pair
@@ -24,7 +25,13 @@ class PolicyManager:
     __TRAIN_VAL_SPLIT_SIZE: float = 0.25
     __NORMALISED_COLS = {'n_host', 'n_host_eggpos', 'a_epg_obs'}
 
-    def __init__(self, scenarios: list[Scenario]):
+    def __init__(self, scenarios: list[Scenario], strategy: str, frequency: str, worm: str, regression_model: int):
+        regressor_constructors = {
+            0: SingleGradientBoosterDefault,
+            1: SingleGradientBoosterRandomCV,
+            2: SingleGradientBoosterBayesian
+        }
+
         self.scenarios: list[Scenario] = scenarios
         self.policy_classifiers = {}
         self.policy_costs = {}
@@ -34,6 +41,14 @@ class PolicyManager:
 
         self.train_df = pd.DataFrame()
         self.test_df = pd.DataFrame()
+
+        self.strategy = str(strategy)
+        self.frequency = str(frequency)
+        self.worm = str(worm)
+
+        filename = self.worm + "_" + self.strategy + "_" + self.frequency + "_" + regressor_constructors[regression_model].__name__ + ".json"
+        self.hp_path = Paths.hyperparameter_opt(filename)
+        self.constructor = regressor_constructors[regression_model]
 
     def manage(self):
         # Split the data into train/validation data for the classifiers
@@ -53,8 +68,14 @@ class PolicyManager:
             train = self.__filter_data(self.train_df, sub_policy)
             test = self.__filter_data(self.test_df, sub_policy)
 
-            classifier = SingleGradientBoosterBayesian(sub_policy, train, test)
+            found = Writer.get_value_from_json(self.hp_path, str(hash(sub_policy)))
+
+            classifier = self.constructor(sub_policy, train, test)
+            classifier.setParameters(found)
             classifier.run()
+
+            if not found:
+                Writer.update_json_file(self.hp_path, str(hash(sub_policy)), classifier.getParameters())
 
             # Store the classifier results
             self.policy_classifiers[sub_policy] = classifier
@@ -188,7 +209,7 @@ def main():
 
                 # Use the policy manager
                 print(f"\n\n\n-- {worm}: {strategy} with {frequency} --")
-                manager = PolicyManager(scenarios)
+                manager = PolicyManager(scenarios, strategy, frequency, worm, 1)
                 manager.manage()
 
 

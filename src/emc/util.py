@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Tuple, TypeVar, Optional, Any
 import pandas as pd
+import json
 
 # Type definitions
 T = TypeVar('T')
@@ -77,6 +78,14 @@ class Paths:
         :return: Data folder of the project
         """
         return cls.__safe_path(cls.__ROOT / 'data' / typ)
+    
+    @classmethod
+    def hyperparameter_opt(cls, filename : str) -> Path:
+         """
+        Access the hyperparameter path of the project from anywhere
+        :return: hyperparameter folder of the project
+        """
+         return cls.__safe_path(cls.__ROOT / 'data' / 'hyperparameter' / filename)
 
     @classmethod
     def worm_data(cls, worm: str, data_type: str, use_merged: bool = True) -> Path:
@@ -123,3 +132,63 @@ class Paths:
     @classmethod
     def stats(cls):
         return cls.__safe_path(cls.data('statistics') / 'stats.json')
+
+class Writer:
+    """
+    Utility class to quickly export data
+    """
+
+    @classmethod
+    def __read_json_file(cls, path):
+        """
+        Read JSON file from the given filename
+        :param filename: Name of the JSON file
+        :return: Data loaded from the JSON file
+        """
+        try:
+            with open(path, 'r') as file:
+                data = json.load(file)
+            return data
+        except FileNotFoundError:
+            return {}
+    
+    @classmethod
+    def __write_json_file(cls, path, data):
+        """
+        Write data to a JSON file
+        :param filename: Name of the JSON file
+        :param data: Data to be written
+        """
+        try:
+            with open(path, 'w') as file:
+                json.dump(data, file, indent=4)
+        except Exception as e:
+            print(f"Error writing to JSON file: {e}")
+    
+    @classmethod
+    def update_json_file(cls, path, key, value):
+        """
+        Update JSON file with a key-value pair
+        :param filename: Name of the JSON file
+        :param key: Key to update
+        :param value: Value to update
+        """
+        data = cls.__read_json_file(path)
+        data[key] = value
+        cls.__write_json_file(path, data)
+
+    @classmethod
+    def get_value_from_json(cls, path, key):
+        try:
+            with open(path, 'r') as file:
+                data = json.load(file)
+                if key in data:
+                    return data[key]
+                else:
+                    return False
+        except FileNotFoundError:
+            # print(f"File not found: {path}")
+            return False
+        except json.JSONDecodeError:
+            print(f"Invalid JSON format in the file: {path}")
+            return False

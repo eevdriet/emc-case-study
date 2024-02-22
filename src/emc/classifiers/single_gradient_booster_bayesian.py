@@ -34,14 +34,11 @@ class SingleGradientBoosterBayesian(Classifier):
         return features, targets
 
     def _train(self, X_train: pd.DataFrame, y_train: pd.Series):
-
         def objective(trial):
-            # Hyperparameters to be tuned by Optuna using log scale where appropriate
             hyperparams = {
                 'n_estimators': trial.suggest_categorical('n_estimators', [100, 200, 300, 400, 500]),
                 'max_depth': trial.suggest_int('max_depth', 3, 7),
                 'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.2, log=True),
-                # Example usage of suggest_float with step for parameters where linear scale search is appropriate
                 'subsample': trial.suggest_float('subsample', 0.6, 1.0, step=0.1),
                 'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 1.0, step=0.1),
                 'gamma': trial.suggest_float('gamma', 0, 0.5, step=0.1),
@@ -49,28 +46,31 @@ class SingleGradientBoosterBayesian(Classifier):
                 'reg_lambda': trial.suggest_float('reg_lambda', 1e-5, 1, log=True),
             }
 
-            # Model initialization and training
+            print(f"Trial {trial.number}: Testing with params {hyperparams}")
+            
             model = XGBRegressor(**hyperparams, random_state=self.SEED, missing=np.nan)
             model.fit(X_train, y_train)
 
-            # Predictions and evaluation
             preds = model.predict(X_train)
             mse = mean_squared_error(y_train, preds)
 
+            print(f"Trial {trial.number} MSE: {mse}")
+
             return mse
+          
+        study = optuna.create_study(direction='minimize')
+        print("Optimization process started...")
+        study.optimize(objective, n_trials=100, timeout=600)
+        print("Optimization process completed.")
 
-        # Create a study object and perform the optimization
-        # study = optuna.create_study(direction='minimize')
-        # study.optimize(objective, n_trials=100, timeout=600)  # Adjust n_trials or timeout as needed
+        best_hyperparams = study.best_trial.params
+        print(f"Best hyperparameters: {best_hyperparams}")
 
-        # Best hyperparameters
-        # best_hyperparams = study.best_trial.params
-        # print(f"Best hyperparameters: {best_hyperparams}")
+        self.parameters = best_hyperparams
 
-        # Retraining the model on the best hyperparameters
-        # self.xgb = XGBRegressor(**best_hyperparams, random_state=self.SEED, missing=np.nan)
-        self.xgb: XGBRegressor = XGBRegressor(random_state=self.SEED, missing=np.nan)
+        self.xgb = XGBRegressor(**best_hyperparams, random_state=self.SEED, missing=np.nan)
         self.xgb.fit(X_train, y_train)
+        print("Final model trained with best hyperparameters.")
 
     def test(self, X_test: pd.DataFrame, y_test: pd.Series = np.array([])):
         print(f"Predicting with {len(X_test)} simulations...")

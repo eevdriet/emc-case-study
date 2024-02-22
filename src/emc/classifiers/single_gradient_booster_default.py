@@ -30,7 +30,22 @@ class SingleGradientBoosterDefault(Classifier):
         return features, targets
 
     def _train(self, X_train: pd.DataFrame, y_train: pd.Series):
-        self.xgb = XGBRegressor(random_state=self.SEED, missing=np.NaN)
+        params = {
+            "n_estimators": 100,
+            "learning_rate": 0.1,
+            "max_depth": 5,
+            "min_child_weight": 1,
+            "subsample": 0.8,
+            "colsample_bytree": 0.8,
+            "gamma": 0,
+            "reg_alpha": 0,
+            "reg_lambda": 1,
+            "scale_pos_weight": 1,
+        }
+        
+        self.parameters = params
+
+        self.xgb = XGBRegressor(**params, random_state=self.SEED, missing=np.nan)
         print(f"Fitting with {len(X_train)} simulations...")
         self.xgb.fit(X_train, y_train)
 
