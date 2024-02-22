@@ -1,5 +1,6 @@
 import pandas as pd
 import random
+from collections import defaultdict
 
 from emc.model.policy import Policy
 from emc.model.scenario import Scenario
@@ -26,6 +27,7 @@ class PolicyManager:
     def __init__(self, scenarios: list[Scenario]):
         self.scenarios: list[Scenario] = scenarios
         self.policy_classifiers = {}
+        self.policy_costs = {}
 
         self.train_simulations = []
         self.test_simulations = []
@@ -54,31 +56,59 @@ class PolicyManager:
             classifier = SingleGradientBoosterBayesian(sub_policy, train, test)
             classifier.run()
 
-        for simulation in self.train_simulations:
-            ...
-
             # Store the classifier results
-            # self.policy_classifiers[sub_policy] = classifier
+            self.policy_classifiers[sub_policy] = classifier
 
-            # for simulation, df in zip(self.test_simulations, self.test_df):
-            #     res = classifier.test(df)
-            #     cost = simulation.calculate_cost(policy)
+        # Keep track of the costs of all simulations that terminate in a certain policy
+        policy_simulation_costs: dict[Policy, list] = defaultdict(list)
 
-            # for
-            # totalCosts = 0
-            # per simulation in test set:
-            #   from generated classifiers construct de_survey schedule
-            #   for every time t from t = 0 to t = n
-            #       if epi_survey[t]:
-            #           totalCosts += epi_survey_costs at time t
-            #       if de_survey [t]:
-            #           totalCosts += de_survey_costs at time t
-            #           if de_survey result < 0.85:
-            #               continue
-            #   if (de_efficacy < 0.85 but not found):
-            #       totalCosts += 100000 (costs if not found)
-            # averageCosts = totalCosts / len(simulation in test_set)
-            # TODO: hoe goed is de policy = averageCosts
+        for simulation in self.test_simulations:
+            for sub_policy in policy.sub_policies:
+                classifier = self.policy_classifiers[sub_policy]
+
+                # Continue with epidemiological surveys as long as resistance does not seem to be a problem yet
+                epi_signal = classifier.predict(simulation)
+                if epi_signal is None:
+                    continue
+                if epi_signal >= 0.85:
+                    continue
+
+                # Otherwise, verify whether resistance is a problem by scheduling a drug efficacy the year after
+                drug_signal = simulation.predict(sub_policy)
+
+                # If no drug efficacy data is available, penalize the policy for not finding a signal sooner
+                if drug_signal is None:
+                    costs = simulation.calculate_cost(sub_policy)
+                    costs += RESISTANCE_NOT_FOUND_COSTS
+                    policy_simulation_costs[sub_policy].append(costs)
+                    print(
+                        f"Simulation {simulation.scenario.id, simulation.id} -> {sub_policy} with costs {costs} [Epi < 0.85, no drug data]")
+                    break
+
+                # If data is available and resistance is indeed a problem, stop the simulation and register its cost
+                elif drug_signal < 0.85:
+                    drug_policy = sub_policy.with_drug_survey()
+                    costs = simulation.calculate_cost(sub_policy)
+                    print(
+                        f"Simulation {simulation.scenario.id, simulation.id} -> {sub_policy} with costs {costs} [Epi < 0.85, drug < 0.85]")
+                    policy_simulation_costs[drug_policy].append(costs)
+                    break
+
+            # If resistance never becomes a problem under the policy, register its costs without drug efficacy surveys
+            else:
+                costs = simulation.calculate_cost(policy)
+                print(
+                    f"Simulation {simulation.scenario.id, simulation.id} -> {policy} with costs {costs} [Epi>= 0.85, drug >= 0.85]")
+                policy_simulation_costs[policy].append(costs)
+
+        # Register the average costs of each of the observed sub-policies
+        for policy, simulation_costs in policy_simulation_costs.items():
+            if len(simulation_costs) == 0:
+                continue
+
+            self.policy_costs[policy] = sum(simulation_costs) / len(simulation_costs)
+
+        # TODO: neighborhood descent for the next policy
 
     def __create_init_policy(self) -> Policy:
         """
@@ -86,7 +116,10 @@ class PolicyManager:
         :return: Initial policy
         """
         self.scenarios = self.scenarios
-        epi_surveys = (True,) * (21) #+ (True,)
+
+        every_n_year = 4
+        tests = (True,) + (False,) * (every_n_year - 1)
+        epi_surveys = tests * (N_YEARS // every_n_year) + tests[:N_YEARS % every_n_year]
 
         return Policy(epi_surveys)
 
@@ -132,7 +165,7 @@ class PolicyManager:
         :return: Filtered data frame
         """
         # Select only time points that occur in the policy
-        time_points = policy.time_points
+        time_points = policy.epi_time_points
         return df[df['time'].isin(time_points)]
 
 

@@ -55,3 +55,4 @@ MDA_STRATEGIES = ['sac', 'community']
 SEED = 76
 
 RESISTANCE_MODES = ["none", "dominant", "codominant", "recessive"]
+RESISTANCE_NOT_FOUND_COSTS = 100_000

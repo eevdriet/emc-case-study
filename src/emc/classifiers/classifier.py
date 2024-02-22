@@ -5,14 +5,15 @@ import numpy as np
 
 import pandas as pd
 
-from emc.model.scenario import Scenario
+from emc.model.simulation import Simulation
 from emc.model.policy import Policy
+
+_X = dict[tuple[int, int], np.ndarray]
+_Y = dict[tuple[int, int], float]
 
 
 class Classifier(ABC):
     SEED: int = 76
-    X = dict[tuple[int, int], np.ndarray]
-    y = dict[tuple[int, int], np.array]
 
     def __init__(self, policy: Policy, train: pd.DataFrame, test: pd.DataFrame):
         # Raw data, including the policy to regress on
@@ -22,10 +23,10 @@ class Classifier(ABC):
         self.predictions: dict[tuple[int, int], bool] = {}
 
         # Preprocessed data
-        self.features_data: Optional["X"] = None
-        self.features_test: Optional["X"] = None
-        self.targets_data: Optional["y"] = None
-        self.targets_test: Optional["y"] = None
+        self.features_data: Optional[_X] = None
+        self.features_test: Optional[_X] = None
+        self.targets_data: Optional[_Y] = None
+        self.targets_test: Optional[_Y] = None
 
     def run(self) -> float:
         """
@@ -45,6 +46,9 @@ class Classifier(ABC):
         X_test = np.vstack(tuple(self.features_test.values()))
         y_test = np.array(tuple(self.targets_test.values()))
         predictions = self.test(X_test, y_test)
+
+        print(f"{X_data.shape=}, {X_test.shape=}")
+        print(f"{y_data.shape=}, {y_test.shape=}")
 
         # threshold
         y_test = (y_test < 0.85).astype(int)
@@ -66,7 +70,7 @@ class Classifier(ABC):
         }
 
     @abstractmethod
-    def _preprocess(self, data: pd.DataFrame) -> tuple[X, y]:
+    def _preprocess(self, data: pd.DataFrame) -> tuple[_X, _Y]:
         """
         Preprocess the training data
             Standardise all features
@@ -75,16 +79,36 @@ class Classifier(ABC):
         ...
 
     @abstractmethod
-    def _train(self, X_train: np.ndarray, y_train: np.array):
+    def _train(self, X_train: np.ndarray, y_train: np.array) -> None:
         """
-        Train the classifier on the training data
+        :param X_train: Train features
+        :param y_train: Train targets
         """
         ...
 
     @abstractmethod
-    def test(self, X_test: np.ndarray, y_test: np.array) -> float:
+    def test(self, X_test: np.ndarray, y_test: np.array) -> np.array:
         """
-        Test the classifier by finding the label fitting its data
-        :return: Multi-Criteria Decision Analysis composite score
+        :param X_test: Test features
+        :param y_test: Test targets
+        :return: Prediction for each target based on the features
         """
         ...
+
+    def predict(self, simulation: Simulation) -> Optional[float]:
+        """
+        Predict the signal from a single simulation
+        :param simulation: Simulation to test the data for
+        :return: Prediction for the simulation if simulation is valid
+        """
+        # Retrieve the relevant data for the simulation
+        key = (simulation.scenario.id, simulation.id)
+        if key not in self.features_test or key not in self.targets_test:
+            return None
+
+        # Reshape the simulation data into single rowed data
+        X_test = self.features_test[key].reshape(1, -1)
+        y_test = np.array([self.targets_test[key]])
+
+        # Prediction (only first result needed as only one row tested)
+        return self.test(X_test, y_test)[0]

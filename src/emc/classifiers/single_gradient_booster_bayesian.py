@@ -9,6 +9,7 @@ from math import isnan
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
+
 class SingleGradientBoosterBayesian(Classifier):
     def _preprocess(self, data: pd.DataFrame) -> tuple[np.ndarray, np.array]:
         groups = data.groupby(['scenario', 'simulation'])
@@ -59,15 +60,16 @@ class SingleGradientBoosterBayesian(Classifier):
             return mse
 
         # Create a study object and perform the optimization
-        study = optuna.create_study(direction='minimize')
-        study.optimize(objective, n_trials=100, timeout=600)  # Adjust n_trials or timeout as needed
+        # study = optuna.create_study(direction='minimize')
+        # study.optimize(objective, n_trials=100, timeout=600)  # Adjust n_trials or timeout as needed
 
         # Best hyperparameters
-        best_hyperparams = study.best_trial.params
-        print(f"Best hyperparameters: {best_hyperparams}")
+        # best_hyperparams = study.best_trial.params
+        # print(f"Best hyperparameters: {best_hyperparams}")
 
         # Retraining the model on the best hyperparameters
-        self.xgb = XGBRegressor(**best_hyperparams, random_state=self.SEED, missing=np.nan)
+        # self.xgb = XGBRegressor(**best_hyperparams, random_state=self.SEED, missing=np.nan)
+        self.xgb: XGBRegressor = XGBRegressor(random_state=self.SEED, missing=np.nan)
         self.xgb.fit(X_train, y_train)
 
     def test(self, X_test: pd.DataFrame, y_test: pd.Series = np.array([])):

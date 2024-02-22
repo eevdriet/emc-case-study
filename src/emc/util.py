@@ -1,10 +1,23 @@
 from pathlib import Path
-from typing import Tuple, TypeVar, Optional
+from typing import Tuple, TypeVar, Optional, Any
 import pandas as pd
 
 # Type definitions
 T = TypeVar('T')
 Pair = Tuple[T, T]
+
+
+def first_or_mean(series: pd.Series, val: Optional[Any]) -> Any:
+    """
+    Find the first occurrence of a given value of the series or its mean if no value is given
+    :param series: Series to collect data from
+    :param val: Value to find if relevant
+    :return: Mean or first in the series
+    """
+    if val is None:
+        return series.mean()
+
+    return series[series == val].iloc[0]
 
 
 def normalised(series: pd.Series, missing_val: float = 0.5):
