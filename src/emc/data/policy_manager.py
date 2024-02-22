@@ -48,6 +48,9 @@ class PolicyManager:
 
         filename = self.worm + "_" + self.strategy + "_" + self.frequency + "_" + regressor_constructors[regression_model].__name__ + ".json"
         self.hp_path = Paths.hyperparameter_opt(filename)
+        
+        filename = "classifier_stats_" + self.worm + "_" + self.strategy + "_" + self.frequency + "_" + regressor_constructors[regression_model].__name__ + ".json"
+        self.plot_path = Paths.hyperparameter_opt(filename)
         self.constructor = regressor_constructors[regression_model]
 
     def manage(self):
@@ -72,62 +75,64 @@ class PolicyManager:
 
             classifier = self.constructor(sub_policy, train, test)
             classifier.setParameters(found)
-            classifier.run()
+            classifier_stats = classifier.run()
 
+            Writer.update_json_file(self.plot_path, str(sub_policy.epi_time_points[-1]), classifier_stats)
+            
             if not found:
                 Writer.update_json_file(self.hp_path, str(hash(sub_policy)), classifier.getParameters())
 
             # Store the classifier results
             self.policy_classifiers[sub_policy] = classifier
 
-        # Keep track of the costs of all simulations that terminate in a certain policy
-        policy_simulation_costs: dict[Policy, list] = defaultdict(list)
+        # # Keep track of the costs of all simulations that terminate in a certain policy
+        # policy_simulation_costs: dict[Policy, list] = defaultdict(list)
 
-        for simulation in self.test_simulations:
-            for sub_policy in policy.sub_policies:
-                classifier = self.policy_classifiers[sub_policy]
+        # for simulation in self.test_simulations:
+        #     for sub_policy in policy.sub_policies:
+        #         classifier = self.policy_classifiers[sub_policy]
 
-                # Continue with epidemiological surveys as long as resistance does not seem to be a problem yet
-                epi_signal = classifier.predict(simulation)
-                if epi_signal is None:
-                    continue
-                if epi_signal >= 0.85:
-                    continue
+        #         # Continue with epidemiological surveys as long as resistance does not seem to be a problem yet
+        #         epi_signal = classifier.predict(simulation)
+        #         if epi_signal is None:
+        #             continue
+        #         if epi_signal >= 0.85:
+        #             continue
 
-                # Otherwise, verify whether resistance is a problem by scheduling a drug efficacy the year after
-                drug_signal = simulation.predict(sub_policy)
+        #         # Otherwise, verify whether resistance is a problem by scheduling a drug efficacy the year after
+        #         drug_signal = simulation.predict(sub_policy)
 
-                # If no drug efficacy data is available, penalize the policy for not finding a signal sooner
-                if drug_signal is None:
-                    costs = simulation.calculate_cost(sub_policy)
-                    costs += RESISTANCE_NOT_FOUND_COSTS
-                    policy_simulation_costs[sub_policy].append(costs)
-                    print(
-                        f"Simulation {simulation.scenario.id, simulation.id} -> {sub_policy} with costs {costs} [Epi < 0.85, no drug data]")
-                    break
+        #         # If no drug efficacy data is available, penalize the policy for not finding a signal sooner
+        #         if drug_signal is None:
+        #             costs = simulation.calculate_cost(sub_policy)
+        #             costs += RESISTANCE_NOT_FOUND_COSTS
+        #             policy_simulation_costs[sub_policy].append(costs)
+        #             print(
+        #                 f"Simulation {simulation.scenario.id, simulation.id} -> {sub_policy} with costs {costs} [Epi < 0.85, no drug data]")
+        #             break
 
-                # If data is available and resistance is indeed a problem, stop the simulation and register its cost
-                elif drug_signal < 0.85:
-                    drug_policy = sub_policy.with_drug_survey()
-                    costs = simulation.calculate_cost(sub_policy)
-                    print(
-                        f"Simulation {simulation.scenario.id, simulation.id} -> {sub_policy} with costs {costs} [Epi < 0.85, drug < 0.85]")
-                    policy_simulation_costs[drug_policy].append(costs)
-                    break
+        #         # If data is available and resistance is indeed a problem, stop the simulation and register its cost
+        #         elif drug_signal < 0.85:
+        #             drug_policy = sub_policy.with_drug_survey()
+        #             costs = simulation.calculate_cost(sub_policy)
+        #             print(
+        #                 f"Simulation {simulation.scenario.id, simulation.id} -> {sub_policy} with costs {costs} [Epi < 0.85, drug < 0.85]")
+        #             policy_simulation_costs[drug_policy].append(costs)
+        #             break
 
-            # If resistance never becomes a problem under the policy, register its costs without drug efficacy surveys
-            else:
-                costs = simulation.calculate_cost(policy)
-                print(
-                    f"Simulation {simulation.scenario.id, simulation.id} -> {policy} with costs {costs} [Epi>= 0.85, drug >= 0.85]")
-                policy_simulation_costs[policy].append(costs)
+        #     # If resistance never becomes a problem under the policy, register its costs without drug efficacy surveys
+        #     else:
+        #         costs = simulation.calculate_cost(policy)
+        #         print(
+        #             f"Simulation {simulation.scenario.id, simulation.id} -> {policy} with costs {costs} [Epi>= 0.85, drug >= 0.85]")
+        #         policy_simulation_costs[policy].append(costs)
 
-        # Register the average costs of each of the observed sub-policies
-        for policy, simulation_costs in policy_simulation_costs.items():
-            if len(simulation_costs) == 0:
-                continue
+        # # Register the average costs of each of the observed sub-policies
+        # for policy, simulation_costs in policy_simulation_costs.items():
+        #     if len(simulation_costs) == 0:
+        #         continue
 
-            self.policy_costs[policy] = sum(simulation_costs) / len(simulation_costs)
+        #     self.policy_costs[policy] = sum(simulation_costs) / len(simulation_costs)
 
         # TODO: neighborhood descent for the next policy
 
@@ -139,8 +144,10 @@ class PolicyManager:
         self.scenarios = self.scenarios
 
         every_n_year = 4
-        tests = (True,) + (False,) * (every_n_year - 1)
-        epi_surveys = tests * (N_YEARS // every_n_year) + tests[:N_YEARS % every_n_year]
+        # tests = (True,) + (False,) * (every_n_year - 1)
+        # epi_surveys = tests * (N_YEARS // every_n_year) + tests[:N_YEARS % every_n_year]
+
+        epi_surveys = (True,) * 21
 
         return Policy(epi_surveys)
 
@@ -209,7 +216,7 @@ def main():
 
                 # Use the policy manager
                 print(f"\n\n\n-- {worm}: {strategy} with {frequency} --")
-                manager = PolicyManager(scenarios, strategy, frequency, worm, 1)
+                manager = PolicyManager(scenarios, strategy, frequency, worm, 2)
                 manager.manage()
 
 
