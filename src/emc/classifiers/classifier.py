@@ -20,6 +20,7 @@ class Classifier(ABC):
         self.data = train
         self.test_data = test
         self.predictions: dict[tuple[int, int], bool] = {}
+        self.parameters: dict [str, float]= {}
 
         # Preprocessed data
         self.features_data: Optional["X"] = None
@@ -88,3 +89,10 @@ class Classifier(ABC):
         :return: Multi-Criteria Decision Analysis composite score
         """
         ...
+
+    def getParameters(self) -> dict:
+        """
+        Get the used hyperparameters
+        :return: dict containing the hyperparameters
+        """
+        return self.parameters

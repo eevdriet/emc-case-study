@@ -51,7 +51,7 @@ class PolicyManager:
             train = self.__filter_data(self.train_df, sub_policy)
             test = self.__filter_data(self.test_df, sub_policy)
 
-            classifier = SingleGradientBoosterBayesian(sub_policy, train, test)
+            classifier = SingleGradientBoosterRandomCV(sub_policy, train, test)
             classifier.run()
 
         for simulation in self.train_simulations:
