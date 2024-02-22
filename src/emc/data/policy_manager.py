@@ -46,7 +46,8 @@ class PolicyManager:
         self.frequency = str(frequency)
         self.worm = str(worm)
 
-        filename = self.worm + "_" + self.strategy + "_" + self.frequency + "_" + regressor_constructors[regression_model].__name__ + ".json"
+        filename = self.worm + "_" + self.strategy + "_" + self.frequency + "_" + regressor_constructors[
+            regression_model].__name__ + ".json"
         self.hp_path = Paths.hyperparameter_opt(filename)
         self.constructor = regressor_constructors[regression_model]
 
@@ -209,7 +210,7 @@ def main():
 
                 # Use the policy manager
                 print(f"\n\n\n-- {worm}: {strategy} with {frequency} --")
-                manager = PolicyManager(scenarios, strategy, frequency, worm, 1)
+                manager = PolicyManager(scenarios, strategy, frequency, worm, 0)
                 manager.manage()
 
 

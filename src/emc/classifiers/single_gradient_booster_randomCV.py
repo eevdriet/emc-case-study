@@ -4,11 +4,12 @@ from sklearn.model_selection import RandomizedSearchCV
 from xgboost import XGBRegressor
 
 from emc.classifiers import Classifier
+from emc.data.constants import SEED
 from math import isnan
 
 
 class SingleGradientBoosterRandomCV(Classifier):
-    def _preprocess(self, data: pd.DataFrame) -> tuple[np.ndarray, np.array]:
+    def _preprocess(self, data: pd.DataFrame):
         groups = data.groupby(['scenario', 'simulation'])
 
         features = {}
@@ -32,9 +33,9 @@ class SingleGradientBoosterRandomCV(Classifier):
 
         return features, targets
 
-    def _train(self, X_train: pd.DataFrame, y_train: pd.Series):
+    def _train(self, X_train: np.ndarray, y_train: np.array) -> None:
         print("Initializing XGBoost regressor with default parameters...")
-        xgb = XGBRegressor(random_state=self.SEED, missing=np.NaN)
+        xgb = XGBRegressor(random_state=SEED, missing=np.NaN)
 
         # Define the parameter grid to search
         param_grid = {
@@ -50,8 +51,8 @@ class SingleGradientBoosterRandomCV(Classifier):
 
         print("Setting up Randomized Search CV for hyperparameter optimization...")
         random_search = RandomizedSearchCV(estimator=xgb, param_distributions=param_grid, n_iter=100,
-                                        scoring='neg_mean_squared_error', n_jobs=-1, cv=5,
-                                        random_state=self.SEED, verbose=1)
+                                           scoring='neg_mean_squared_error', n_jobs=-1, cv=5,
+                                           random_state=SEED, verbose=1)
 
         print(f"Starting fitting process with {len(X_train)} samples...")
         # Fit RandomizedSearchCV
@@ -68,7 +69,7 @@ class SingleGradientBoosterRandomCV(Classifier):
         self.parameters = random_search.best_params_
         print("Best estimator and parameters set for the model.")
 
-    def test(self, X_test: pd.DataFrame, y_test: pd.Series = np.array([])):
+    def test(self, X_test: np.ndarray, y_test: np.array) -> np.array:
         print(f"Predicting with {len(X_test)} simulations...")
         predictions = self.xgb.predict(X_test)
         return predictions

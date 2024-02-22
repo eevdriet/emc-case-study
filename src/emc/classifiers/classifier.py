@@ -8,6 +8,7 @@ from xgboost import XGBRegressor
 
 from emc.model.simulation import Simulation
 from emc.model.policy import Policy
+from emc.data.constants import SEED
 
 _X = dict[tuple[int, int], np.ndarray]
 _Y = dict[tuple[int, int], float]
@@ -22,7 +23,7 @@ class Classifier(ABC):
         self.data = train
         self.test_data = test
         self.predictions: dict[tuple[int, int], bool] = {}
-        self.parameters: dict [str, float] = False
+        self.parameters: dict[str, float] = False
 
         # Preprocessed data
         self.features_data: Optional[_X] = None
@@ -30,10 +31,9 @@ class Classifier(ABC):
         self.targets_data: Optional[_Y] = None
         self.targets_test: Optional[_Y] = None
 
-    def run(self) -> float:
+    def run(self) -> None:
         """
         Run the classifier to find the labels of the given data
-        :return: Results from the classifier
         """
         # Preprocess to split data into features and targets per simulation
         self.features_data, self.targets_data = self._preprocess(self.data)
@@ -43,6 +43,7 @@ class Classifier(ABC):
         X_data = np.vstack(tuple(self.features_data.values()))
         y_data = np.array(tuple(self.targets_data.values()))
 
+        # Either train the classifier with pre-optimized hyperparameter or perform search for optimal hyperparameters
         if self.parameters:
             print("Using already stored hyperparameters")
             self._train_basic(X_data, y_data)
@@ -70,7 +71,7 @@ class Classifier(ABC):
 
         print(f"F1 score for {self.policy}: {f1}")
 
-        return {
+        results = {
             'accuracy': accuracy,
             'precision': precision,
             'recall': recall,
@@ -96,7 +97,7 @@ class Classifier(ABC):
 
     def _train_basic(self, X_train: pd.DataFrame, y_train: pd.Series):
         params = self.parameters
-        self.xgb = XGBRegressor(**params, random_state=self.SEED, missing=np.nan)
+        self.xgb = XGBRegressor(**params, random_state=SEED, missing=np.nan)
         print(f"Fitting with {len(X_train)} simulations...")
         self.xgb.fit(X_train, y_train)
 
@@ -115,7 +116,7 @@ class Classifier(ABC):
         :return: dict containing the hyperparameters
         """
         return self.parameters
-    
+
     def setParameters(self, params) -> None:
         """
         Set the already found hyperparameters

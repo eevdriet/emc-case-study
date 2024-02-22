@@ -78,14 +78,15 @@ class Paths:
         :return: Data folder of the project
         """
         return cls.__safe_path(cls.__ROOT / 'data' / typ)
-    
+
     @classmethod
-    def hyperparameter_opt(cls, filename : str) -> Path:
-         """
-        Access the hyperparameter path of the project from anywhere
-        :return: hyperparameter folder of the project
+    def hyperparameter_opt(cls, filename: str) -> Path:
         """
-         return cls.__safe_path(cls.__ROOT / 'data' / 'hyperparameter' / filename)
+       Access the hyperparameter path of the project from anywhere
+       :return: hyperparameter folder of the project
+       """
+        path = cls.data('hyperparameter') / filename
+        return cls.__safe_path(path)
 
     @classmethod
     def worm_data(cls, worm: str, data_type: str, use_merged: bool = True) -> Path:
@@ -131,7 +132,9 @@ class Paths:
 
     @classmethod
     def stats(cls):
-        return cls.__safe_path(cls.data('statistics') / 'stats.json')
+        path = cls.data('statistics') / 'stats.json'
+        return cls.__safe_path(path)
+
 
 class Writer:
     """
@@ -151,12 +154,12 @@ class Writer:
             return data
         except FileNotFoundError:
             return {}
-    
+
     @classmethod
-    def __write_json_file(cls, path, data):
+    def __write_json_file(cls, path: Path, data: Any):
         """
         Write data to a JSON file
-        :param filename: Name of the JSON file
+        :param path: Path to the JSON file
         :param data: Data to be written
         """
         try:
@@ -164,12 +167,12 @@ class Writer:
                 json.dump(data, file, indent=4)
         except Exception as e:
             print(f"Error writing to JSON file: {e}")
-    
+
     @classmethod
-    def update_json_file(cls, path, key, value):
+    def update_json_file(cls, path: Path, key: Any, value: Any):
         """
         Update JSON file with a key-value pair
-        :param filename: Name of the JSON file
+        :param path: Path to the JSON file
         :param key: Key to update
         :param value: Value to update
         """
@@ -179,6 +182,12 @@ class Writer:
 
     @classmethod
     def get_value_from_json(cls, path, key):
+        """
+        Try to get a value from a
+        :param path: Path to the JSON file
+        :param key: Key for the value to find
+        :return: Value corresponding to the key if it exists
+        """
         try:
             with open(path, 'r') as file:
                 data = json.load(file)

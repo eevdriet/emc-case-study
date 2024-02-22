@@ -5,13 +5,14 @@ from sklearn.metrics import mean_squared_error
 from xgboost import XGBRegressor
 
 from emc.classifiers import Classifier
+from emc.data.constants import SEED
 from math import isnan
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 
 class SingleGradientBoosterBayesian(Classifier):
-    def _preprocess(self, data: pd.DataFrame) -> tuple[np.ndarray, np.array]:
+    def _preprocess(self, data: pd.DataFrame):
         groups = data.groupby(['scenario', 'simulation'])
 
         features = {}
@@ -33,7 +34,7 @@ class SingleGradientBoosterBayesian(Classifier):
 
         return features, targets
 
-    def _train(self, X_train: pd.DataFrame, y_train: pd.Series):
+    def _train(self, X_train: np.ndarray, y_train: np.array) -> None:
         def objective(trial):
             hyperparams = {
                 'n_estimators': trial.suggest_categorical('n_estimators', [100, 200, 300, 400, 500]),
@@ -47,8 +48,8 @@ class SingleGradientBoosterBayesian(Classifier):
             }
 
             print(f"Trial {trial.number}: Testing with params {hyperparams}")
-            
-            model = XGBRegressor(**hyperparams, random_state=self.SEED, missing=np.nan)
+
+            model = XGBRegressor(**hyperparams, random_state=SEED, missing=np.nan)
             model.fit(X_train, y_train)
 
             preds = model.predict(X_train)
@@ -57,7 +58,7 @@ class SingleGradientBoosterBayesian(Classifier):
             print(f"Trial {trial.number} MSE: {mse}")
 
             return mse
-          
+
         study = optuna.create_study(direction='minimize')
         print("Optimization process started...")
         study.optimize(objective, n_trials=100, timeout=600)
@@ -68,11 +69,11 @@ class SingleGradientBoosterBayesian(Classifier):
 
         self.parameters = best_hyperparams
 
-        self.xgb = XGBRegressor(**best_hyperparams, random_state=self.SEED, missing=np.nan)
+        self.xgb = XGBRegressor(**best_hyperparams, random_state=SEED, missing=np.nan)
         self.xgb.fit(X_train, y_train)
         print("Final model trained with best hyperparameters.")
 
-    def test(self, X_test: pd.DataFrame, y_test: pd.Series = np.array([])):
+    def test(self, X_test: np.ndarray, y_test: np.array) -> np.array:
         print(f"Predicting with {len(X_test)} simulations...")
         predictions = self.xgb.predict(X_test)
         return predictions
