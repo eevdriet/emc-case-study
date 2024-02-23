@@ -7,6 +7,7 @@ import logging
 # Configure logging
 logging.basicConfig(
     filename=Paths.log() / 'policy_manager.log',  # Specify the file name
+    filemode='a',
     level=logging.DEBUG,  # Set the logging level
     format='%(asctime)s - %(levelname)s - %(message)s'  # Define the format of log messages
 )
@@ -144,9 +145,10 @@ class PolicyManager:
 
                 # Continue with epidemiological surveys as long as resistance does not seem to be a problem yet
                 epi_signal = classifier.predict(simulation)
-                if epi_signal is None:
-                    continue
-                if epi_signal >= 0.85:
+
+                if epi_signal is None:  # cannot use simulations that have incomplete data
+                    break
+                if epi_signal >= 0.85:  # skip drug efficacy survey when signal is still fine
                     continue
 
                 # Otherwise, verify whether resistance is a problem by scheduling a drug efficacy the year after
