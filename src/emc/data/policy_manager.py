@@ -1,7 +1,10 @@
+import json
+
 import pandas as pd
 import random
 from collections import defaultdict
 from emc.util import Paths
+from math import isnan
 import logging
 
 # Configure logging
@@ -37,7 +40,7 @@ class PolicyManager:
     __TRAIN_VAL_SPLIT_SIZE: float = 0.25
     __NORMALISED_COLS = {'n_host', 'n_host_eggpos', 'a_epg_obs'}
 
-    def __init__(self, scenarios: list[Scenario], strategy: str, frequency: str, worm: str, regression_model: int,
+    def __init__(self, scenarios: list[Scenario], strategy: str, frequency: int, worm: str, regression_model: int,
                  neighborhoods: list[Neighborhood]):
         regressor_constructors = {
             0: SingleGradientBoosterDefault,
@@ -72,13 +75,13 @@ class PolicyManager:
 
     def manage(self):
         # TODO: figure out whether to use a better search scheme for new policies
-        self.logger.info("Hallootjes")
+        self.logger.info("Start simulation")
         best_cost = float('inf')
         best_policy = None
 
         curr_policy = create_init_policy(1)
         iteration = 0
-        policy_costs = {}
+        self.policy_costs = {}
 
         while iteration < self.__N_MAX_ITERS:
             for neighborhood in self.neighborhoods:
@@ -86,21 +89,28 @@ class PolicyManager:
                     try:
                         # Get the costs for the current policy and update
                         self.__build_regressors(neighbor)
+
+                        # Determine the costs and make sure no invalid data is present
                         costs = self.__calculate_costs(neighbor)
-                        policy_costs = {**policy_costs, **costs}
+                        costs = {key: val for key, val in costs.items() if not isnan(val)}
+
+                        # Update all costs
+                        self.policy_costs = {**self.policy_costs, **costs}
+
                     except Exception as err:
                         self.logger.error(f"Policy {neighbor} raises an exception: {err}")
 
             # Update the best policy if an improvement was found
-            curr_policy, curr_cost = min(policy_costs.items(), key=lambda pair: pair[1])
+            curr_policy, curr_cost = min(self.policy_costs.items(), key=lambda pair: pair[1])
             if curr_cost < best_cost:
+                self.logger.info(f"Policy {curr_policy} is improving! Cost {curr_cost} < {best_cost}")
                 best_cost = curr_cost
                 best_policy = curr_policy.copy()
                 iteration = 0
             else:
                 iteration += 1
 
-        return best_policy, policy_costs
+        return best_policy, self.policy_costs
 
     def __build_regressors(self, policy: Policy) -> None:
         """
@@ -182,8 +192,11 @@ class PolicyManager:
         # Average simulation costs per policy
         policy_costs = {}
         for policy, simulation_costs in policy_simulation_costs.items():
-            policy_costs[policy] = float('inf') if len(simulation_costs) == 0 else sum(simulation_costs) / len(
-                simulation_costs)
+            # Disregard costs that are nan
+            costs = [cost for cost in simulation_costs if not isnan(cost)]
+
+            # Calculate average policy costs
+            policy_costs[policy] = float('inf') if len(costs) == 0 else sum(costs) / len(costs)
 
         return policy_costs
 
@@ -237,10 +250,10 @@ def main():
     from emc.data.data_loader import DataLoader
     from emc.data.neighborhood import flip_neighbors, swap_neighbors
 
-    # Get the data
-    worm = Worm.ASCARIS.value
+    # TODO: adjust scenario before running the policy manager
+    worm = Worm.HOOKWORM.value
     frequency = 1
-    strategy = 'sac'
+    strategy = 'community'
 
     loader = DataLoader(worm)
     all_scenarios = loader.load_scenarios()
@@ -254,7 +267,15 @@ def main():
     print(f"\n\n\n-- {worm}: {strategy} with {frequency} --")
     neighborhoods = [flip_neighbors]  # also swap_neighbors
     manager = PolicyManager(scenarios, strategy, frequency, worm, 0, neighborhoods)
-    best_policy, policy_cost = manager.manage()
+
+    # Register best policy and save all costs
+    best_policy, policy_costs = manager.manage()
+    json_costs = {str(policy.epi_time_points): cost for policy, cost in policy_costs.items()}
+    path = Paths.data('policies') / f"{worm}{frequency}{strategy}.json"
+    path.parent.mkdir(exist_ok=True, parents=True)
+    with open(path, 'w') as file:
+        json.dump(json_costs, file, allow_nan=True, indent=4)
+
     print(best_policy)
 
 

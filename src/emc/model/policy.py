@@ -1,6 +1,8 @@
 import math
+from math import isnan
 
 import pandas as pd
+import numpy as np
 from typing import Generator, Iterable, Optional
 
 from emc.model.costs import Costs
@@ -26,12 +28,21 @@ class Policy:
 
     def calculate_cost(self, de_survey: pd.DataFrame) -> float:
         total_cost = 0
+        drug_survey_costs = []
 
         # Calculate the cost of the drug efficacy surveys and add them to the total costs if relevant
         if len(self.drug_time_points) == 0:
             drug_surveys_costs = [self.__calculate_drug_cost(de_survey)]
         else:
-            drug_surveys_costs = [self.__calculate_drug_cost(de_survey, year) for year in self.drug_time_points]
+            for year in self.drug_time_points:
+                costs = self.__calculate_drug_cost(de_survey, year)
+                if isnan(costs):
+                    continue
+                drug_survey_costs.append(costs)
+
+            if len(drug_survey_costs) == 0:
+                drug_surveys_costs = [self.__calculate_drug_cost(de_survey)]
+
             total_cost += sum(drug_surveys_costs)
 
         # Use half of the average drug efficacy survey cost for the epidemiological survey cost
@@ -137,6 +148,10 @@ class Policy:
         total_useful_tests = first_or_mean(de_survey['total_useful_tests'], year)
         skipped_NaN_tests = first_or_mean(de_survey['skipped_NaN_tests'], year)
 
+        # TODO: handle missing observations before calculating costs to avoid this error prevention below
+        if isnan(total_useful_tests) or isnan(skipped_NaN_tests):
+            return np.nan
+
         # Calculate costs
         N_baseline = total_useful_tests + skipped_NaN_tests
         N_follow_up = total_useful_tests
@@ -176,6 +191,10 @@ class Policy:
         skipped_NaN_tests = first_or_mean(de_survey['skipped_NaN_tests'], year)
         true_a_pre = first_or_mean(de_survey['true_a_pre'], year)
         true_a_post = first_or_mean(de_survey['true_a_post'], year)
+
+        # TODO: handle missing observations before calculating costs to avoid this error prevention below
+        if any(isnan(var) for var in [total_useful_tests, skipped_NaN_tests, true_a_post, true_a_pre]):
+            return np.nan
 
         # Set parameters
         workers = 4  # Under assumption of single mobile field team: 1 nurse, three technicians
