@@ -77,10 +77,9 @@ class PolicyManager:
 
         curr_policy = create_init_policy(1)
         iteration = 0
+        policy_costs = {}
 
         while iteration < self.__N_MAX_ITERS:
-            policy_costs = {}
-
             for neighborhood in self.neighborhoods:
                 for neighbor in neighborhood(curr_policy):
                     try:
@@ -92,7 +91,7 @@ class PolicyManager:
                         self.logger.error(f"Policy {neighbor} raises an exception: {err}")
 
             # Update the best policy if an improvement was found
-            curr_policy, curr_cost = max(policy_costs.items(), key=lambda pair: pair[1])
+            curr_policy, curr_cost = min(policy_costs.items(), key=lambda pair: pair[1])
             if curr_cost < best_cost:
                 best_cost = curr_cost
                 best_policy = curr_policy.copy()
@@ -100,7 +99,7 @@ class PolicyManager:
             else:
                 iteration += 1
 
-        return best_policy
+        return best_policy, policy_costs
 
     def __build_regressors(self, policy: Policy) -> None:
         """
@@ -237,25 +236,24 @@ def main():
     from emc.data.neighborhood import flip_neighbors, swap_neighbors
 
     # Get the data
-    for worm in Worm:
-        worm = worm.value
+    worm = Worm.ASCARIS.value
+    frequency = 1
+    strategy = 'sac'
 
-        loader = DataLoader(worm)
-        all_scenarios = loader.load_scenarios()
+    loader = DataLoader(worm)
+    all_scenarios = loader.load_scenarios()
 
-        for frequency in MDA_FREQUENCIES:
-            for strategy in MDA_STRATEGIES:
-                scenarios = [
-                    s for s in all_scenarios
-                    if s.mda_freq == frequency and s.mda_strategy == strategy
-                ]
+    scenarios = [
+        s for s in all_scenarios
+        if s.mda_freq == frequency and s.mda_strategy == strategy
+    ]
 
-                # Use the policy manager
-                print(f"\n\n\n-- {worm}: {strategy} with {frequency} --")
-                neighborhoods = [flip_neighbors]  # also swap_neighbors
-                manager = PolicyManager(scenarios, strategy, frequency, worm, 0, neighborhoods)
-                best_policy = manager.manage()
-                print(best_policy)
+    # Use the policy manager
+    print(f"\n\n\n-- {worm}: {strategy} with {frequency} --")
+    neighborhoods = [flip_neighbors]  # also swap_neighbors
+    manager = PolicyManager(scenarios, strategy, frequency, worm, 0, neighborhoods)
+    best_policy, policy_cost = manager.manage()
+    print(best_policy)
 
 
 if __name__ == '__main__':
