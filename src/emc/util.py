@@ -16,7 +16,7 @@ def first_or_mean(series: pd.Series, val: Optional[Any]) -> Any:
     :return: Mean or first in the series
     """
     if val is None:
-        return series.mean()
+        return series.mean(skipna=True)
 
     return series[series == val].iloc[0]
 
