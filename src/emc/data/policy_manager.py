@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pandas as pd
 import random
@@ -7,12 +8,16 @@ from emc.util import Paths
 from math import isnan
 import logging
 
-# Configure logging
+#init logging
+log_directory = Paths.log()
+Path(log_directory).mkdir(parents=True, exist_ok=True)
+log_file_path = log_directory / 'policy_manager.log'
+
 logging.basicConfig(
-    filename=Paths.log() / 'policy_manager.log',  # Specify the file name
+    filename=log_file_path,
     filemode='a',
-    level=logging.DEBUG,  # Set the logging level
-    format='%(asctime)s - %(levelname)s - %(message)s'  # Define the format of log messages
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
 from emc.model.policy import Policy, create_init_policy
@@ -253,7 +258,7 @@ def main():
     # TODO: adjust scenario before running the policy manager
     worm = Worm.HOOKWORM.value
     frequency = 1
-    strategy = 'community'
+    strategy = 'sac'
 
     loader = DataLoader(worm)
     all_scenarios = loader.load_scenarios()
