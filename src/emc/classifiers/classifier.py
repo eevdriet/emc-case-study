@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import numpy as np
+import pickle
 
 import pandas as pd
 from xgboost import XGBRegressor
@@ -100,6 +101,12 @@ class Classifier(ABC):
         self.xgb = XGBRegressor(**params, random_state=SEED, missing=np.nan)
         print(f"Fitting with {len(X_train)} simulations...")
         self.xgb.fit(X_train, y_train)
+
+        # print("-2==========================================================================")
+        # with open('xgb_model.pkl', 'wb') as file:
+        #     pickle.dump(self.xgb, file)
+        #     input()
+        #     print("-==========================================================================")
 
     @abstractmethod
     def test(self, X_test: np.ndarray, y_test: np.array) -> np.array:
