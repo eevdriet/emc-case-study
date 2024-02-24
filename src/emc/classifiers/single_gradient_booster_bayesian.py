@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import optuna
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import f1_score, mean_squared_error
 from xgboost import XGBRegressor
 
 from emc.classifiers import Classifier
@@ -51,14 +51,22 @@ class SingleGradientBoosterBayesian(Classifier):
             model = XGBRegressor(**hyperparams, random_state=self.SEED, missing=np.nan)
             model.fit(X_train, y_train)
 
-            preds = model.predict(X_train)
-            mse = mean_squared_error(y_train, preds)
+            X_test = np.vstack(tuple(self.features_test.values()))
+            y_test = np.array(tuple(self.targets_test.values()))
 
-            print(f"Trial {trial.number} MSE: {mse}")
+            y_test = (y_test < 0.85).astype(int)
 
-            return mse
+            preds = model.predict(X_test)
+            preds = (preds < 0.85).astype(int)
+
+            # check scores
+            f1 = f1_score(y_test, preds, average='weighted')
+
+            print(f"Trial {trial.number} F1: {f1}")
+
+            return f1
           
-        study = optuna.create_study(direction='minimize')
+        study = optuna.create_study(direction='maximize')
         print("Optimization process started...")
         study.optimize(objective, n_trials=100, timeout=600)
         print("Optimization process completed.")

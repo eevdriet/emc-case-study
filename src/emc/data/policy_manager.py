@@ -49,8 +49,8 @@ class PolicyManager:
         filename = self.worm + "_" + self.strategy + "_" + self.frequency + "_" + regressor_constructors[regression_model].__name__ + ".json"
         self.hp_path = Paths.hyperparameter_opt(filename)
         
-        filename = "classifier_stats_" + self.worm + "_" + self.strategy + "_" + self.frequency + "_" + regressor_constructors[regression_model].__name__ + ".json"
-        self.plot_path = Paths.hyperparameter_opt(filename)
+        filename = "classifier_stats_f1score_" + self.worm + "_" + self.strategy + "_" + self.frequency + "_" + regressor_constructors[regression_model].__name__ + ".json"
+        self.plot_path = Paths.hyperparameter_opt(filename, True)
         self.constructor = regressor_constructors[regression_model]
 
     def manage(self):
@@ -71,7 +71,7 @@ class PolicyManager:
             train = self.__filter_data(self.train_df, sub_policy)
             test = self.__filter_data(self.test_df, sub_policy)
 
-            # found = Writer.get_value_from_json(self.hp_path, str(hash(sub_policy)))
+            found = Writer.get_value_from_json(self.hp_path, str(hash(sub_policy)))
 
             classifier = self.constructor(sub_policy, train, test)
             # classifier.setParameters(found)
@@ -79,8 +79,8 @@ class PolicyManager:
 
             Writer.update_json_file(self.plot_path, str(sub_policy.epi_time_points[-1]), classifier_stats)
             
-            # if not found:
-                # Writer.update_json_file(self.hp_path, str(hash(sub_policy)), classifier.getParameters())
+            if not found:
+                Writer.update_json_file(self.hp_path, str(hash(sub_policy)), classifier.getParameters())
 
             # Store the classifier results
             self.policy_classifiers[sub_policy] = classifier
@@ -216,7 +216,7 @@ def main():
 
                 # Use the policy manager
                 print(f"\n\n\n-- {worm}: {strategy} with {frequency} --")
-                manager = PolicyManager(scenarios, strategy, frequency, worm, 0)
+                manager = PolicyManager(scenarios, strategy, frequency, worm, 2)
                 manager.manage()
 
 

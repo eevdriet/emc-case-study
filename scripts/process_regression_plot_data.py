@@ -20,20 +20,39 @@ def show_regression_plot() -> None:
         for j, strategy in enumerate(strategies):
             for k, frequency in enumerate(frequencies):
                 # Read data from JSON file
-                path = Paths.hyperparameter_opt(f'classifier_stats_{worm}_{strategy}_{frequency}_SingleGradientBoosterDefault.json', True)
+                path1 = Paths.hyperparameter_opt(f'classifier_stats_f1score_{worm}_{strategy}_{frequency}_SingleGradientBoosterBayesian.json', True)
+                path2 = Paths.hyperparameter_opt(f'classifier_stats_{worm}_{strategy}_{frequency}_SingleGradientBoosterDefault.json', True)
+                path3 = Paths.hyperparameter_opt(f'classifier_stats_{worm}_{strategy}_{frequency}_SingleGradientBoosterBayesian.json', True)
 
-                with open(path, 'r') as file:
+                with open(path1, 'r') as file:
                     data = json.load(file)
 
                 # Extract metrics
-                time_points = list(data.keys())[1:]  # Skip first two time points
+                time_points = list(data.keys())[1:]  # Skip first time point
                 accuracy = [data[time]['accuracy'] for time in time_points]
                 f1_score = [data[time]['f1_score'] for time in time_points]
 
+                with open(path2, 'r') as file:
+                    data = json.load(file)
+
+                accuracy_def = [data[time]['accuracy'] for time in time_points]
+                f1_score_def = [data[time]['f1_score'] for time in time_points]
+
+                with open(path3, 'r') as file:
+                    data = json.load(file)
+
+                accuracy_opt = [data[time]['accuracy'] for time in time_points]
+                f1_score_opt = [data[time]['f1_score'] for time in time_points]
+
                 # Plotting in corresponding subplot
                 ax = axs[i, j * len(frequencies) + k]
-                ax.plot(time_points, accuracy, marker='o', label='Accuracy')
-                ax.plot(time_points, f1_score, marker='o', label='F1-score')
+                ax.plot(time_points, accuracy_def, label='Default Accuracy', alpha=1)  # Lines without markers
+                ax.plot(time_points, accuracy_opt, label='Optimized Accuracy by MSE', alpha=1)  # Lines without markers
+                ax.plot(time_points, accuracy, label='Optimized Accuracy by F1', alpha=1)  # Lines without markers
+
+                # ax.plot(time_points, f1_score, label='Optimized F1-score', alpha=1)  # Lines without markers
+                # ax.plot(time_points, f1_score_opt, label='Optimized F1-score by MSE', alpha=1)  # Lines without markers
+                # ax.plot(time_points, f1_score_def, label='Default F1-score', alpha=1)  # Transparent line
 
                 ax.set_title(f'{worm.capitalize()} - {strategy.capitalize()} - Frequency {frequency}')
                 ax.set_xlabel('Time Points')
