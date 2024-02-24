@@ -126,20 +126,32 @@ class PolicyManager:
             # Already trained the regressor for the given policy
             if sub_policy in self.policy_classifiers:
                 continue
-
+            
             # Otherwise, filter the train/validation data based on the policy and start regressing
             train = self.__filter_data(self.train_df, sub_policy)
             test = self.__filter_data(self.test_df, sub_policy)
 
-            # Build the regressor with previously found hyperparameters if they exist
-            found = Writer.get_value_from_json(self.hp_path, str(hash(sub_policy)))
-            regressor = self.constructor(sub_policy, train, test)
-            regressor.setParameters(found)
-            regressor.run()
+            model_path = Paths.models(self.worm, self.frequency, self.strategy, str(sub_policy.epi_time_points) + "_" + self.constructor.__name__ + ".pkl")
+            model = Writer.loadModel(model_path)
 
-            # Update best hyperparameters for the regressor
-            if not found:
-                Writer.update_json_file(self.hp_path, str(hash(sub_policy)), regressor.getParameters())
+            if not model:
+                print('Creating new model for: Policy(' + str(sub_policy.epi_time_points) + ")")
+
+                # Build the regressor with previously found hyperparameters if they exist
+                found = Writer.get_value_from_json(self.hp_path, str(hash(sub_policy)))
+                regressor = self.constructor(sub_policy, train, test)
+                regressor.setParameters(found)
+                regressor.run()
+
+                # Update best hyperparameters for the regressor
+                if not found:
+                    Writer.update_json_file(self.hp_path, str(hash(sub_policy)), regressor.getParameters())
+
+                Writer.saveModel(model_path, regressor.getModel())
+            else:
+                print('Using created model for: Policy(' + str(sub_policy.epi_time_points) + ")")
+                regressor = self.constructor.createInstance(self.constructor, model, sub_policy, train, test)
+                regressor.run()
 
             # Store the regressor results
             self.policy_classifiers[sub_policy] = regressor

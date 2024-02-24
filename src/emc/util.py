@@ -1,4 +1,5 @@
 from pathlib import Path
+import pickle
 from typing import Tuple, TypeVar, Optional, Any
 import pandas as pd
 import json
@@ -132,14 +133,37 @@ class Paths:
 
     @classmethod
     def stats(cls):
+        """
+        Access the statistics path of the project.
+
+        :return: Path to the statistics directory
+        """
         path = cls.data('statistics') / 'stats.json'
         return cls.__safe_path(path)
 
     @classmethod
     def log(cls):
+        """
+        Access the log path of the project.
+
+        :return: Path to the log directory
+        """
         path = cls.__ROOT / 'log'
         return cls.__safe_path(path)
+    
+    @classmethod
+    def models(cls, worm: str, mda_freq: int, mda_strategy: str, filename: str) -> Path:
+        """
+        Access the model path of the project given parameters.
 
+        :param worm: Name of the worm
+        :param mda_freq: De-worming frequency
+        :param mda_strategy: De-worming strategy
+        :param filename: Name of the file
+        :return: Path to the model file
+        """
+        path = cls.data('model') / str(worm) / str(mda_strategy) / str(mda_freq) /  str(filename)
+        return cls.__safe_path(path)
 
 class Writer:
     """
@@ -205,4 +229,32 @@ class Writer:
             return False
         except json.JSONDecodeError:
             print(f"Invalid JSON format in the file: {path}")
+            return False
+        
+    @classmethod 
+    def saveModel(cls, path: Path, model) -> None:
+        """
+        Save the model to a file using pickle serialization.
+
+        :param path: Path to save the model file
+        :param model: Model to save to the path
+        :return: None
+        """
+        with open(path, 'wb') as file:
+            pickle.dump(model, file)
+            print("succes")
+
+    @classmethod 
+    def loadModel(cls, path: Path):
+        """
+        Load the model from a file.
+
+        :param path: Path to the model file
+        :return: Loaded model if the file exists, False otherwise
+        """
+        if path.exists():
+            with open(path, 'rb') as file:
+                loaded_model = pickle.load(file)
+            return loaded_model
+        else:
             return False

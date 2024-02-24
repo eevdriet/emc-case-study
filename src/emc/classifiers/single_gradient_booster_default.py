@@ -8,6 +8,7 @@ from math import isnan
 
 
 class SingleGradientBoosterDefault(Classifier):
+    
     def _preprocess(self, data: pd.DataFrame):
         groups = data.groupby(['scenario', 'simulation'])
 
