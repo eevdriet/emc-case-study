@@ -20,7 +20,7 @@ def show_regression_plot() -> None:
         for j, strategy in enumerate(strategies):
             for k, frequency in enumerate(frequencies):
                 # Read data from JSON file
-                path = Paths.hyperparameter_opt(f'classifier_stats_{worm}_{strategy}_{frequency}_SingleGradientBoosterBayesian.json', True)
+                path = Paths.hyperparameter_opt(f'classifier_stats_{worm}_{strategy}_{frequency}_SingleGradientBoosterDefault.json', True)
 
                 with open(path, 'r') as file:
                     data = json.load(file)
