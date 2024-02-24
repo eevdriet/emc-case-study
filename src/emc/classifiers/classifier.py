@@ -22,7 +22,6 @@ class Classifier(ABC):
         self.policy = policy
         self.data = train
         self.test_data = test
-        self.predictions: dict[tuple[int, int], bool] = {}
         self.parameters: dict[str, float] = False
 
         # Preprocessed data
@@ -31,85 +30,37 @@ class Classifier(ABC):
         self.targets_data: Optional[_Y] = None
         self.targets_test: Optional[_Y] = None
 
+        # To be Loaded data
         self.xgb = None
+        self.X_test = None
+        self.y_test = None
+        self.X_data = None
+        self.y_data = None
 
-    def run(self) -> None:
+    def initialize_and_train_model(self) -> None:
         """
-        Run the classifier to find the labels of the given data
+        This method initializes the dataset and test set if they are not already set up. It preprocesses the input and test data,
+        setting up feature and target variables for both. If the XGBoost model is not initialized, the method proceeds to train the
+        model. It checks if hyperparameters are provided; if they are, it uses these to train the model. Otherwise, it generates
+        new hyperparameters and then trains the model. This method ensures that the data is prepared and the model is trained,
+        ready for further processing or evaluation.
         """
-        import time  # Importing the time module
+        if self.X_data is None or self.y_data is None or self.X_test is None or self.y_test is None:
+            self.features_data, self.targets_data = self._preprocess(self.data)
+            self.features_test, self.targets_test = self._preprocess(self.test_data)
 
-        # Function to calculate and print runtime
-        def print_runtime(start_time, end_time, description):
-            runtime = end_time - start_time
-            print(f"Runtime for {description}: {runtime} seconds")
+            self.X_data = np.vstack(tuple(self.features_data.values()))
+            self.y_data = np.array(tuple(self.targets_data.values()))
+            self.X_test = np.vstack(tuple(self.features_test.values()))
+            self.y_test = np.array(tuple(self.targets_test.values()))
 
-        start_time = time.time()  # Start timing the execution
-
-        # Preprocess to split data into features and targets per simulation
-        preprocess_start_time = time.time()
-        self.features_data, self.targets_data = self._preprocess(self.data)
-        self.features_test, self.targets_test = self._preprocess(self.test_data)
-        preprocess_end_time = time.time()
-        print_runtime(preprocess_start_time, preprocess_end_time, "preprocessing")
-
-        # Merge the simulation data into usable arrays for the regressor and start training
-        merge_start_time = time.time()
-        X_data = np.vstack(tuple(self.features_data.values()))
-        y_data = np.array(tuple(self.targets_data.values()))
-        merge_end_time = time.time()
-        print_runtime(merge_start_time, merge_end_time, "merging data")
-
-        # Either train the classifier with pre-optimized hyperparameter or perform search for optimal hyperparameters
         if self.xgb == None:
             if self.parameters:
                 print("Using already stored hyperparameters")
-                train_start_time = time.time()
-                self._train_basic(X_data, y_data)
-                train_end_time = time.time()
-                print_runtime(train_start_time, train_end_time, "training with stored hyperparameters")
+                self._train_basic(self.X_data, self.y_data)
             else:
                 print("Generating new hyperparameters")
-                train_start_time = time.time()
-                self._train(X_data, y_data)
-                train_end_time = time.time()
-                print_runtime(train_start_time, train_end_time, "training with new hyperparameters")
-
-        # Train
-        train_start_time = time.time()
-        X_test = np.vstack(tuple(self.features_test.values()))
-        y_test = np.array(tuple(self.targets_test.values()))
-        predictions = self.test(X_test, y_test)
-        train_end_time = time.time()
-        print_runtime(train_start_time, train_end_time, "testing")
-
-        # Threshold
-        threshold_start_time = time.time()
-        y_test = (y_test < 0.85).astype(int)
-        predictions = (predictions < 0.85).astype(int)
-        threshold_end_time = time.time()
-        print_runtime(threshold_start_time, threshold_end_time, "thresholding")
-
-        # Check scores
-        score_start_time = time.time()
-        accuracy = accuracy_score(y_test, predictions)
-        precision = precision_score(y_test, predictions, average='weighted')
-        recall = recall_score(y_test, predictions, average='weighted')
-        f1 = f1_score(y_test, predictions, average='weighted')
-        score_end_time = time.time()
-        print_runtime(score_start_time, score_end_time, "calculating scores")
-
-        print(f"F1 score for {self.policy}: {f1}")
-
-        results = {
-            'accuracy': accuracy,
-            'precision': precision,
-            'recall': recall,
-            'f1_score': f1
-        }
-
-        end_time = time.time()  # Stop timing the execution
-        print_runtime(start_time, end_time, "entire process")
+                self._train(self.X_data, self.y_data)
 
     @abstractmethod
     def _preprocess(self, data: pd.DataFrame) -> tuple[_X, _Y]:
@@ -179,9 +130,40 @@ class Classifier(ABC):
     
     def setModel(self, model):
         self.xgb = model
+    
+    def getPreprocessing(self):
+        return (self.X_test, self.y_test, self.X_data, self.y_data)
+    
+    def setPreprocessing(self, X_test, y_test, X_data, y_data) -> None:
+        self.X_test = X_test
+        self.y_test = y_test
+        self.X_data = X_data
+        self.y_data = y_data
 
     @staticmethod
     def createInstance(constructor, model, policy: Policy, train, test):
         newClassifier = constructor(policy, train, test)
         newClassifier.setModel(model)
         return newClassifier
+    
+    def getStats(self):
+        X_test_local = self.X_test
+        y_test_local = self.y_test
+
+        predictions = self.test(X_test_local, y_test_local)
+        y_test_local = (y_test_local < 0.85).astype(int)
+        predictions = (predictions < 0.85).astype(int)
+
+        accuracy = accuracy_score(y_test_local, predictions)
+        precision = precision_score(y_test_local, predictions, average='weighted')
+        recall = recall_score(y_test_local, predictions, average='weighted')
+        f1 = f1_score(y_test_local, predictions, average='weighted')
+
+        results = {
+            'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall,
+            'f1_score': f1
+        }
+
+        return results

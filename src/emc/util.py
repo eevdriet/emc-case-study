@@ -1,6 +1,7 @@
 from pathlib import Path
 import pickle
 from typing import Tuple, TypeVar, Optional, Any
+import numpy as np
 import pandas as pd
 import json
 
@@ -164,6 +165,20 @@ class Paths:
         """
         path = cls.data('model') / str(worm) / str(mda_strategy) / str(mda_freq) /  str(filename)
         return cls.__safe_path(path)
+    
+    @classmethod
+    def preprocessing(cls, worm: str, mda_freq: int, mda_strategy: str, filename: str) -> Path:
+        """
+        Access the model path of the project given parameters.
+
+        :param worm: Name of the worm
+        :param mda_freq: De-worming frequency
+        :param mda_strategy: De-worming strategy
+        :param filename: Name of the file
+        :return: Path to the model file
+        """
+        path = cls.data('preprocessing') / str(worm) / str(mda_strategy) / str(mda_freq) /  str(filename)
+        return cls.__safe_path(path)
 
 class Writer:
     """
@@ -258,3 +273,15 @@ class Writer:
             return loaded_model
         else:
             return False
+        
+    @classmethod
+    def saveNumpy(cls, path: Path, data):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        np.save(path, data)
+
+    @classmethod
+    def loadNumpy(cls, path: Path):
+        if path.exists():
+            return np.load(path)
+        else:
+            return None
