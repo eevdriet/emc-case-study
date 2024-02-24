@@ -91,19 +91,19 @@ class PolicyManager:
         while iteration < self.__N_MAX_ITERS:
             for neighborhood in self.neighborhoods:
                 for neighbor in neighborhood(curr_policy):
-                    # try:
-                    # Get the costs for the current policy and update
-                    self.__build_regressors(neighbor)
+                    try:
+                        # Get the costs for the current policy and update
+                        self.__build_regressors(neighbor)
 
-                    # Determine the costs and make sure no invalid data is present
-                    costs = self.__calculate_costs(neighbor)
-                    costs = {key: val for key, val in costs.items() if not isnan(val)}
+                        # Determine the costs and make sure no invalid data is present
+                        costs = self.__calculate_costs(neighbor)
+                        costs = {key: val for key, val in costs.items() if not isnan(val)}
 
-                    # Update all costs
-                    self.policy_costs = {**self.policy_costs, **costs}
+                        # Update all costs
+                        self.policy_costs = {**self.policy_costs, **costs}
 
-                    # except Exception as err:
-                    #     self.logger.error(f"Policy {neighbor} raises an exception: {err}")
+                    except Exception as err:
+                        self.logger.error(f"Policy {neighbor} raises an exception: {err}")
 
             # Update the best policy if an improvement was found
             curr_policy, curr_cost = min(self.policy_costs.items(), key=lambda pair: pair[1])
@@ -139,9 +139,9 @@ class PolicyManager:
             # Define paths for saving and loading the model and preprocessing data.
             model_path = Paths.models(self.worm, self.frequency, self.strategy, str(sub_policy.epi_time_points) + "_" + self.constructor.__name__ + ".pkl")
             prepro_path = Paths.preprocessing(self.worm, self.frequency, self.strategy, str(sub_policy.epi_time_points) + "_" + self.constructor.__name__)
-            model = Writer.loadModel(model_path)
+            model = Writer.loadPickle(model_path)
 
-            if not model:
+            if model is None:
                 # If no existing model is found, create a new model and preprocessing data.
                 print(f'Creating new model and new preprocessing for: Policy({sub_policy.epi_time_points})')
 
@@ -152,40 +152,40 @@ class PolicyManager:
                 regressor.initialize_and_train_model()
 
                 # Save preprocessing data.
-                (X_test, y_test, X_data, y_data) = regressor.getPreprocessing()
-                Writer.saveNumpy(prepro_path / "X_test.npy", X_test)
-                Writer.saveNumpy(prepro_path / "y_test.npy", y_test)
-                Writer.saveNumpy(prepro_path / "X_data.npy", X_data)
-                Writer.saveNumpy(prepro_path / "y_data.npy", y_data)
+                (features_data, targets_data, features_test, targets_test) = regressor.getPreprocessing()
+                Writer.savePickle(prepro_path / "features_data.pkl", features_data)
+                Writer.savePickle(prepro_path / "targets_data.pkl", targets_data)
+                Writer.savePickle(prepro_path / "features_test.pkl", features_test)
+                Writer.savePickle(prepro_path / "targets_test.pkl", targets_test)
 
                 # Update and save the best hyperparameters for the regressor.
                 if not found:
                     Writer.update_json_file(self.hp_path, str(hash(sub_policy)), regressor.getParameters())
 
-                Writer.saveModel(model_path, regressor.getModel())
+                Writer.savePickle(model_path, regressor.getModel())
             else:
                 # Use the existing model if found.
                 print(f'Using created model for: Policy({sub_policy.epi_time_points})')
                 regressor = self.constructor.createInstance(self.constructor, model, sub_policy, train, test)
 
                 # Load preprocessing data.
-                X_data = Writer.loadNumpy(prepro_path / "X_data.npy") 
-                y_data = Writer.loadNumpy(prepro_path / "y_data.npy")
-                X_test = Writer.loadNumpy(prepro_path / "X_test.npy") 
-                y_test = Writer.loadNumpy(prepro_path / "y_test.npy")
+                features_data = Writer.loadPickle(prepro_path / "features_data.pkl")
+                targets_data = Writer.loadPickle(prepro_path / "targets_data.pkl")
+                features_test = Writer.loadPickle(prepro_path / "features_test.pkl")
+                targets_test = Writer.loadPickle(prepro_path / "targets_test.pkl")
 
                 # Use existing preprocessing data if available, otherwise, calculate new preprocessing data.
-                if X_data is not None and y_data is not None and X_test is not None and y_test is not None:
+                if features_data is not None or targets_data is not None or features_test is not None or targets_test is not None:
                     print("Using already calculated preprocessing")
-                    regressor.setPreprocessing(X_test, y_test, X_data, y_data)
+                    regressor.setPreprocessing(features_data, targets_data, features_test, targets_test)
                 else:
                     print("Calculating new preprocessing")
                     regressor.initialize_and_train_model()
-                    (X_test, y_test, X_data, y_data) = regressor.getPreprocessing()
-                    Writer.saveNumpy(prepro_path / "X_test.npy", X_test)
-                    Writer.saveNumpy(prepro_path / "y_test.npy", y_test)
-                    Writer.saveNumpy(prepro_path / "X_data.npy", X_data)
-                    Writer.saveNumpy(prepro_path / "y_data.npy", y_data)
+                    (features_data, targets_data, features_test, targets_test) = regressor.getPreprocessing()
+                    Writer.savePickle(prepro_path / "features_data.pkl", features_data)
+                    Writer.savePickle(prepro_path / "targets_data.pkl", targets_data)
+                    Writer.savePickle(prepro_path / "features_test.pkl", features_test)
+                    Writer.savePickle(prepro_path / "targets_test.pkl", targets_test)
 
             # Store the trained regressor in the policy classifiers dictionary.
             self.policy_classifiers[sub_policy] = regressor

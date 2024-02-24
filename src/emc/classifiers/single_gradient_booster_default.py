@@ -52,6 +52,5 @@ class SingleGradientBoosterDefault(Classifier):
         self.xgb.fit(X_train, y_train)
 
     def test(self, X_test: np.ndarray, y_test: np.array) -> np.array:
-        print(f"Predicting with {len(X_test)} simulations...")
         predictions = self.xgb.predict(X_test)
         return predictions

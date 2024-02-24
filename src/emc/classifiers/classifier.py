@@ -45,14 +45,14 @@ class Classifier(ABC):
         new hyperparameters and then trains the model. This method ensures that the data is prepared and the model is trained,
         ready for further processing or evaluation.
         """
-        if self.X_data is None or self.y_data is None or self.X_test is None or self.y_test is None:
+        if self.features_data is None or self.targets_data is None or self.features_test is None or self.targets_test is None:
             self.features_data, self.targets_data = self._preprocess(self.data)
             self.features_test, self.targets_test = self._preprocess(self.test_data)
 
-            self.X_data = np.vstack(tuple(self.features_data.values()))
-            self.y_data = np.array(tuple(self.targets_data.values()))
-            self.X_test = np.vstack(tuple(self.features_test.values()))
-            self.y_test = np.array(tuple(self.targets_test.values()))
+        X_data = np.vstack(tuple(self.features_data.values()))
+        y_data = np.array(tuple(self.targets_data.values()))
+        X_test = np.vstack(tuple(self.features_test.values()))
+        y_test = np.array(tuple(self.targets_test.values()))
 
         if self.xgb == None:
             if self.parameters:
@@ -126,27 +126,59 @@ class Classifier(ABC):
         return self.test(X_test, y_test)[0]
     
     def getModel(self):
+        """
+        Get the model used in the classifier.
+        :return: The model object.
+        """
         return self.xgb
-    
+        
     def setModel(self, model):
+        """
+        Set the model for the classifier.
+        :param model: The model to be set.
+        """
         self.xgb = model
-    
+        
     def getPreprocessing(self):
-        return (self.X_test, self.y_test, self.X_data, self.y_data)
-    
-    def setPreprocessing(self, X_test, y_test, X_data, y_data) -> None:
-        self.X_test = X_test
-        self.y_test = y_test
-        self.X_data = X_data
-        self.y_data = y_data
+        """
+        Retrieve the preprocessing data including features and targets for training and testing.
+        :return: A tuple containing features and targets for training and testing.
+        """
+        return (self.features_data, self.targets_data, self.features_test, self.targets_test)
+        
+    def setPreprocessing(self, features_data, targets_data, features_test, targets_test) -> None:
+        """
+        Set the preprocessing data for the classifier.
+        :param features_data: Training features data.
+        :param targets_data: Training targets data.
+        :param features_test: Testing features data.
+        :param targets_test: Testing targets data.
+        """
+        self.features_data = features_data
+        self.targets_data = targets_data
+        self.features_test = features_test
+        self.targets_test = targets_test
 
     @staticmethod
     def createInstance(constructor, model, policy: Policy, train, test):
+        """
+        Create a new instance of the classifier.
+        :param constructor: The constructor for the classifier.
+        :param model: The model to be used in the classifier.
+        :param policy: The policy to be used in the classifier.
+        :param train: The training data.
+        :param test: The testing data.
+        :return: A new instance of the classifier.
+        """
         newClassifier = constructor(policy, train, test)
         newClassifier.setModel(model)
         return newClassifier
-    
+        
     def getStats(self):
+        """
+        Calculate and return the statistics including accuracy, precision, recall, and F1 score for the model.
+        :return: A dictionary containing the calculated statistics.
+        """
         X_test_local = self.X_test
         y_test_local = self.y_test
 

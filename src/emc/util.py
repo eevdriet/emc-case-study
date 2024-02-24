@@ -247,32 +247,32 @@ class Writer:
             return False
         
     @classmethod 
-    def saveModel(cls, path: Path, model) -> None:
+    def savePickle(cls, path: Path, data) -> None:
         """
         Save the model to a file using pickle serialization.
 
         :param path: Path to save the model file
-        :param model: Model to save to the path
+        :param data: Data to save to the path
         :return: None
         """
+        path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, 'wb') as file:
-            pickle.dump(model, file)
-            print("succes")
+            pickle.dump(data, file)
 
     @classmethod 
-    def loadModel(cls, path: Path):
+    def loadPickle(cls, path: Path):
         """
-        Load the model from a file.
+        Load the data from a file.
 
-        :param path: Path to the model file
-        :return: Loaded model if the file exists, False otherwise
+        :param path: Path to the data file
+        :return: Loaded data if the file exists, False otherwise
         """
         if path.exists():
             with open(path, 'rb') as file:
-                loaded_model = pickle.load(file)
-            return loaded_model
+                data = pickle.load(file)
+            return data
         else:
-            return False
+            return None
         
     @classmethod
     def saveNumpy(cls, path: Path, data):
