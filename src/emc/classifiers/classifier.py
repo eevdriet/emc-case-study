@@ -30,12 +30,8 @@ class Classifier(ABC):
         self.targets_data: Optional[_Y] = None
         self.targets_test: Optional[_Y] = None
 
-        # To be Loaded data
+        # To be Loaded model
         self.xgb = None
-        self.X_test = None
-        self.y_test = None
-        self.X_data = None
-        self.y_data = None
 
     def initialize_and_train_model(self) -> None:
         """
@@ -51,16 +47,14 @@ class Classifier(ABC):
 
         X_data = np.vstack(tuple(self.features_data.values()))
         y_data = np.array(tuple(self.targets_data.values()))
-        X_test = np.vstack(tuple(self.features_test.values()))
-        y_test = np.array(tuple(self.targets_test.values()))
 
         if self.xgb == None:
             if self.parameters:
                 print("Using already stored hyperparameters")
-                self._train_basic(self.X_data, self.y_data)
+                self._train_basic(X_data, y_data)
             else:
                 print("Generating new hyperparameters")
-                self._train(self.X_data, self.y_data)
+                self._train(X_data, y_data)
 
     @abstractmethod
     def _preprocess(self, data: pd.DataFrame) -> tuple[_X, _Y]:
@@ -179,17 +173,18 @@ class Classifier(ABC):
         Calculate and return the statistics including accuracy, precision, recall, and F1 score for the model.
         :return: A dictionary containing the calculated statistics.
         """
-        X_test_local = self.X_test
-        y_test_local = self.y_test
 
-        predictions = self.test(X_test_local, y_test_local)
-        y_test_local = (y_test_local < 0.85).astype(int)
+        X_test = np.vstack(tuple(self.features_test.values()))
+        y_test = np.array(tuple(self.targets_test.values()))
+
+        predictions = self.test(X_test, y_test)
+        y_test = (y_test < 0.85).astype(int)
         predictions = (predictions < 0.85).astype(int)
 
-        accuracy = accuracy_score(y_test_local, predictions)
-        precision = precision_score(y_test_local, predictions, average='weighted')
-        recall = recall_score(y_test_local, predictions, average='weighted')
-        f1 = f1_score(y_test_local, predictions, average='weighted')
+        accuracy = accuracy_score(y_test, predictions)
+        precision = precision_score(y_test, predictions, average='weighted')
+        recall = recall_score(y_test, predictions, average='weighted')
+        f1 = f1_score(y_test, predictions, average='weighted')
 
         results = {
             'accuracy': accuracy,
