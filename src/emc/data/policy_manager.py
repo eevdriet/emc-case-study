@@ -66,14 +66,13 @@ class PolicyManager:
         self.train_df, self.test_df = dfs
 
         # Setup hyperparameters
-        self.strategy = str(strategy)
-        self.frequency = str(frequency)
-        self.worm = str(worm)
-
-        filename = self.worm + "_" + self.strategy + "_" + self.frequency + "_" + regressor_constructors[
-            regression_model].__name__ + ".json"
-        self.hp_path = Paths.hyperparameter_opt(filename)
+        self.strategy = strategy
+        self.frequency = frequency
+        self.worm = worm
         self.constructor = regressor_constructors[regression_model]
+
+        filename = f"{self.worm}_{self.strategy}_{self.frequency}_{self.constructor.__name__}.json"
+        self.hp_path = Paths.hyperparameter_opt(filename)
 
         # Setup local iterative search
         self.neighborhoods = neighborhoods
