@@ -8,7 +8,7 @@ from emc.util import Paths
 from math import isnan
 import logging
 
-#init logging
+# init logging
 log_directory = Paths.log()
 Path(log_directory).mkdir(parents=True, exist_ok=True)
 log_file_path = log_directory / 'policy_manager.log'
@@ -80,13 +80,17 @@ class PolicyManager:
 
     def manage(self):
         # TODO: figure out whether to use a better search scheme for new policies
+
+        # Setup iteration variables
         self.logger.info("Start simulation")
+        self.policy_costs = {}
+
         best_cost = float('inf')
         best_policy = None
-
-        curr_policy = create_init_policy(1)
         iteration = 0
-        self.policy_costs = {}
+
+        # Setup policy
+        curr_policy = create_init_policy(1)
 
         while iteration < self.__N_MAX_ITERS:
             for neighborhood in self.neighborhoods:
@@ -131,14 +135,16 @@ class PolicyManager:
             # Skip training if the regressor for this sub-policy already exists.
             if sub_policy in self.policy_classifiers:
                 continue
-            
+
             # Filter training and testing data specific to the current sub-policy.
             train = self.__filter_data(self.train_df, sub_policy)
             test = self.__filter_data(self.test_df, sub_policy)
-            
+
             # Define paths for saving and loading the model and preprocessing data.
-            model_path = Paths.models(self.worm, self.frequency, self.strategy, str(sub_policy.epi_time_points) + "_" + self.constructor.__name__ + ".pkl")
-            prepro_path = Paths.preprocessing(self.worm, self.frequency, self.strategy, str(sub_policy.epi_time_points) + "_" + self.constructor.__name__)
+            model_path = Paths.models(self.worm, self.frequency, self.strategy,
+                                      str(sub_policy.epi_time_points) + "_" + self.constructor.__name__ + ".pkl")
+            prepro_path = Paths.preprocessing(self.worm, self.frequency, self.strategy,
+                                              str(sub_policy.epi_time_points) + "_" + self.constructor.__name__)
             model = Writer.loadPickle(model_path)
 
             if model is None:
@@ -201,7 +207,12 @@ class PolicyManager:
         policy_simulation_costs: dict[Policy, list] = defaultdict(list)
 
         for simulation in self.test_simulations:
-            for sub_policy in policy.sub_policies:
+            # Go through all sub-policies and ignore the empty policy
+            sub_policies = [p for p in policy.sub_policies]
+            if len(sub_policies) == 0:
+                break
+
+            for sub_policy in sub_policies:
                 classifier = self.policy_classifiers[sub_policy]
 
                 # Continue with epidemiological surveys as long as resistance does not seem to be a problem yet
