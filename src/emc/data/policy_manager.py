@@ -15,7 +15,7 @@ log_file_path = log_directory / 'policy_manager.log'
 
 logging.basicConfig(
     filename=log_file_path,
-    filemode='a',
+    filemode='w',
     level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
@@ -58,7 +58,8 @@ class PolicyManager:
         # Setup data fields
         self.scenarios: list[Scenario] = scenarios
         self.policy_classifiers = {}
-        self.policy_costs = {}
+        self.policy_costs: dict[Policy, float] = {}
+        self.sub_policy_simulations: dict[Policy, set[tuple[int, int]]] = defaultdict(set)
 
         # Split the data into train/validation data for the classifiers
         simulations, dfs = self.__split_data()
@@ -100,10 +101,7 @@ class PolicyManager:
 
                     # Determine the costs and make sure no invalid data is present
                     costs = self.__calculate_costs(neighbor)
-                    costs = {key: val for key, val in costs.items() if not isnan(val)}
-
-                    # Update all costs
-                    self.policy_costs = {**self.policy_costs, **costs}
+                    self.policy_costs[neighbor] = costs
 
                     # except Exception as err:
                     #     self.logger.error(f"Policy {neighbor} raises an exception: {err}")
@@ -203,22 +201,44 @@ class PolicyManager:
         """
         # Keep track of the costs of all simulations that terminate in a certain policy
         # TODO: figure out if costs are being calculated properly
-        policy_simulation_costs: dict[Policy, list] = defaultdict(list)
 
-        for simulation in self.test_simulations:
-            # Go through all sub-policies and ignore the empty policy
-            sub_policies = [p for p in policy.sub_policies]
-            if len(sub_policies) == 0:
-                break
+        # Go through all sub-policies and ignore the empty policy
+        sub_policies = [p for p in policy.sub_policies]
+        sub_policy_costs: dict[Policy, dict[tuple[int, int], float]] = defaultdict(dict)
+
+        if len(sub_policies) == 0:
+            return float('inf')
+
+        n_missclassified_simulations = 0
+
+        for idx, simulation in enumerate(self.test_simulations):
+            key = (simulation.scenario.id, simulation.id)
+            print(idx, key)
+            needs_missclasify_check = False
 
             for sub_policy in sub_policies:
+                # Already computed costs for sub-policy
+                if key in self.sub_policy_simulations[sub_policy]:
+                    continue
+
                 classifier = self.policy_classifiers[sub_policy]
 
                 # Continue with epidemiological surveys as long as resistance does not seem to be a problem yet
                 epi_signal = classifier.predict(simulation)
 
                 if epi_signal is None:  # cannot use simulations that have incomplete data
+                    costs = simulation.calculate_cost(sub_policy)
+                    # costs += RESISTANCE_NOT_FOUND_COSTS
+                    # policy_simulation_costs[sub_policy].append(costs)
+                    print(
+                        f"Simulation {simulation.scenario.id, simulation.id} -> {sub_policy} with costs {costs} [No epi data]")
+
+                    sub_policy_costs[sub_policy][key] = costs
+                    self.sub_policy_simulations[sub_policy].add(key)
+
+                    needs_missclasify_check = True
                     break
+
                 if epi_signal >= 0.85:  # skip drug efficacy survey when signal is still fine
                     continue
 
@@ -228,11 +248,17 @@ class PolicyManager:
                 # If no drug efficacy data is available, penalize the policy for not finding a signal sooner
                 if drug_signal is None:
                     costs = simulation.calculate_cost(sub_policy)
-                    costs += RESISTANCE_NOT_FOUND_COSTS
-                    policy_simulation_costs[sub_policy].append(costs)
+                    # costs += RESISTANCE_NOT_FOUND_COSTS
+                    # policy_simulation_costs[sub_policy].append(costs)
                     print(
                         f"Simulation {simulation.scenario.id, simulation.id} -> {sub_policy} with costs {costs} [Epi < 0.85, no drug data]")
+
+                    sub_policy_costs[sub_policy][key] = costs
+                    self.sub_policy_simulations[sub_policy].add(key)
+
+                    needs_missclasify_check = True
                     break
+
 
                 # If data is available and resistance is indeed a problem, stop the simulation and register its cost
                 elif drug_signal < 0.85:
@@ -240,26 +266,72 @@ class PolicyManager:
                     costs = simulation.calculate_cost(drug_policy)
                     print(
                         f"Simulation {simulation.scenario.id, simulation.id} -> {drug_policy} with costs {costs} [Epi < 0.85, drug < 0.85]")
-                    policy_simulation_costs[drug_policy].append(costs)
+                    # policy_simulation_costs[drug_policy].append(costs)
+                    sub_policy_costs[sub_policy][key] = costs
+                    self.sub_policy_simulations[sub_policy].add(key)
                     break
 
             # If resistance never becomes a problem under the policy, register its costs without drug efficacy surveys
             else:
+                if key in self.sub_policy_simulations[policy]:
+                    continue
+
                 costs = simulation.calculate_cost(policy)
                 print(
                     f"Simulation {simulation.scenario.id, simulation.id} -> {policy} with costs {costs} [Epi>= 0.85, drug >= 0.85]")
-                policy_simulation_costs[policy].append(costs)
+                sub_policy_costs[policy][key] = costs
+                self.sub_policy_simulations[policy].add(key)
+
+                needs_missclasify_check = True
+
+            # Only penalise miss classifications for resistance modes different from 'none' when needed
+            if needs_missclasify_check and simulation.scenario.res_mode != 'none':
+                # Verify whether the simulation still has poor drug efficacy but it was not detected
+                df = simulation.monitor_age
+
+                # OPTION 1 : whether it EVER drops below 85%, independent of the year it happens
+                # n_missclassified_simulations += (df['target'] < 0.85).any()
+
+                # OPTION 2 : whether it drops below 85% AFTER THE POLICY ENDS, only for years after the last year of the policy
+                last_year = None
+
+                # Find the last year for which the target value is not nan
+                for idx, target in df['target'][::-1].items():
+                    if not isnan(target):
+                        last_year = idx
+                        break
+
+                if last_year is not None:
+                    n_missclassified_simulations += df.loc[last_year, 'target'] < 0.85
 
         # Average simulation costs per policy
-        policy_costs = {}
-        for policy, simulation_costs in policy_simulation_costs.items():
-            # Disregard costs that are nan
-            costs = [cost for cost in simulation_costs if not isnan(cost)]
+        # policy_costs = {}
+        # for policy, simulation_costs in policy_simulation_costs.items():
+        #     # Disregard costs that are nan
+        #     costs = [cost for cost in simulation_costs if not isnan(cost)]
+        #
+        #     # Calculate average policy costs
+        #     policy_costs[policy] = float('inf') if len(costs) == 0 else sum(costs) / len(costs)
 
-            # Calculate average policy costs
-            policy_costs[policy] = float('inf') if len(costs) == 0 else sum(costs) / len(costs)
+        self.logger.info(f"Computing costs for {policy}:")
 
-        return policy_costs
+        total_subpolicy_costs = [cost for sub_policy in policy.sub_policies for cost in
+                                 sub_policy_costs[sub_policy].values() if not isnan(cost)]
+        self.logger.info(
+            f"\t- Totaal used simulations: {len(total_subpolicy_costs)} (nan: {len(self.test_simulations) - len(total_subpolicy_costs)})")
+
+        total_costs = sum(total_subpolicy_costs) / len(total_subpolicy_costs)
+        self.logger.info(f"\t- Gemiddelde financiele kosten: {total_costs}")
+
+        penalty_costs = (n_missclassified_simulations / len(self.test_simulations)) * RESISTANCE_NOT_FOUND_COSTS
+        self.logger.info(
+            f"\t- Totaal missclassified: {n_missclassified_simulations} ({n_missclassified_simulations / len(self.test_simulations)}")
+        self.logger.info(f"\t- Gemiddelde penalty kosten: {penalty_costs}")
+
+        total_costs += penalty_costs
+
+        self.logger.info(f"\t----------\n{total_costs}")
+        return total_costs
 
     def __split_data(self) -> SplitData:
         """
@@ -314,7 +386,7 @@ def main():
     # TODO: adjust scenario before running the policy manager
     worm = Worm.HOOKWORM.value
     frequency = 1
-    strategy = 'sac'
+    strategy = 'community'
 
     loader = DataLoader(worm)
     all_scenarios = loader.load_scenarios()

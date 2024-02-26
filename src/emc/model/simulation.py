@@ -3,6 +3,7 @@ import typing
 import pandas as pd
 from attrs import define, field
 from typing import Optional
+from math import isnan
 
 from emc.model.label import Label
 from emc.data.constants import *
@@ -51,7 +52,11 @@ class Simulation:
         :param policy: Policy to determine cost for
         :return: Cost of the policy
         """
-        return policy.calculate_cost(self.drug_efficacy_s)
+        costs = policy.calculate_cost(self.drug_efficacy_s)
+        if isnan(costs):
+            print(f"ERROR: nan costs for {self.scenario.id, self.id}")
+
+        return costs
 
     def predict(self, policy) -> Optional[float]:
         """

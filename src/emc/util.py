@@ -23,8 +23,8 @@ def first_or_mean(df: pd.DataFrame, col: str, year: Optional[Any]) -> Any:
     if year is None:
         return df[col].mean(skipna=True)
 
-    if 'year' in df.columns:
-        return df[df['year'] == year, col].iloc[0]
+    if 'time' in df.columns:
+        return df.loc[df['time'] == year, col].iloc[0]
 
     return np.nan
 

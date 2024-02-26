@@ -28,21 +28,17 @@ class Policy:
 
     def calculate_cost(self, de_survey: pd.DataFrame) -> float:
         total_cost = 0
-        drug_survey_costs = []
 
         # Calculate the cost of the drug efficacy surveys and add them to the total costs if relevant
-        if len(self.drug_time_points) == 0:
+        drug_surveys_costs = [self.__calculate_drug_cost(de_survey, year) for year in self.drug_time_points]
+
+        drug_surveys = len(self.drug_time_points) != 0
+        drug_data_complete = all(not isnan(cost) for cost in drug_surveys_costs)
+
+        if not drug_surveys or not drug_data_complete:
             drug_surveys_costs = [self.__calculate_drug_cost(de_survey)]
-        else:
-            for year in self.drug_time_points:
-                costs = self.__calculate_drug_cost(de_survey, year)
-                if isnan(costs):
-                    continue
-                drug_survey_costs.append(costs)
 
-            if len(drug_survey_costs) == 0:
-                drug_surveys_costs = [self.__calculate_drug_cost(de_survey)]
-
+        if drug_surveys and drug_data_complete:
             total_cost += sum(drug_surveys_costs)
 
         # Use half of the average drug efficacy survey cost for the epidemiological survey cost
@@ -58,8 +54,10 @@ class Policy:
         :param year: Year to schedule if any, otherwise take an average over all years
         :return: Cost of scheduling the survey
         """
-        return self.__consumable(de_survey, year) + self.__personnel(de_survey, year) + self.__transportation(de_survey,
-                                                                                                              year)
+        costs = self.__consumable(de_survey, year) + self.__personnel(de_survey, year) + self.__transportation(
+            de_survey, year)
+
+        return costs
 
     def __hash__(self):
         return hash(self.epi_surveys)
