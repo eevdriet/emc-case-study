@@ -199,11 +199,12 @@ class Writer:
         :param filename: Name of the JSON file
         :return: Data loaded from the JSON file
         """
+        path.parent.mkdir(parents=True, exist_ok=True)
         try:
             with open(path, 'r') as file:
                 data = json.load(file)
             return data
-        except FileNotFoundError:
+        except:
             return {}
 
     @classmethod
