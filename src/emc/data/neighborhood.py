@@ -24,6 +24,16 @@ def flip_neighbors(policy: Policy) -> Neighbor:
 
     for year in range(N_YEARS):
         new_policy = policy.copy()
-        new_policy[year] = not policy[year]
 
-        yield new_policy
+        if policy[year]:
+            new_policy[year] = False
+
+            yield new_policy
+
+if __name__ == '__main__':
+    times = [True] * N_YEARS
+    for idx in range(1, N_YEARS - 1):
+        times[idx] = False
+
+    policy = Policy(times)
+    print(list(p for p in flip_neighbors(policy)))
