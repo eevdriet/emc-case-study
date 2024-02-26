@@ -145,8 +145,8 @@ class Policy:
         :return: Consumable costs
         """
         # Get data
-        total_useful_tests = first_or_mean(de_survey['total_useful_tests'], year)
-        skipped_NaN_tests = first_or_mean(de_survey['skipped_NaN_tests'], year)
+        total_useful_tests = first_or_mean(de_survey, 'total_useful_tests', year)
+        skipped_NaN_tests = first_or_mean(de_survey, 'skipped_NaN_tests', year)
 
         # TODO: handle missing observations before calculating costs to avoid this error prevention below
         if isnan(total_useful_tests) or isnan(skipped_NaN_tests):
@@ -187,10 +187,10 @@ class Policy:
         :return: Survey days
         """
         # Get data
-        total_useful_tests = first_or_mean(de_survey['total_useful_tests'], year)
-        skipped_NaN_tests = first_or_mean(de_survey['skipped_NaN_tests'], year)
-        true_a_pre = first_or_mean(de_survey['true_a_pre'], year)
-        true_a_post = first_or_mean(de_survey['true_a_post'], year)
+        total_useful_tests = first_or_mean(de_survey, 'total_useful_tests', year)
+        skipped_NaN_tests = first_or_mean(de_survey, 'skipped_NaN_tests', year)
+        true_a_pre = first_or_mean(de_survey, 'true_a_pre', year)
+        true_a_post = first_or_mean(de_survey, 'true_a_post', year)
 
         # TODO: handle missing observations before calculating costs to avoid this error prevention below
         if any(isnan(var) for var in [total_useful_tests, skipped_NaN_tests, true_a_post, true_a_pre]):

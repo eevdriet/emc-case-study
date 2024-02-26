@@ -10,17 +10,23 @@ T = TypeVar('T')
 Pair = Tuple[T, T]
 
 
-def first_or_mean(series: pd.Series, val: Optional[Any]) -> Any:
+def first_or_mean(df: pd.DataFrame, col: str, year: Optional[Any]) -> Any:
     """
     Find the first occurrence of a given value of the series or its mean if no value is given
-    :param series: Series to collect data from
-    :param val: Value to find if relevant
+    :param df: Series to collect data from
+    :param year: Value to find if relevant
     :return: Mean or first in the series
     """
-    if val is None:
-        return series.mean(skipna=True)
+    if col not in df.columns:
+        return np.nan
 
-    return series[series == val].iloc[0]
+    if year is None:
+        return df[col].mean(skipna=True)
+
+    if 'year' in df.columns:
+        return df[df['year'] == year, col].iloc[0]
+
+    return np.nan
 
 
 def normalised(series: pd.Series, missing_val: float = 0.5):
@@ -151,7 +157,7 @@ class Paths:
         """
         path = cls.__ROOT / 'log'
         return cls.__safe_path(path)
-    
+
     @classmethod
     def models(cls, worm: str, mda_freq: int, mda_strategy: str, filename: str) -> Path:
         """
@@ -163,9 +169,9 @@ class Paths:
         :param filename: Name of the file
         :return: Path to the model file
         """
-        path = cls.data('model') / str(worm) / str(mda_strategy) / str(mda_freq) /  str(filename)
+        path = cls.data('model') / str(worm) / str(mda_strategy) / str(mda_freq) / str(filename)
         return cls.__safe_path(path)
-    
+
     @classmethod
     def preprocessing(cls, worm: str, mda_freq: int, mda_strategy: str, filename: str) -> Path:
         """
@@ -177,8 +183,9 @@ class Paths:
         :param filename: Name of the file
         :return: Path to the model file
         """
-        path = cls.data('preprocessing') / str(worm) / str(mda_strategy) / str(mda_freq) /  str(filename)
+        path = cls.data('preprocessing') / str(worm) / str(mda_strategy) / str(mda_freq) / str(filename)
         return cls.__safe_path(path)
+
 
 class Writer:
     """
@@ -245,8 +252,8 @@ class Writer:
         except json.JSONDecodeError:
             print(f"Invalid JSON format in the file: {path}")
             return False
-        
-    @classmethod 
+
+    @classmethod
     def savePickle(cls, path: Path, data) -> None:
         """
         Save the model to a file using pickle serialization.
@@ -259,7 +266,7 @@ class Writer:
         with open(path, 'wb') as file:
             pickle.dump(data, file)
 
-    @classmethod 
+    @classmethod
     def loadPickle(cls, path: Path):
         """
         Load the data from a file.
@@ -273,7 +280,7 @@ class Writer:
             return data
         else:
             return None
-        
+
     @classmethod
     def saveNumpy(cls, path: Path, data):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -285,3 +292,7 @@ class Writer:
             return np.load(path)
         else:
             return None
+
+
+if __name__ == '__main__':
+    print(normalised(pd.Series([248.91, 282.16, 180.80, 211.54])))

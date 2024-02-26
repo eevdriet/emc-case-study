@@ -237,9 +237,9 @@ class PolicyManager:
                 # If data is available and resistance is indeed a problem, stop the simulation and register its cost
                 elif drug_signal < 0.85:
                     drug_policy = sub_policy.with_drug_survey()
-                    costs = simulation.calculate_cost(sub_policy)
+                    costs = simulation.calculate_cost(drug_policy)
                     print(
-                        f"Simulation {simulation.scenario.id, simulation.id} -> {sub_policy} with costs {costs} [Epi < 0.85, drug < 0.85]")
+                        f"Simulation {simulation.scenario.id, simulation.id} -> {drug_policy} with costs {costs} [Epi < 0.85, drug < 0.85]")
                     policy_simulation_costs[drug_policy].append(costs)
                     break
 

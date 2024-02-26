@@ -7,6 +7,8 @@ Neighborhood = Callable[[Policy], Neighbor]
 
 
 def swap_neighbors(policy: Policy) -> Neighbor:
+    yield policy.copy()
+
     for left in range(N_YEARS):
         for right in range(N_YEARS):
             new_policy = policy.copy()
@@ -18,6 +20,8 @@ def swap_neighbors(policy: Policy) -> Neighbor:
 
 
 def flip_neighbors(policy: Policy) -> Neighbor:
+    yield policy.copy()
+
     for year in range(N_YEARS):
         new_policy = policy.copy()
         new_policy[year] = not policy[year]
