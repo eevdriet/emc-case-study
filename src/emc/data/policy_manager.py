@@ -320,7 +320,10 @@ class PolicyManager:
         self.logger.info(
             f"\t- Totaal used simulations: {len(total_subpolicy_costs)} (nan: {len(self.test_simulations) - len(total_subpolicy_costs)})")
 
-        total_costs = sum(total_subpolicy_costs) / len(total_subpolicy_costs)
+        if len(total_subpolicy_costs):
+            total_costs = sum(total_subpolicy_costs) / len(total_subpolicy_costs)
+        else:
+            total_costs = 0
         self.logger.info(f"\t- Gemiddelde financiele kosten: {total_costs}")
 
         penalty_costs = (n_missclassified_simulations / len(self.test_simulations)) * RESISTANCE_NOT_FOUND_COSTS
@@ -386,7 +389,7 @@ def main():
     # TODO: adjust scenario before running the policy manager
     worm = Worm.HOOKWORM.value
     frequency = 1
-    strategy = 'community'
+    strategy = 'sac'
 
     loader = DataLoader(worm)
     all_scenarios = loader.load_scenarios()
