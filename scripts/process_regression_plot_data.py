@@ -45,16 +45,19 @@ def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
                 # Extract metrics
                 time_points = list(data.keys())[1:]  # Skip first time point
                 accuracy = [data[time]['accuracy'] for time in time_points]
+                f1_score = [data[time]['f1_score'] for time in time_points]
 
                 with open(path2, 'r') as file:
                     data = json.load(file)
 
                 accuracy_def = [data[time]['accuracy'] for time in time_points]
+                f1_score_def = [data[time]['f1_score'] for time in time_points]
 
                 with open(path3, 'r') as file:
                     data = json.load(file)
 
                 accuracy_opt = [data[time]['accuracy'] for time in time_points]
+                f1_score_opt = [data[time]['f1_score'] for time in time_points]
 
                 if display_mode == DisplayMode.ALL:
                     # Plotting in corresponding subplot
@@ -63,13 +66,17 @@ def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
                     # Create a separate figure for each subplot
                     fig, ax = plt.subplots(figsize=(8, 4))
                 
-                line1, = ax.plot(time_points, accuracy_def, label='Default Accuracy', alpha=1, color='#CD5C5C')  # Blue line without markers
-                # line2, = ax.plot(time_points, accuracy_opt, label='Optimized Accuracy by MSE', alpha=1, color='#FFA07A')  # Green line without markers
-                line2, = ax.plot(time_points, accuracy, label='Optimized Accuracy by F1', alpha=1, color='#008000')  # Red line without markers
+                line1, = ax.plot(time_points, f1_score_def, label='F1 score', alpha=1, color='#CD5C5C')
+                # line2, = ax.plot(time_points, accuracy_opt, label='Optimized Accuracy by MSE', alpha=1, color='#FFA07A')
+                line2, = ax.plot(time_points, accuracy_def, label='Accuracy', alpha=1, color='#1f77b4') 
 
-                if i == j == k == 0:  # Add line objects and labels once
+                # #CD5C5C')
+                # # line2, = ax.plot(time_points, accuracy_opt, label='Optimized Accuracy by MSE', alpha=1, color='#FFA07A')
+                # line2, = ax.plot(time_points, f1_score, label='F1 score Optimised', alpha=1, color='#008000') 
+
+                if i == j == k == 0:
                     lines.extend([line1, line2])
-                    labels.extend(['Default Accuracy', 'Optimized Accuracy by F1'])
+                    labels.extend(['F1 score', 'Accuracy'])
 
                 ax.set_title(f'{worm.capitalize()} - {strategy.capitalize()} - Frequency {frequency}')
                 ax.set_xlabel('Time Points')
@@ -79,7 +86,7 @@ def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
 
                 if display_mode == DisplayMode.SEPARATELY:
                     # Create a separate figure for each subplot
-                    fig, ax = plt.subplots(figsize=(8, 4))
+                    fig, ax = plt.subplots(figsize=(7, 6))
                     
                     line1, = ax.plot(time_points, accuracy_def, label='Default Accuracy', alpha=1, color='#CD5C5C')
                     line2, = ax.plot(time_points, accuracy, label='Optimized Accuracy by F1', alpha=1, color='#008000')
@@ -93,7 +100,7 @@ def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
                     ax.grid(False)
 
                     # Set the legend below the figure
-                    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2)
+                    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.10), ncol=2)
 
                     plt.tight_layout()
                     plt.show()
@@ -104,7 +111,7 @@ def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
         plt.show()
 
 if __name__ == '__main__':
-    show_regression_plot(DisplayMode.SEPARATELY)
+    show_regression_plot(DisplayMode.ALL)
 
 
 
