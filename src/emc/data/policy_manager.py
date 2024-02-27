@@ -239,7 +239,7 @@ class PolicyManager:
                     needs_missclasify_check = True
                     break
 
-                if epi_signal >= 0.85:  # skip drug efficacy survey when signal is still fine
+                if epi_signal >= DRUG_EFFICACY_THRESHOLD:  # skip drug efficacy survey when signal is still fine
                     continue
 
                 # Otherwise, verify whether resistance is a problem by scheduling a drug efficacy the year after
@@ -251,7 +251,7 @@ class PolicyManager:
                     # costs += RESISTANCE_NOT_FOUND_COSTS
                     # policy_simulation_costs[sub_policy].append(costs)
                     print(
-                        f"Simulation {simulation.scenario.id, simulation.id} -> {sub_policy} with costs {costs} [Epi < 0.85, no drug data]")
+                        f"Simulation {simulation.scenario.id, simulation.id} -> {sub_policy} with costs {costs} [Epi < {DRUG_EFFICACY_THRESHOLD}, no drug data]")
 
                     sub_policy_costs[sub_policy][key] = costs
                     self.sub_policy_simulations[sub_policy].add(key)
@@ -261,11 +261,11 @@ class PolicyManager:
 
 
                 # If data is available and resistance is indeed a problem, stop the simulation and register its cost
-                elif drug_signal < 0.85:
+                elif drug_signal < DRUG_EFFICACY_THRESHOLD:
                     drug_policy = sub_policy.with_drug_survey()
                     costs = simulation.calculate_cost(drug_policy)
                     print(
-                        f"Simulation {simulation.scenario.id, simulation.id} -> {drug_policy} with costs {costs} [Epi < 0.85, drug < 0.85]")
+                        f"Simulation {simulation.scenario.id, simulation.id} -> {drug_policy} with costs {costs} [Epi < {DRUG_EFFICACY_THRESHOLD}, drug < {DRUG_EFFICACY_THRESHOLD}]")
                     # policy_simulation_costs[drug_policy].append(costs)
                     sub_policy_costs[sub_policy][key] = costs
                     self.sub_policy_simulations[sub_policy].add(key)
@@ -278,7 +278,7 @@ class PolicyManager:
 
                 costs = simulation.calculate_cost(policy)
                 print(
-                    f"Simulation {simulation.scenario.id, simulation.id} -> {policy} with costs {costs} [Epi>= 0.85, drug >= 0.85]")
+                    f"Simulation {simulation.scenario.id, simulation.id} -> {policy} with costs {costs} [Epi>= {DRUG_EFFICACY_THRESHOLD}, drug >= {DRUG_EFFICACY_THRESHOLD}]")
                 sub_policy_costs[policy][key] = costs
                 self.sub_policy_simulations[policy].add(key)
 
@@ -290,7 +290,7 @@ class PolicyManager:
                 df = simulation.monitor_age
 
                 # OPTION 1 : whether it EVER drops below 85%, independent of the year it happens
-                # n_missclassified_simulations += (df['target'] < 0.85).any()
+                # n_missclassified_simulations += (df['target'] < DRUG_EFFICACY_THRESHOLD).any()
 
                 # OPTION 2 : whether it drops below 85% AFTER THE POLICY ENDS, only for years after the last year of the policy
                 last_year = None
@@ -302,7 +302,7 @@ class PolicyManager:
                         break
 
                 if last_year is not None:
-                    n_missclassified_simulations += df.loc[last_year, 'target'] < 0.85
+                    n_missclassified_simulations += df.loc[last_year, 'target'] < DRUG_EFFICACY_THRESHOLD
 
         # Average simulation costs per policy
         # policy_costs = {}
