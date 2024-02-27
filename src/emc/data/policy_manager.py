@@ -323,7 +323,8 @@ class PolicyManager:
         if len(total_subpolicy_costs):
             total_costs = sum(total_subpolicy_costs) / len(total_subpolicy_costs)
         else:
-            total_costs = float(1000000000)
+            total_costs = float('inf')
+            self.logger.error("Found division by zero on line 324 of policy manager")
         self.logger.info(f"\t- Gemiddelde financiele kosten: {total_costs}")
 
         penalty_costs = (n_missclassified_simulations / len(self.test_simulations)) * RESISTANCE_NOT_FOUND_COSTS
@@ -388,7 +389,7 @@ def main():
 
     # TODO: adjust scenario before running the policy manager
     worm = Worm.HOOKWORM.value
-    frequency = 1
+    frequency = 2
     strategy = 'sac'
 
     loader = DataLoader(worm)
