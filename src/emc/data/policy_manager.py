@@ -72,7 +72,7 @@ class PolicyManager:
         self.worm = worm
         self.constructor = regressor_constructors[regression_model]
 
-        filename = f"{self.worm}_{self.strategy}_{self.frequency}_{self.constructor.__name__}.json"
+        filename = f"{self.worm}_{self.strategy}_{self.frequency}.json"
         self.hp_path = Paths.hyperparameter_opt(filename)
 
         # Setup local iterative search
@@ -95,16 +95,12 @@ class PolicyManager:
         while iteration < self.__N_MAX_ITERS:
             for neighborhood in self.neighborhoods:
                 for neighbor in neighborhood(curr_policy):
-                    # try:
                     # Get the costs for the current policy and update
                     self.__build_regressors(neighbor)
 
                     # Determine the costs and make sure no invalid data is present
                     costs = self.__calculate_costs(neighbor)
                     self.policy_costs[neighbor] = costs
-
-                    # except Exception as err:
-                    #     self.logger.error(f"Policy {neighbor} raises an exception: {err}")
 
             # Update the best policy if an improvement was found
             curr_policy, curr_cost = min(self.policy_costs.items(), key=lambda pair: pair[1])
