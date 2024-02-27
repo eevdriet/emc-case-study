@@ -261,11 +261,11 @@ class PolicyManager:
 
 
                 # If data is available and resistance is indeed a problem, stop the simulation and register its cost
-                elif drug_signal < DRUG_EFFICACY_THRESHOLD:
+                elif drug_signal < 0.85:
                     drug_policy = sub_policy.with_drug_survey()
                     costs = simulation.calculate_cost(drug_policy)
                     print(
-                        f"Simulation {simulation.scenario.id, simulation.id} -> {drug_policy} with costs {costs} [Epi < {DRUG_EFFICACY_THRESHOLD}, drug < {DRUG_EFFICACY_THRESHOLD}]")
+                        f"Simulation {simulation.scenario.id, simulation.id} -> {drug_policy} with costs {costs} [Epi < {DRUG_EFFICACY_THRESHOLD}, drug < 0.85]")
                     # policy_simulation_costs[drug_policy].append(costs)
                     sub_policy_costs[sub_policy][key] = costs
                     self.sub_policy_simulations[sub_policy].add(key)
@@ -278,7 +278,7 @@ class PolicyManager:
 
                 costs = simulation.calculate_cost(policy)
                 print(
-                    f"Simulation {simulation.scenario.id, simulation.id} -> {policy} with costs {costs} [Epi>= {DRUG_EFFICACY_THRESHOLD}, drug >= {DRUG_EFFICACY_THRESHOLD}]")
+                    f"Simulation {simulation.scenario.id, simulation.id} -> {policy} with costs {costs} [Epi>= {DRUG_EFFICACY_THRESHOLD}, drug >= 0.85]")
                 sub_policy_costs[policy][key] = costs
                 self.sub_policy_simulations[policy].add(key)
 
