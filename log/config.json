@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "formatters": {
+    "simple": {
+      "format": "%(message)s"
+    },
+    "extended": {
+      "format": "%(asctime)s [%(levelname)8s] - %(message)s (%(filename)s:%(lineno)s)",
+      "datefmt": "%Y-%m-%d %H:%M:%S"
+    }
+  },
+  "handlers": {
+    "stdout": {
+      "class": "logging.StreamHandler",
+      "level": "DEBUG",
+      "formatter": "simple",
+      "stream": "ext://sys.stdout"
+    },
+    "full": {
+      "class": "logging.handlers.RotatingFileHandler",
+      "level": "DEBUG",
+      "formatter": "extended",
+      "filename": "full.log"
+    },
+    "clean": {
+      "class": "logging.handlers.RotatingFileHandler",
+      "level": "INFO",
+      "formatter": "extended",
+      "filename": "clean.log"
+    }
+  },
+  "root": {
+    "level": "DEBUG",
+    "handlers": [
+      "stdout",
+      "full",
+      "clean"
+    ]
+  }
+}
