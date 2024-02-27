@@ -289,10 +289,10 @@ class PolicyManager:
                 # Verify whether the simulation still has poor drug efficacy but it was not detected
                 df = simulation.monitor_age
 
-                # OPTION 1 : whether it EVER drops below 85%, independent of the year it happens
+                # OPTION 1 : whether it EVER drops below threshold%, independent of the year it happens
                 # n_missclassified_simulations += (df['target'] < DRUG_EFFICACY_THRESHOLD).any()
 
-                # OPTION 2 : whether it drops below 85% AFTER THE POLICY ENDS, only for years after the last year of the policy
+                # OPTION 2 : whether it drops below threshold% AFTER THE POLICY ENDS, only for years after the last year of the policy
                 last_year = None
 
                 # Find the last year for which the target value is not nan
