@@ -3,36 +3,12 @@ import pandas as pd
 from sklearn.model_selection import RandomizedSearchCV
 from xgboost import XGBRegressor
 
-from emc.classifiers import Classifier
+from emc.regressors import Regressor
 from emc.data.constants import SEED
 from math import isnan
 
 
-class SingleGradientBoosterRandomCV(Classifier):
-    def _preprocess(self, data: pd.DataFrame):
-        groups = data.groupby(['scenario', 'simulation'])
-
-        features = {}
-        targets = {}
-
-        for key, df in groups:
-            df = df.drop(columns=['simulation', 'scenario', 'time', 'ERR'])
-
-            df = df.reset_index(drop=True)
-            target = df['target'].iloc[-1]
-
-            # TODO: Consider using isnan or using the last working target value
-            if isnan(target):
-                continue
-
-            del df['target']
-            targets[key] = target
-
-            row = df.to_numpy().T.flatten()
-            features[key] = row
-
-        return features, targets
-
+class GradientBoosterRandomCV(Regressor):
     def _train(self, X_train: np.ndarray, y_train: np.array) -> None:
         print("Initializing XGBoost regressor with default parameters...")
         xgb = XGBRegressor(random_state=SEED, missing=np.NaN)

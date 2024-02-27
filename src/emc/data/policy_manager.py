@@ -26,7 +26,7 @@ from emc.model.simulation import Simulation
 from emc.data.constants import *
 from emc.util import Writer, Paths
 
-from emc.classifiers import *
+from emc.regressors import *
 from emc.data.neighborhood import Neighborhood
 from emc.util import normalised, Pair
 
@@ -48,9 +48,9 @@ class PolicyManager:
     def __init__(self, scenarios: list[Scenario], strategy: str, frequency: int, worm: str, regression_model: int,
                  neighborhoods: list[Neighborhood]):
         regressor_constructors = {
-            0: SingleGradientBoosterDefault,
-            1: SingleGradientBoosterRandomCV,
-            2: SingleGradientBoosterBayesian
+            0: gradient_booster_default,
+            1: gradient_booster_randomCV,
+            2: gradient_booster_optuna
         }
 
         self.logger = logging.getLogger(__name__)

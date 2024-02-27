@@ -14,7 +14,7 @@ _X = dict[tuple[int, int], np.ndarray]
 _Y = dict[tuple[int, int], float]
 
 
-class Classifier(ABC):
+class Regressor(ABC):
     SEED: int = 76
 
     def __init__(self, policy: Policy, train: pd.DataFrame, test: pd.DataFrame):
@@ -56,14 +56,38 @@ class Classifier(ABC):
                 print("Generating new hyperparameters")
                 self._train(X_data, y_data)
 
-    @abstractmethod
     def _preprocess(self, data: pd.DataFrame) -> tuple[_X, _Y]:
         """
         Preprocess the training data
             Standardise all features
             Create X_train, y_train, X_test, y_test
         """
-        ...
+        data = data.copy()
+
+        data.loc[:, 'inf_level_change'] = data['inf_level'].pct_change(fill_method=None)
+        data.loc[:, 'a_epg_obs_change'] = data['a_epg_obs'].pct_change(fill_method=None)
+        data.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+        groups = data.groupby(['scenario', 'simulation'])
+
+        features = {}
+        targets = {}
+
+        for key, df in groups:
+            df = df.drop(columns=['simulation', 'scenario', 'time', 'ERR'])
+
+            df = df.reset_index(drop=True)
+            target = df['target'].iloc[-1]
+            if np.isnan(target):
+                continue
+
+            del df['target']
+            targets[key] = target
+
+            row = df.to_numpy().T.flatten()
+            features[key] = row
+
+        return features, targets
 
     @abstractmethod
     def _train(self, X_train: np.ndarray, y_train: np.array) -> None:

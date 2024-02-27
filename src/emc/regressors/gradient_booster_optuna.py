@@ -4,36 +4,13 @@ import optuna
 from sklearn.metrics import mean_squared_error
 from xgboost import XGBRegressor
 
-from emc.classifiers import Classifier
+from emc.regressors import Regressor
 from emc.data.constants import SEED
-from math import isnan
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 
-class SingleGradientBoosterBayesian(Classifier):
-    def _preprocess(self, data: pd.DataFrame):
-        groups = data.groupby(['scenario', 'simulation'])
-
-        features = {}
-        targets = {}
-
-        for key, df in groups:
-            df = df.drop(columns=['simulation', 'scenario', 'time', 'ERR'])
-
-            df = df.reset_index(drop=True)
-            target = df['target'].iloc[-1]
-            if isnan(target):
-                continue
-
-            del df['target']
-            targets[key] = target
-
-            row = df.to_numpy().T.flatten()
-            features[key] = row
-
-        return features, targets
-
+class GradientBoosterOptuna(Regressor):
     def _train(self, X_train: np.ndarray, y_train: np.array) -> None:
         def objective(trial):
             hyperparams = {
