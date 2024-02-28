@@ -48,9 +48,9 @@ class PolicyManager:
     def __init__(self, scenarios: list[Scenario], strategy: str, frequency: int, worm: str, regression_model: int,
                  neighborhoods: list[Neighborhood]):
         regressor_constructors = {
-            0: gradient_booster_default,
-            1: gradient_booster_randomCV,
-            2: gradient_booster_optuna
+            0: GradientBoosterDefault,
+            1: GradientBoosterRandomCV,
+            2: GradientBoosterOptuna
         }
 
         self.logger = logging.getLogger(__name__)
@@ -71,9 +71,6 @@ class PolicyManager:
         self.frequency = frequency
         self.worm = worm
         self.constructor = regressor_constructors[regression_model]
-
-        filename = f"{self.worm}_{self.strategy}_{self.frequency}.json"
-        self.hp_path = Paths.hyperparameter_opt(filename)
 
         # Setup local iterative search
         self.neighborhoods = neighborhoods
@@ -134,10 +131,10 @@ class PolicyManager:
             test = self.__filter_data(self.test_df, sub_policy)
 
             # Define paths for saving and loading the model and preprocessing data.
-            model_path = Paths.models(self.worm, self.frequency, self.strategy,
-                                      str(sub_policy.epi_time_points) + "_" + self.constructor.__name__ + ".pkl")
+            model_path = Paths.models(self.worm, self.frequency, self.strategy, self.constructor.__name__,
+                                      str(sub_policy.epi_time_points) + ".pkl")
             prepro_path = Paths.preprocessing(self.worm, self.frequency, self.strategy,
-                                              str(sub_policy.epi_time_points) + "_" + self.constructor.__name__)
+                                              str(sub_policy.epi_time_points))
             model = Writer.loadPickle(model_path)
 
             if model is None:
@@ -145,9 +142,7 @@ class PolicyManager:
                 print(f'Creating new model and new preprocessing for: Policy({sub_policy.epi_time_points})')
 
                 # Check for existing hyperparameters and initialize the regressor.
-                found = Writer.get_value_from_json(self.hp_path, str(hash(sub_policy)))
                 regressor = self.constructor(sub_policy, train, test)
-                regressor.setParameters(found)
                 regressor.initialize_and_train_model()
 
                 # Save preprocessing data.
@@ -156,11 +151,6 @@ class PolicyManager:
                 Writer.savePickle(prepro_path / "targets_data.pkl", targets_data)
                 Writer.savePickle(prepro_path / "features_test.pkl", features_test)
                 Writer.savePickle(prepro_path / "targets_test.pkl", targets_test)
-
-                # Update and save the best hyperparameters for the regressor.
-                if not found:
-                    Writer.update_json_file(self.hp_path, str(hash(sub_policy)), regressor.getParameters())
-
                 Writer.savePickle(model_path, regressor.getModel())
             else:
                 # Use the existing model if found.
