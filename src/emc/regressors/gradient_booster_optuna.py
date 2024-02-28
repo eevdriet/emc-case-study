@@ -6,8 +6,10 @@ from xgboost import XGBRegressor
 
 from emc.regressors import Regressor
 from emc.data.constants import SEED
+from emc.log import setup_logger
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
+logger = setup_logger(__name__)
 
 
 class GradientBoosterOptuna(Regressor):
@@ -24,7 +26,7 @@ class GradientBoosterOptuna(Regressor):
                 'reg_lambda': trial.suggest_float('reg_lambda', 1e-5, 1, log=True),
             }
 
-            print(f"Trial {trial.number}: Testing with params {hyperparams}")
+            logger.debug(f"Trial {trial.number}: Testing with params {hyperparams}")
 
             model = XGBRegressor(**hyperparams, random_state=SEED, missing=np.nan)
             model.fit(X_train, y_train)
@@ -32,25 +34,25 @@ class GradientBoosterOptuna(Regressor):
             preds = model.predict(X_train)
             mse = mean_squared_error(y_train, preds)
 
-            print(f"Trial {trial.number} MSE: {mse}")
+            logger.debug(f"Trial {trial.number} MSE: {mse}")
 
             return mse
 
         study = optuna.create_study(direction='minimize')
-        print("Optimization process started...")
+        logger.debug("Optimization process started...")
         study.optimize(objective, n_trials=100, timeout=600)
-        print("Optimization process completed.")
+        logger.debug("Optimization process completed.")
 
         best_hyperparams = study.best_trial.params
-        print(f"Best hyperparameters: {best_hyperparams}")
+        logger.debug(f"Best hyperparameters: {best_hyperparams}")
 
         self.parameters = best_hyperparams
 
         self.regression_model = XGBRegressor(**best_hyperparams, random_state=SEED, missing=np.nan)
         self.regression_model.fit(X_train, y_train)
-        print("Final model trained with best hyperparameters.")
+        logger.debug("Final model trained with best hyperparameters.")
 
     def test(self, X_test: np.ndarray, y_test: np.array) -> np.array:
-        print(f"Predicting with {len(X_test)} simulations...")
+        logger.debug(f"Predicting with {len(X_test)} simulations...")
         predictions = self.regression_model.predict(X_test)
         return predictions

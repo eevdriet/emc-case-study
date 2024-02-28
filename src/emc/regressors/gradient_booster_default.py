@@ -4,7 +4,9 @@ from xgboost import XGBRegressor
 
 from emc.regressors import Regressor
 from emc.data.constants import SEED
+from emc.log import setup_logger
 
+logger = setup_logger(__name__)
 
 class GradientBoosterDefault(Regressor):
     def _train(self, X_train: np.ndarray, y_train: np.array) -> None:
@@ -24,7 +26,7 @@ class GradientBoosterDefault(Regressor):
         self.parameters = params
 
         self.regression_model = XGBRegressor(**params, random_state=SEED, missing=np.nan)
-        print(f"Fitting with {len(X_train)} simulations...")
+        logger.debug(f"Fitting with {len(X_train)} simulations...")
         self.regression_model.fit(X_train, y_train)
 
     def test(self, X_test: np.ndarray, y_test: np.array) -> np.array:

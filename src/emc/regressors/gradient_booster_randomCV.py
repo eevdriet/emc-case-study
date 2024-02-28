@@ -1,16 +1,16 @@
 import numpy as np
-import pandas as pd
 from sklearn.model_selection import RandomizedSearchCV
 from xgboost import XGBRegressor
 
 from emc.regressors import Regressor
 from emc.data.constants import SEED
-from math import isnan
+from emc.log import setup_logger
 
+logger = setup_logger(__name__)
 
 class GradientBoosterRandomCV(Regressor):
     def _train(self, X_train: np.ndarray, y_train: np.array) -> None:
-        print("Initializing XGBoost regressor with default parameters...")
+        logger.debug("Initializing XGBoost regressor with default parameters...")
         regression_model = XGBRegressor(random_state=SEED, missing=np.NaN)
 
         # Define the parameter grid to search
@@ -25,27 +25,27 @@ class GradientBoosterRandomCV(Regressor):
             'reg_lambda': [1, 1.5, 2, 3]
         }
 
-        print("Setting up Randomized Search CV for hyperparameter optimization...")
+        logger.debug("Setting up Randomized Search CV for hyperparameter optimization...")
         random_search = RandomizedSearchCV(estimator=regression_model, param_distributions=param_grid, n_iter=100,
                                            scoring='neg_mean_squared_error', n_jobs=-1, cv=5,
                                            random_state=SEED, verbose=1)
 
-        print(f"Starting fitting process with {len(X_train)} samples...")
+        logger.debug(f"Starting fitting process with {len(X_train)} samples...")
         # Fit RandomizedSearchCV
         random_search.fit(X_train, y_train)
 
         # After fitting
-        print("Fitting complete.")
-        print("Best hyperparameters found:")
-        print(random_search.best_params_)
+        logger.debug("Fitting complete.")
+        logger.debug("Best hyperparameters found:")
+        logger.debug(random_search.best_params_)
 
         # Best estimator
         self.regression_model = random_search.best_estimator_
 
         self.parameters = random_search.best_params_
-        print("Best estimator and parameters set for the model.")
+        logger.debug("Best estimator and parameters set for the model.")
 
     def test(self, X_test: np.ndarray, y_test: np.array) -> np.array:
-        print(f"Predicting with {len(X_test)} simulations...")
+        logger.debug(f"Predicting with {len(X_test)} simulations...")
         predictions = self.regression_model.predict(X_test)
         return predictions
