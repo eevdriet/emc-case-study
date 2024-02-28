@@ -3,6 +3,9 @@ import json
 
 from emc.util import Paths
 from emc.data.constants import *
+from emc.log import setup_logger
+
+logger = setup_logger(__name__)
 
 
 def set_expected_infection_level() -> None:
@@ -31,9 +34,9 @@ def set_expected_infection_level() -> None:
         bucket_size = 5
         n_age_cats = 1 if 'merged' in str(path) else N_AGE_CATEGORIES
 
-        print("Setting the expected infection level for scenarios...")
+        logger.info("Setting the expected infection level for scenarios...")
         for scenario in range(N_SCENARIOS):
-            print(f"\t- {scenario}")
+            logger.info(f"Scenario {scenario + 1}")
 
             # Get levels from the right JSON file
             data = metadata[scenario]
@@ -47,6 +50,7 @@ def set_expected_infection_level() -> None:
                 levels = json.load(file)
 
             for sim in range(N_SIMULATIONS):
+                logger.debug(f"\t {sim + 1}/{N_SIMULATIONS}")
                 start = n_age_cats * N_YEARS * (N_SIMULATIONS * scenario + sim)
 
                 for time in range(N_YEARS):
@@ -65,6 +69,7 @@ def set_expected_infection_level() -> None:
                             level = levels[str(baseline)]["none"][prev][0]
                             offset = abs(level - inf_level)
                             if offset < best_offset:
+                                logger.debug(f"Offset {offset} < {best_offset} -> use baseline {baseline}")
                                 best_baseline = baseline
                                 best_offset = offset
 

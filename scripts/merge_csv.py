@@ -1,9 +1,14 @@
+import logging
+
 import pandas as pd
 import numpy as np
 from math import ceil, floor
 
 from emc.data.constants import *
 from emc.util import Paths
+from emc.log import setup_logger
+
+logger = setup_logger(__name__)
 
 
 def merge_csv() -> None:
@@ -12,6 +17,8 @@ def merge_csv() -> None:
     :return: Nothing, just combines separate CSV files into one large one
     """
     assert Paths.data('csv').exists(), "Make sure to create a 'csv' directory under the 'data' directory"
+
+    logger = logging.getLogger(__name__)
 
     # Columns and their data type that should be included into the merged CSV
     cols = ['scenario', 'simulation', 'time', 'age_cat', 'n_host', 'n_host_eggpos', 'a_epg_obs',
@@ -23,12 +30,13 @@ def merge_csv() -> None:
         worm = worm.value
 
         # Go through all individual monitor_age dataframes
-        print("Merging the CSVs for scenarios...")
+        logger.info("Merging the CSVs for simulations per simulation...")
         for scenario in range(N_SCENARIOS):
-            print(f"\t- {scenario}")
+            logger.info(f"Scenario {scenario + 1}")
             dfs = []
 
             for simulation in range(N_SIMULATIONS):
+                logger.debug(f"\t- {simulation + 1}/{N_SIMULATIONS}")
                 # Load CSV for a single simulation
                 path = Paths.data('csv') / f'{worm}_monitor_ageSC{scenario + 1:02}SIM{simulation + 1:04}.csv'
                 assert path.exists(), "Make sure to run the `load_monitor_age.R` script"
@@ -80,6 +88,7 @@ def merge_csv() -> None:
         # Merge dataframes of all scenarios together
         df_combined = pd.DataFrame()
 
+        logger.info("Merging the CSVs for scenarios...")
         for scenario in range(N_SCENARIOS):
             path = Paths.data('csv') / f'{worm}_monitor_age_{scenario}.csv'
             df = pd.read_csv(path)
@@ -95,6 +104,7 @@ def merge_csv() -> None:
         df_combined = df_combined.astype(dtypes)
 
         # Write the merged csv
+        logger.info("Write merged CSV...")
         path = Paths.worm_data(worm, 'monitor_age', use_merged=False)
         df_combined.to_csv(path, index=False)
 

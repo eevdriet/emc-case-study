@@ -11,6 +11,7 @@
 *.tdo
 *.out
 *.log
+*.log.*
 
 # Artifacts and data
 /data/

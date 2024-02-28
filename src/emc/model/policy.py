@@ -219,13 +219,16 @@ def create_init_policy(every_n_years: int) -> Policy:
     :param every_n_years: How often to schedule an epidemiological survey for the initial policy
     :return: Policy with an epidemiological survey every n years
     """
+    # Perform the epi survey every n years
     tests = (True,) + (False,) * (every_n_years - 1)
     epi_surveys = tests * (N_YEARS // every_n_years) + tests[:N_YEARS % every_n_years]
+
+    # Always (never) do a survey in the first (last) year
+    epi_surveys = epi_surveys[:-1] + (False,)
 
     return Policy(epi_surveys)
 
 
 if __name__ == '__main__':
-    import inspect
-
-    print(inspect.getsource(Policy.__hash__))
+    policy = create_init_policy(5)
+    print(policy)

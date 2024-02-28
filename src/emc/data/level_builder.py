@@ -8,7 +8,10 @@ import pandas as pd
 
 from emc.model.scenario import Scenario
 from emc.util import Paths
+from emc.log import setup_logger
 from emc.data.constants import *
+
+logger = setup_logger(__name__)
 
 Level = tuple[float, float, float, float, int]  # mean, sd, min, max, no. observations
 Levels = dict[str, list[Level]]
@@ -84,7 +87,7 @@ class LevelBuilder:
         :param show: Whether to show the plot
         """
         if not self.mode_levels:
-            print("Levels do not exist, build first using `build_levels`")
+            logger.warning("Levels do not exist, build first using `build_levels`")
             return
 
         # Plot the levels for each resistance mode for each base line
@@ -137,7 +140,7 @@ class LevelBuilder:
         :return: Infection levels
         """
 
-        print(f'[{baseline}, {baseline + self.bucket_size})')
+        logger.info(f'[{baseline}, {baseline + self.bucket_size})')
 
         for res_mode in RESISTANCE_MODES:
             data = pd.DataFrame()
@@ -146,7 +149,7 @@ class LevelBuilder:
                 if scenario.res_mode != res_mode:
                     continue
 
-                print(scenario.id)
+                logger.debug(f"Scenario {scenario.id}")
 
                 for simulation in scenario:
                     df = simulation.monitor_age
@@ -210,11 +213,9 @@ def build_levels(overwrite):
 
         for bucket_size in BUCKET_SIZES:
             for strategy, freq in product(MDA_STRATEGIES + [None], MDA_FREQUENCIES + [None]):
-                print(f"-- {bucket_size} with {freq=}, {strategy=}")
+                logger.info(f"-- {bucket_size} with {freq=}, {strategy=}")
                 builder.build(bucket_size, mda_strategy=strategy, mda_freq=freq, overwrite=overwrite)
                 builder.plot(save=True, show=False)
-
-    print("Done")
 
 
 if __name__ == "__main__":

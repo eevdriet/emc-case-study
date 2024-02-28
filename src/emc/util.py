@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 import pickle
 from typing import Tuple, TypeVar, Optional, Any
@@ -5,9 +6,14 @@ import numpy as np
 import pandas as pd
 import json
 
+from emc.log import setup_logger
+
 # Type definitions
 T = TypeVar('T')
 Pair = Tuple[T, T]
+
+# Logger setup
+logger = setup_logger(__name__)
 
 
 def first_or_mean(df: pd.DataFrame, col: str, year: Optional[Any]) -> Any:
@@ -17,7 +23,10 @@ def first_or_mean(df: pd.DataFrame, col: str, year: Optional[Any]) -> Any:
     :param year: Value to find if relevant
     :return: Mean or first in the series
     """
+    logger = logging.getLogger(__name__)
+
     if col not in df.columns:
+        logger.warning(f"Column '{col}' not found when getting first/mean")
         return np.nan
 
     if year is None:
@@ -26,6 +35,7 @@ def first_or_mean(df: pd.DataFrame, col: str, year: Optional[Any]) -> Any:
     if 'time' in df.columns:
         return df.loc[df['time'] == year, col].iloc[0]
 
+    logger.warning(f"Column 'time' not found when getting first/mean")
     return np.nan
 
 
@@ -36,11 +46,14 @@ def normalised(series: pd.Series, missing_val: float = 0.5):
     :param missing_val: Value to fill out when normalisation is invalid
     :return:
     """
+    logger = logging.getLogger(__name__)
+
     min_val = series.min()
     max_val = series.max()
 
     # In case normalisation is impossible, set all values as missing
     if min_val == max_val:
+        logger.warning(f"Same min/max value, using {missing_val} as default")
         return pd.Series([missing_val] * len(series), index=series.index)
 
     # Otherwise, normalise between 0 and 1
@@ -218,7 +231,7 @@ class Writer:
             with open(path, 'w') as file:
                 json.dump(data, file, indent=4)
         except Exception as e:
-            print(f"Error writing to JSON file: {e}")
+            logger.error(f"Error writing to JSON file: {e}")
 
     @classmethod
     def update_json_file(cls, path: Path, key: Any, value: Any):
@@ -248,10 +261,10 @@ class Writer:
                 else:
                     return False
         except FileNotFoundError:
-            # print(f"File not found: {path}")
+            logger.error(f"File not found: {path}")
             return False
         except json.JSONDecodeError:
-            print(f"Invalid JSON format in the file: {path}")
+            logger.error(f"Invalid JSON format in the file: {path}")
             return False
 
     @classmethod
