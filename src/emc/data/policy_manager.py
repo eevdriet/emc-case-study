@@ -17,7 +17,7 @@ from emc.model.simulation import Simulation
 from emc.data.constants import *
 from emc.util import Writer, Paths
 
-from emc.classifiers import *
+from emc.regressors import *
 from emc.data.neighborhood import Neighborhood
 from emc.util import normalised, Pair
 
@@ -36,13 +36,9 @@ class PolicyManager:
     __TRAIN_VAL_SPLIT_SIZE: float = 0.25
     __NORMALISED_COLS = {'n_host', 'n_host_eggpos', 'a_epg_obs'}
 
-    def __init__(self, scenarios: list[Scenario], strategy: str, frequency: int, worm: str, regression_model: int,
+    def __init__(self, scenarios: list[Scenario], strategy: str, frequency: int, worm: str, regression_model: regressor,
                  neighborhoods: list[Neighborhood]):
-        regressor_constructors = {
-            0: SingleGradientBoosterDefault,
-            1: SingleGradientBoosterRandomCV,
-            2: SingleGradientBoosterBayesian
-        }
+        self.logger = logging.getLogger(__name__)
 
         # Setup data fields
         self.scenarios: list[Scenario] = scenarios
@@ -59,10 +55,7 @@ class PolicyManager:
         self.strategy = strategy
         self.frequency = frequency
         self.worm = worm
-        self.constructor = regressor_constructors[regression_model]
-
-        filename = f"{self.worm}_{self.strategy}_{self.frequency}_{self.constructor.__name__}.json"
-        self.hp_path = Paths.hyperparameter_opt(filename)
+        self.constructor = regression_model
 
         # Setup local iterative search
         self.neighborhoods = neighborhoods
@@ -85,10 +78,7 @@ class PolicyManager:
             neighbor_costs = {}
 
             for neighborhood in self.neighborhoods:
-                neighbors: list[Policy] = list(neighborhood(curr_policy))
-                for it, neighbor in enumerate(neighbors, 1):
-                    print(f"\n{neighbor} [{it}/{len(neighbors)}]")
-                    # try:
+                for neighbor in neighborhood(curr_policy):
                     # Get the costs for the current policy and update
                     self.__build_regressors(neighbor)
 
@@ -96,11 +86,6 @@ class PolicyManager:
                     costs = self.__calculate_costs(neighbor)
                     neighbor_costs[neighbor] = costs
 
-                    # except Exception as err:
-                    #     logger.error(f"Policy {neighbor} raises an exception: {err}")
-
-            # Register all policy costs
-            self.policy_costs = {**self.policy_costs, **neighbor_costs}
 
             # Update the best policy if an improvement was found
             curr_policy, curr_cost = min(neighbor_costs.items(), key=lambda pair: pair[1])
@@ -136,20 +121,28 @@ class PolicyManager:
             test = self.__filter_data(self.test_df, sub_policy)
 
             # Define paths for saving and loading the model and preprocessing data.
-            model_path = Paths.models(self.worm, self.frequency, self.strategy,
-                                      str(sub_policy.epi_time_points) + "_" + self.constructor.__name__ + ".pkl")
+            model_path = Paths.models(self.worm, self.frequency, self.strategy, self.constructor.__name__,
+                                      str(sub_policy.epi_time_points) + ".pkl")
             prepro_path = Paths.preprocessing(self.worm, self.frequency, self.strategy,
-                                              str(sub_policy.epi_time_points) + "_" + self.constructor.__name__)
+                                              str(sub_policy.epi_time_points))
             model = Writer.loadPickle(model_path)
 
             if model is None:
                 # If no existing model is found, create a new model and preprocessing data.
-                logger.debug(f'Creating new model and new preprocessing for: Policy({sub_policy.epi_time_points})')
+                logger.debug(f'Creating new model for: Policy({sub_policy.epi_time_points})')
+                
+                features_data = Writer.loadPickle(prepro_path / "features_data.pkl")
+                targets_data = Writer.loadPickle(prepro_path / "targets_data.pkl")
+                features_test = Writer.loadPickle(prepro_path / "features_test.pkl")
+                targets_test = Writer.loadPickle(prepro_path / "targets_test.pkl")
 
                 # Check for existing hyperparameters and initialize the regressor.
-                found = Writer.get_value_from_json(self.hp_path, str(hash(sub_policy)))
                 regressor = self.constructor(sub_policy, train, test)
-                regressor.setParameters(found)
+
+                if features_data is not None or targets_data is not None or features_test is not None or targets_test is not None:
+                    print("Using already calculated preprocessing")
+                    regressor.setPreprocessing(features_data, targets_data, features_test, targets_test)
+
                 regressor.initialize_and_train_model()
 
                 # Save preprocessing data.
@@ -158,11 +151,6 @@ class PolicyManager:
                 Writer.savePickle(prepro_path / "targets_data.pkl", targets_data)
                 Writer.savePickle(prepro_path / "features_test.pkl", features_test)
                 Writer.savePickle(prepro_path / "targets_test.pkl", targets_test)
-
-                # Update and save the best hyperparameters for the regressor.
-                if not found:
-                    Writer.update_json_file(self.hp_path, str(hash(sub_policy)), regressor.getParameters())
-
                 Writer.savePickle(model_path, regressor.getModel())
             else:
                 # Use the existing model if found.
@@ -391,6 +379,7 @@ def main():
     worm = Worm.HOOKWORM.value
     frequency = 1
     strategy = 'community'
+    regresModel = GradientBoosterDefault
 
     loader = DataLoader(worm)
     all_scenarios = loader.load_scenarios()
@@ -403,7 +392,7 @@ def main():
     # Use the policy manager
     logger.info(f"-- {worm}: {strategy} with {frequency} --")
     neighborhoods = [flip_neighbors]  # also swap_neighbors
-    manager = PolicyManager(scenarios, strategy, frequency, worm, 0, neighborhoods)
+    manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods)
 
     # Register best policy and save all costs
     best_policy, policy_costs = manager.manage()
