@@ -29,6 +29,11 @@ def flip_neighbors(policy: Policy) -> Neighbor:
         yield new_policy
 
 
+def identity_neighbors(policy: Policy) -> Neighbor:
+    for _ in range(1, N_YEARS - 1):
+        yield policy.copy()
+
+
 if __name__ == '__main__':
     times = [True] * N_YEARS
     for idx in range(1, N_YEARS - 1):

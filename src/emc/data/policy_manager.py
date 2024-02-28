@@ -139,7 +139,7 @@ class PolicyManager:
             if model is None:
                 # If no existing model is found, create a new model and preprocessing data.
                 logger.debug(f'Creating new model for: Policy({sub_policy.epi_time_points})')
-                
+
                 features_data = Writer.loadPickle(prepro_path / "features_data.pkl")
                 targets_data = Writer.loadPickle(prepro_path / "targets_data.pkl")
                 features_test = Writer.loadPickle(prepro_path / "features_test.pkl")
@@ -214,10 +214,6 @@ class PolicyManager:
             signal_year = None
 
             for sub_policy in sub_policies:
-                # Already computed costs for sub-policy
-                if key in self.sub_policy_simulations[sub_policy]:
-                    continue
-
                 classifier = self.policy_classifiers[sub_policy]
 
                 # Continue with epidemiological surveys as long as resistance does not seem to be a problem yet
@@ -230,7 +226,6 @@ class PolicyManager:
                     logger.debug(f"Simulation {key} -> {sub_policy} with costs {costs} [No epi data]")
 
                     sub_policy_costs[sub_policy][key] = costs
-                    self.sub_policy_simulations[sub_policy].add(key)
                     break
 
                 if epi_signal >= DRUG_EFFICACY_THRESHOLD:  # skip drug efficacy survey when signal is still fine
@@ -248,7 +243,6 @@ class PolicyManager:
                         f"Simulation {key} -> {sub_policy} with costs {costs} [Epi < {DRUG_EFFICACY_THRESHOLD}, no drug data]")
 
                     sub_policy_costs[sub_policy][key] = costs
-                    self.sub_policy_simulations[sub_policy].add(key)
                     break
 
                 # If data is available and resistance is indeed a problem, stop the simulation and register its cost
@@ -259,8 +253,6 @@ class PolicyManager:
                         f"Simulation {key} -> {drug_policy} with costs {costs} [Epi < {DRUG_EFFICACY_THRESHOLD}, drug < 0.85]")
                     # policy_simulation_costs[drug_policy].append(costs)
                     sub_policy_costs[sub_policy][key] = costs
-                    self.sub_policy_simulations[sub_policy].add(key)
-
                     signal_year = drug_policy.last_year + 1
                     break
 
@@ -277,9 +269,6 @@ class PolicyManager:
 
             # Only penalise miss classifications for resistance modes different from 'none' when needed
             if simulation.scenario.res_mode != 'none':
-                # Verify whether the simulation still has poor drug efficacy but it was not detected
-                df = simulation.drug_efficacy_s
-
                 # Find the first year for which the ERR value is not nan
                 first_year = None
                 ERR = simulation.drug_efficacy_s['ERR'].reset_index(drop=True)
@@ -401,7 +390,7 @@ class PolicyManager:
 
 def main():
     from emc.data.data_loader import DataLoader
-    from emc.data.neighborhood import flip_neighbors, swap_neighbors
+    from emc.data.neighborhood import flip_neighbors, swap_neighbors, identity_neighbors
 
     # TODO: adjust scenario before running the policy manager
     worm = Worm.HOOKWORM.value
