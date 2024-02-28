@@ -15,6 +15,7 @@ from emc.model.policy import Policy, create_init_policy
 from emc.model.scenario import Scenario
 from emc.model.simulation import Simulation
 from emc.data.constants import *
+from emc.model.score import Score
 from emc.util import Writer, Paths
 
 from emc.classifiers import *
@@ -47,7 +48,7 @@ class PolicyManager:
         # Setup data fields
         self.scenarios: list[Scenario] = scenarios
         self.policy_classifiers = {}
-        self.policy_costs: dict[Policy, float] = {}
+        self.policy_scores: dict[Policy, float] = {}
         self.sub_policy_simulations: dict[Policy, set[tuple[int, int]]] = defaultdict(set)
 
         # Split the data into train/validation data for the classifiers
@@ -72,9 +73,9 @@ class PolicyManager:
 
         # Setup iteration variables
         logger.info("Start iterated local search")
-        self.policy_costs = {}
+        self.policy_scores = {}
 
-        best_cost = float('inf')
+        best_score = float('inf')
         best_policy = None
         iteration = 0
 
@@ -82,31 +83,31 @@ class PolicyManager:
         curr_policy = create_init_policy(1)
 
         while iteration < self.__N_MAX_ITERS:
-            neighbor_costs = {}
+            neighbor_scores = {}
 
             for neighborhood in self.neighborhoods:
                 neighbors: list[Policy] = list(neighborhood(curr_policy))
                 for it, neighbor in enumerate(neighbors, 1):
                     print(f"\n{neighbor} [{it}/{len(neighbors)}]")
                     # try:
-                    # Get the costs for the current policy and update
+                    # Get the score for the current policy and update
                     self.__build_regressors(neighbor)
 
-                    # Determine the costs and make sure no invalid data is present
-                    costs = self.__calculate_costs(neighbor)
-                    neighbor_costs[neighbor] = costs
+                    # Determine the score and make sure no invalid data is present
+                    score = self.__calculate_score(neighbor)
+                    neighbor_scores[neighbor] = score
 
                     # except Exception as err:
                     #     logger.error(f"Policy {neighbor} raises an exception: {err}")
 
-            # Register all policy costs
-            self.policy_costs = {**self.policy_costs, **neighbor_costs}
+            # Register all policy score
+            self.policy_scores = {**self.policy_scores, **neighbor_scores}
 
             # Update the best policy if an improvement was found
-            curr_policy, curr_cost = min(neighbor_costs.items(), key=lambda pair: pair[1])
-            if curr_cost < best_cost:
-                logger.info(f"\n{curr_policy} is improving! Cost {curr_cost} < {best_cost}\n")
-                best_cost = curr_cost
+            curr_policy, curr_score = min(neighbor_scores.items(), key=lambda pair: pair[1])
+            if curr_score < best_score:
+                logger.info(f"\n{curr_policy} is improving! Score {curr_score} < {best_score}\n")
+                best_score = curr_score
                 best_policy = curr_policy.copy()
                 iteration = 0
             # Otherwise continue with a random neighbor
@@ -114,7 +115,7 @@ class PolicyManager:
                 iteration += 1
                 logger.info(f"\nNo policy is improving, now on iteration {iteration + 1}/{self.__N_MAX_ITERS}\n")
 
-        return best_policy, self.policy_costs
+        return best_policy, self.policy_scores
 
     def __build_regressors(self, policy: Policy) -> None:
         """
@@ -191,7 +192,7 @@ class PolicyManager:
             # Store the trained regressor in the policy classifiers dictionary.
             self.policy_classifiers[sub_policy] = regressor
 
-    def __calculate_costs(self, policy: Policy):
+    def __calculate_score(self, policy: Policy) -> Score:
         """
         Calculate the cost of a policy and all its sub-policies based on regression under each simulation
         :param policy: Policy to find costs for
@@ -205,7 +206,7 @@ class PolicyManager:
         sub_policy_costs: dict[Policy, dict[tuple[int, int], float]] = defaultdict(dict)
 
         if len(sub_policies) == 0:
-            return float('inf')
+            return Score.create_missing()
 
         latenesses = []
         n_wrong_classifications = 0
@@ -285,54 +286,75 @@ class PolicyManager:
 
                 # Find the first year for which the ERR value is not nan
                 first_year = None
-                for time, ERR in df['ERR'].reset_index(drop=True).items():
-                    if not isnan(ERR) and ERR < 0.85:
-                        first_year = time
+                ERR = simulation.drug_efficacy_s['ERR'].reset_index(drop=True)
+                target = simulation.monitor_age['target'].reset_index(drop=True)
+                for time, (epi_signal, drug_signal) in enumerate(zip(target, ERR)):
+                    if isnan(epi_signal) or isnan(drug_signal):
                         break
 
+                    if epi_signal >= DRUG_EFFICACY_THRESHOLD or drug_signal >= 0.85:
+                        continue
+
+                    first_year = time
+                    break
+
                 # Determine lateness of the policy
+                # Note that the absolute value is needed, regressor can find a signal before it occurs in the monitor_age data
                 if first_year is None:
                     lateness = 0
                 else:
                     lateness = (20 if signal_year is None else signal_year) - first_year
+                    lateness = abs(lateness)
 
                 logger.debug(f"Simulation {key} has lateness {lateness}")
                 latenesses.append(lateness)
 
                 # Verify whether the simulation was wrongly classified
                 if signal_year is None:
-                    # Find the last year for which the ERR value is not nan
+                    # Find the last year for which the true drug_efficacy/ERR values are below
                     last_year = None
-                    for time, ERR in df['ERR'].reset_index(drop=True)[::-1].items():
-                        if not isnan(ERR) and ERR < 0.85:
-                            last_year = time
-                            break
+                    for time, (epi_signal, drug_signal) in enumerate(zip(target[::-1], ERR[::-1])):
+                        if isnan(epi_signal) or isnan(drug_signal):
+                            continue
+
+                        if epi_signal >= DRUG_EFFICACY_THRESHOLD or drug_signal >= 0.85:
+                            continue
+
+                        last_year = time
+                        break
 
                     if last_year is not None:
                         logger.debug(f"Simulation {key} was wrongly classified")
                         n_wrong_classifications += 1
 
+        # Calculate final costs
         total_subpolicy_costs = [cost for sub_policy in policy.sub_policies for cost in
                                  sub_policy_costs[sub_policy].values() if not isnan(cost)]
-        logger.info(
-            f"- Totaal used simulations: {len(total_subpolicy_costs)} (nan: {len(self.test_simulations) - len(total_subpolicy_costs)})")
 
-        if len(total_subpolicy_costs):
-            total_costs = sum(total_subpolicy_costs) / len(total_subpolicy_costs)
+        # Financial costs
+        n = len(total_subpolicy_costs)
+        if n:
+            financial_costs = sum(total_subpolicy_costs) / len(total_subpolicy_costs)
         else:
-            total_costs = float('inf')
+            financial_costs = float('inf')
             logger.error("Found division by zero on line 324 of policy manager")
-        logger.info(f"- Gemiddelde financiele kosten: {total_costs}")
 
+        # Penalty costs
         avg_lateness = sum(latenesses) / len(latenesses)
         penalty_costs = avg_lateness * RESISTANCE_NOT_FOUND_COSTS
-        logger.info(
-            f"- Total (avg) lateness: {sum(latenesses)} ({avg_lateness})")
-        logger.info(f"- Gemiddelde penalty kosten: {penalty_costs}")
 
-        total_costs += penalty_costs
+        # Total
+        total_costs = financial_costs + penalty_costs
 
-        logger.info(f"-----------------\nTotal costs: {total_costs}")
+        # Cost overview
+        logger.info(f"- Total simulations          : {n} (nan: {len(self.test_simulations) - n})")
+        logger.info(f"- Total (avg) lateness       : {sum(latenesses)} ({avg_lateness})")
+        logger.info(f"- Total wrong classifications: {n_wrong_classifications}/{len(self.test_simulations)}")
+        logger.info(f"- Avg. financial costs       : {financial_costs}")
+        logger.info(f"- Avg. penalty   costs       : {penalty_costs}")
+        logger.info("---------------------------------------------------------")
+        logger.info(f"Total costs                  : {total_costs}")
+
         return total_costs
 
     def __split_data(self) -> SplitData:
