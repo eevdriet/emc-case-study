@@ -12,9 +12,7 @@ def add_features_group(group):
     :return: Group with features added
     """
     group['inf_level'] = group['n_host_eggpos'] / group['n_host']
-    group['inf_level_change'] = group['inf_level'].pct_change()
-    group['a_epg_obs_change'] = group['a_epg_obs'].pct_change()
-
+    
     return group
 
 

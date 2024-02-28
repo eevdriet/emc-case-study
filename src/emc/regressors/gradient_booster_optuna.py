@@ -4,38 +4,15 @@ import optuna
 from sklearn.metrics import mean_squared_error
 from xgboost import XGBRegressor
 
-from emc.classifiers import Classifier
+from emc.regressors import Regressor
 from emc.data.constants import SEED
 from emc.log import setup_logger
-from math import isnan
 
-logger = setup_logger(__name__)
 optuna.logging.set_verbosity(optuna.logging.WARNING)
+logger = setup_logger(__name__)
 
 
-class SingleGradientBoosterBayesian(Classifier):
-    def _preprocess(self, data: pd.DataFrame):
-        groups = data.groupby(['scenario', 'simulation'])
-
-        features = {}
-        targets = {}
-
-        for key, df in groups:
-            df = df.drop(columns=['simulation', 'scenario', 'time', 'ERR'])
-
-            df = df.reset_index(drop=True)
-            target = df['target'].iloc[-1]
-            if isnan(target):
-                continue
-
-            del df['target']
-            targets[key] = target
-
-            row = df.to_numpy().T.flatten()
-            features[key] = row
-
-        return features, targets
-
+class GradientBoosterOptuna(Regressor):
     def _train(self, X_train: np.ndarray, y_train: np.array) -> None:
         def objective(trial):
             hyperparams = {
@@ -71,11 +48,11 @@ class SingleGradientBoosterBayesian(Classifier):
 
         self.parameters = best_hyperparams
 
-        self.xgb = XGBRegressor(**best_hyperparams, random_state=SEED, missing=np.nan)
-        self.xgb.fit(X_train, y_train)
+        self.regression_model = XGBRegressor(**best_hyperparams, random_state=SEED, missing=np.nan)
+        self.regression_model.fit(X_train, y_train)
         logger.debug("Final model trained with best hyperparameters.")
 
     def test(self, X_test: np.ndarray, y_test: np.array) -> np.array:
         logger.debug(f"Predicting with {len(X_test)} simulations...")
-        predictions = self.xgb.predict(X_test)
+        predictions = self.regression_model.predict(X_test)
         return predictions

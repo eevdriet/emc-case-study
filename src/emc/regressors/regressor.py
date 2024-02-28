@@ -4,20 +4,16 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 import numpy as np
 
 import pandas as pd
-from xgboost import XGBRegressor
 
 from emc.model.simulation import Simulation
 from emc.model.policy import Policy
 from emc.data.constants import SEED
-from emc.log import setup_logger
-
-logger = setup_logger(__name__)
 
 _X = dict[tuple[int, int], np.ndarray]
 _Y = dict[tuple[int, int], float]
 
 
-class Classifier(ABC):
+class Regressor(ABC):
     SEED: int = 76
 
     def __init__(self, policy: Policy, train: pd.DataFrame, test: pd.DataFrame):
@@ -34,7 +30,7 @@ class Classifier(ABC):
         self.targets_test: Optional[_Y] = None
 
         # To be Loaded model
-        self.xgb = None
+        self.regression_model = None
 
     def initialize_and_train_model(self) -> None:
         """
@@ -51,22 +47,42 @@ class Classifier(ABC):
         X_data = np.vstack(tuple(self.features_data.values()))
         y_data = np.array(tuple(self.targets_data.values()))
 
-        if self.xgb == None:
-            if self.parameters:
-                logger.debug("Using already stored hyperparameters")
-                self._train_basic(X_data, y_data)
-            else:
-                logger.debug("Generating new hyperparameters")
-                self._train(X_data, y_data)
+        if self.regression_model == None:
+            self._train(X_data, y_data)
 
-    @abstractmethod
     def _preprocess(self, data: pd.DataFrame) -> tuple[_X, _Y]:
         """
         Preprocess the training data
             Standardise all features
             Create X_train, y_train, X_test, y_test
         """
-        ...
+
+        data = data.copy()
+
+        # Calculate percentage changes without looping
+        data['inf_level_change'] = data.groupby(['scenario', 'simulation'])['inf_level'].pct_change(fill_method=None)
+        data['a_epg_obs_change'] = data.groupby(['scenario', 'simulation'])['a_epg_obs'].pct_change(fill_method=None)
+
+        # Replace inf values with NaN
+        data.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+        # Prepare the target and features dictionaries
+        features = {}
+        targets = {}
+
+        # Iterate over the groups to assemble the final features and targets
+        for (scenario, simulation), df in data.groupby(['scenario', 'simulation']):
+            # Get the last target value and skip if it's NaN
+            target = df['target'].iloc[-1]
+            if np.isnan(target):
+                continue
+            targets[(scenario, simulation)] = target
+
+            # Prepare the feature array without the target and other unnecessary columns
+            feature_df = df.drop(columns=['target', 'simulation', 'scenario', 'time', 'ERR']).reset_index(drop=True)
+            features[(scenario, simulation)] = feature_df.to_numpy().T.flatten()
+
+        return features, targets
 
     @abstractmethod
     def _train(self, X_train: np.ndarray, y_train: np.array) -> None:
@@ -76,12 +92,6 @@ class Classifier(ABC):
         """
         ...
 
-    def _train_basic(self, X_train: pd.DataFrame, y_train: pd.Series):
-        params = self.parameters
-        self.xgb = XGBRegressor(**params, random_state=SEED, missing=np.nan)
-        logger.debug(f"Fitting with {len(X_train)} simulations...")
-        self.xgb.fit(X_train, y_train)
-
     @abstractmethod
     def test(self, X_test: np.ndarray, y_test: np.array) -> np.array:
         """
@@ -90,19 +100,6 @@ class Classifier(ABC):
         :return: Prediction for each target based on the features
         """
         ...
-
-    def getParameters(self) -> dict:
-        """
-        Get the used hyperparameters
-        :return: dict containing the hyperparameters
-        """
-        return self.parameters
-
-    def setParameters(self, params) -> None:
-        """
-        Set the already found hyperparameters
-        """
-        self.parameters = params
 
     def predict(self, simulation: Simulation) -> Optional[float]:
         """
@@ -121,28 +118,28 @@ class Classifier(ABC):
 
         # Prediction (only first result needed as only one row tested)
         return self.test(X_test, y_test)[0]
-
+    
     def getModel(self):
         """
         Get the model used in the classifier.
         :return: The model object.
         """
-        return self.xgb
-
+        return self.regression_model
+        
     def setModel(self, model):
         """
         Set the model for the classifier.
         :param model: The model to be set.
         """
-        self.xgb = model
-
+        self.regression_model = model
+        
     def getPreprocessing(self):
         """
         Retrieve the preprocessing data including features and targets for training and testing.
         :return: A tuple containing features and targets for training and testing.
         """
         return (self.features_data, self.targets_data, self.features_test, self.targets_test)
-
+        
     def setPreprocessing(self, features_data, targets_data, features_test, targets_test) -> None:
         """
         Set the preprocessing data for the classifier.
@@ -170,7 +167,13 @@ class Classifier(ABC):
         newClassifier = constructor(policy, train, test)
         newClassifier.setModel(model)
         return newClassifier
-
+    
+    def getParameters(self):
+        if self.regression_model == None:
+            return None
+        else:
+            return self.regression_model.get_params()
+        
     def getStats(self):
         """
         Calculate and return the statistics including accuracy, precision, recall, and F1 score for the model.

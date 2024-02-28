@@ -172,7 +172,7 @@ class Paths:
         return cls.__safe_path(path)
 
     @classmethod
-    def models(cls, worm: str, mda_freq: int, mda_strategy: str, filename: str) -> Path:
+    def models(cls, worm: str, mda_freq: int, mda_strategy: str, constructor: str, filename: str) -> Path:
         """
         Access the model path of the project given parameters.
 
@@ -182,7 +182,7 @@ class Paths:
         :param filename: Name of the file
         :return: Path to the model file
         """
-        path = cls.data('model') / str(worm) / str(mda_strategy) / str(mda_freq) / str(filename)
+        path = cls.data('model') / str(constructor) / str(worm) / str(mda_strategy) / str(mda_freq) / str(filename)
         return cls.__safe_path(path)
 
     @classmethod
