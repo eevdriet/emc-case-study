@@ -255,9 +255,6 @@ class PolicyManager:
 
             # If resistance never becomes a problem under the policy, register its costs without drug efficacy surveys
             else:
-                if key in self.sub_policy_simulations[policy]:
-                    continue
-
                 costs = simulation.calculate_cost(policy)
                 logger.debug(
                     f"Simulation {key} -> {policy} with costs {costs} [Epi>= {DRUG_EFFICACY_THRESHOLD}, drug >= 0.85]")
@@ -405,7 +402,8 @@ def main():
 
     # Use the policy manager
     logger.info(f"-- {worm}: {strategy} with {frequency} --")
-    neighborhoods = [flip_neighbors]  # also swap_neighbors
+    # neighborhoods = [flip_neighbors]  # also swap_neighbors
+    neighborhoods = [identity_neighbors]
     manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods)
 
     # Register best policy and save all costs
