@@ -114,10 +114,9 @@ class Regressor(ABC):
 
         # Reshape the simulation data into single rowed data
         X_test = self.features_test[key].reshape(1, -1)
-        y_test = np.array([self.targets_test[key]])
 
-        # Prediction (only first result needed as only one row tested)
-        return self.test(X_test, y_test)[0]
+        result = self.regression_model.predict(X_test)
+        return result
     
     def getModel(self):
         """
