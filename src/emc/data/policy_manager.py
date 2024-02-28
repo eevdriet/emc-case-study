@@ -140,7 +140,7 @@ class PolicyManager:
                 regressor = self.constructor(sub_policy, train, test)
 
                 if features_data is not None or targets_data is not None or features_test is not None or targets_test is not None:
-                    print("Using already calculated preprocessing")
+                    logger.debug("Using already calculated preprocessing")
                     regressor.setPreprocessing(features_data, targets_data, features_test, targets_test)
 
                 regressor.initialize_and_train_model()
