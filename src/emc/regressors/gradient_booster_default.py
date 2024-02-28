@@ -28,7 +28,3 @@ class GradientBoosterDefault(Regressor):
         self.regression_model = XGBRegressor(**params, random_state=SEED, missing=np.nan)
         logger.debug(f"Fitting with {len(X_train)} simulations...")
         self.regression_model.fit(X_train, y_train)
-
-    def test(self, X_test: np.ndarray, y_test: np.array) -> np.array:
-        predictions = self.regression_model.predict(X_test)
-        return predictions

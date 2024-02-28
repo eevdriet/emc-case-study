@@ -82,16 +82,13 @@ class PolicyManager:
                 neighbors: list[Policy] = list(neighborhood(curr_policy))
                 for it, neighbor in enumerate(neighbors, 1):
                     logger.info(f"\n{neighbor} [{it}/{len(neighbors)}]")
-                    # try:
+
                     # Get the score for the current policy and update
                     self.__build_regressors(neighbor)
 
                     # Determine the score and make sure no invalid data is present
                     score = self.__calculate_score(neighbor)
                     neighbor_scores[neighbor] = score
-
-                    # except Exception as err:
-                    #     logger.error(f"Policy {neighbor} raises an exception: {err}")
 
             # Register all policy score
             self.policy_scores = {**self.policy_scores, **neighbor_scores}
