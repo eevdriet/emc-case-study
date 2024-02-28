@@ -45,14 +45,8 @@ class PolicyManager:
     __TRAIN_VAL_SPLIT_SIZE: float = 0.25
     __NORMALISED_COLS = {'n_host', 'n_host_eggpos', 'a_epg_obs'}
 
-    def __init__(self, scenarios: list[Scenario], strategy: str, frequency: int, worm: str, regression_model: int,
+    def __init__(self, scenarios: list[Scenario], strategy: str, frequency: int, worm: str, regression_model: regressor,
                  neighborhoods: list[Neighborhood]):
-        regressor_constructors = {
-            0: GradientBoosterDefault,
-            1: GradientBoosterRandomCV,
-            2: GradientBoosterOptuna
-        }
-
         self.logger = logging.getLogger(__name__)
 
         # Setup data fields
@@ -70,7 +64,7 @@ class PolicyManager:
         self.strategy = strategy
         self.frequency = frequency
         self.worm = worm
-        self.constructor = regressor_constructors[regression_model]
+        self.constructor = regression_model
 
         # Setup local iterative search
         self.neighborhoods = neighborhoods
@@ -139,10 +133,20 @@ class PolicyManager:
 
             if model is None:
                 # If no existing model is found, create a new model and preprocessing data.
-                print(f'Creating new model and new preprocessing for: Policy({sub_policy.epi_time_points})')
+                print(f'Creating new model for: Policy({sub_policy.epi_time_points})')
+                
+                features_data = Writer.loadPickle(prepro_path / "features_data.pkl")
+                targets_data = Writer.loadPickle(prepro_path / "targets_data.pkl")
+                features_test = Writer.loadPickle(prepro_path / "features_test.pkl")
+                targets_test = Writer.loadPickle(prepro_path / "targets_test.pkl")
 
                 # Check for existing hyperparameters and initialize the regressor.
                 regressor = self.constructor(sub_policy, train, test)
+
+                if features_data is not None or targets_data is not None or features_test is not None or targets_test is not None:
+                    print("Using already calculated preprocessing")
+                    regressor.setPreprocessing(features_data, targets_data, features_test, targets_test)
+
                 regressor.initialize_and_train_model()
 
                 # Save preprocessing data.
@@ -377,6 +381,7 @@ def main():
     worm = Worm.HOOKWORM.value
     frequency = 2
     strategy = 'sac'
+    regresModel = GradientBoosterDefault
 
     loader = DataLoader(worm)
     all_scenarios = loader.load_scenarios()
@@ -389,7 +394,7 @@ def main():
     # Use the policy manager
     print(f"\n\n\n-- {worm}: {strategy} with {frequency} --")
     neighborhoods = [flip_neighbors]  # also swap_neighbors
-    manager = PolicyManager(scenarios, strategy, frequency, worm, 0, neighborhoods)
+    manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods)
 
     # Register best policy and save all costs
     best_policy, policy_costs = manager.manage()
