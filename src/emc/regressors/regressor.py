@@ -200,3 +200,6 @@ class Regressor(ABC):
         }
 
         return results
+    
+    def getFeatureWeights(self):
+        return self.regression_model.feature_importances_
