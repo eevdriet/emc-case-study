@@ -9,7 +9,10 @@ from emc.model.scenario import Scenario
 from emc.model.simulation import Simulation
 from emc.model.label import Label
 from emc.util import Paths
+from emc.log import setup_logger
 from emc.data.constants import *
+
+logger = setup_logger(__name__)
 
 
 class DataLoader:
@@ -34,6 +37,7 @@ class DataLoader:
         Load all scenarios from the monitor age table and metadata
         :return: Scenarios that were loaded from the data sets
         """
+        logger.info("Loading scenarios...")
 
         return [self._load_scenario(scenario_id, scenario) for scenario_id, scenario in
                 enumerate(self.metadata, start=1)]
@@ -45,7 +49,7 @@ class DataLoader:
         :param metadata: Metadata of the scenario
         :return: Scenario loaded from the metadata
         """
-        print(f"Loading scenario {scen_id}...")
+        logger.debug(f"\t Scenario {scen_id}...")
 
         # Construct scenario from its metadata
         mda_freq = metadata['mda_freq']
@@ -112,7 +116,7 @@ class DataLoader:
         """
         path = Paths.worm_data(self.species, 'metadata', self.use_merged)
         if not path.exists():
-            print(f"Path {path} does not exist, cannot load in meta data!")
+            logger.error(f"Path {path} does not exist, cannot load in meta data!")
             return None
 
         with open(path, 'r') as file:
@@ -125,7 +129,7 @@ class DataLoader:
         """
         path = Paths.worm_data(self.species, 'monitor_age', self.use_merged)
         if not path.exists():
-            print(f"Path {path} does not exist, cannot load in epidemiological survey!")
+            logger.error(f"Path {path} does not exist, cannot load in epidemiological survey!")
             return None
 
         # Correctly order the columns and set data types
@@ -140,7 +144,7 @@ class DataLoader:
         """
         path = Paths.worm_data(self.species, 'drug_efficacy', self.use_merged)
         if not path.exists():
-            print(f"Path {path} does not exist, cannot load in drug efficacy survey!")
+            logger.error(f"Path {path} does not exist, cannot load in drug efficacy survey!")
             return None
 
         # Correctly order the columns and set data types

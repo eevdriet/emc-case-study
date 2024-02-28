@@ -2,6 +2,9 @@ import pandas as pd
 
 from emc.data.constants import *
 from emc.util import Paths
+from emc.log import setup_logger
+
+logger = setup_logger(__name__)
 
 
 def save_pretty() -> None:
@@ -14,7 +17,8 @@ def save_pretty() -> None:
         worm = worm.value
 
         for data_type in ['monitor_age', 'drug_efficacy']:
-            # Load data print(f"Reformatting the {worm} {data_type} data...")
+            # Load data
+            logger.info(f"Reformatting the {worm} {data_type} data...")
             path = Paths.worm_data(worm, data_type, use_merged=True)
             df = pd.read_csv(path).reset_index(drop=True)
 

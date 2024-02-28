@@ -12,7 +12,7 @@
   "handlers": {
     "stdout": {
       "class": "logging.StreamHandler",
-      "level": "DEBUG",
+      "level": "INFO",
       "formatter": "simple",
       "stream": "ext://sys.stdout"
     },
@@ -20,13 +20,18 @@
       "class": "logging.handlers.RotatingFileHandler",
       "level": "DEBUG",
       "formatter": "extended",
-      "filename": "full.log"
+      "filename": "full.log",
+      "mode": "w",
+      "maxBytes": 10000000,
+      "backupCount": 10
     },
     "clean": {
       "class": "logging.handlers.RotatingFileHandler",
       "level": "INFO",
       "formatter": "extended",
-      "filename": "clean.log"
+      "filename": "clean.log",
+      "mode": "a",
+      "maxBytes": 10000000
     }
   },
   "root": {

@@ -1,8 +1,11 @@
 from emc.util import Paths
+from emc.log import setup_logger
 
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+
+logger = setup_logger(__name__)
 
 
 def fit_polynomial_with_uncertainty(x, y, y_err, degree):
@@ -13,8 +16,8 @@ def fit_polynomial_with_uncertainty(x, y, y_err, degree):
     # Polynomial and its derivative
     p = np.poly1d(coeffs)
     p_derivative = p.deriv()
-    print(p)
-    print(p_derivative)
+    logger.info(p)
+    logger.info(p_derivative)
 
     return p, p_derivative, cov_matrix
 
@@ -39,7 +42,7 @@ def main():
 
     path = Paths.data() / 'levels.txt'
     if not path.exists():
-        print("Levels does not exist, generate from InfectionTree")
+        logger.warning("Levels does not exist, generate from InfectionTree")
         return
 
     with open(path, 'r') as file:
@@ -49,9 +52,9 @@ def main():
     times = np.array(range(len(means)))
     sds = np.array(sds)
     means = np.array(means)
-    # print(times)
-    # print(means)
-    # print(sds)
+    # logger.info(times)
+    # logger.info(means)
+    # logger.info(sds)
 
     degree = 3  # Degree of polynomial
 
@@ -83,10 +86,6 @@ def main():
     # Show the plot
     plt.ylim(-0.05, 0.05)
     plt.show()
-
-    # Classifiers bouwen
-    # gb = GradientBoosting()
-    # print(gb.run(scenarios))
 
 
 if __name__ == "__main__":

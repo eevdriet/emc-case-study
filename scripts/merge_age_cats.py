@@ -1,8 +1,13 @@
+import logging
+
 import pandas as pd
 import numpy as np
 
 from emc.data.constants import *
 from emc.util import Paths
+from emc.log import setup_logger
+
+logger = setup_logger(__name__)
 
 
 def weighted_mean(values: pd.Series, weights: pd.Series):
@@ -13,6 +18,7 @@ def weighted_mean(values: pd.Series, weights: pd.Series):
     :return: Weighted mean
     """
     if weights.sum() == 0:
+        logger.warning("No weights defined, returning NaN")
         return np.nan
 
     return (weights * values).sum() / weights.sum()
@@ -34,12 +40,15 @@ def merge_age_cats() -> None:
         df = pd.read_csv(path)
 
         # Go through all individual monitor_age dataframes
-        print("Merging the age categories for scenarios...")
+        logger.info("Merging the age categories for simulations per scenario...")
+
         for scenario in range(N_SCENARIOS):
-            print(f"\t- {scenario}")
+            logger.info(f"Scenario {scenario + 1}")
             rows = []
 
             for simulation in range(N_SIMULATIONS):
+                logger.debug(f"\t {simulation + 1}/{N_SIMULATIONS}")
+
                 # Get index in data frame to start getting the rows from
                 start_idx = N_YEARS * N_AGE_CATEGORIES * (N_SIMULATIONS * scenario + simulation)
                 end_idx = start_idx + N_AGE_CATEGORIES - 1
@@ -75,6 +84,7 @@ def merge_age_cats() -> None:
         # Merge dataframes of all scenarios together
         df_merged = pd.DataFrame()
 
+        logger.info("Merging the CSVs for scenarios...")
         for scenario in range(N_SCENARIOS):
             path = Paths.data('csv') / f'{worm}_monitor_age_merged_{scenario}.csv'
             df = pd.read_csv(path)
@@ -84,6 +94,7 @@ def merge_age_cats() -> None:
             path.unlink()
 
         # Write the merged csv
+        logger.info("Write merged CSV...")
         path = Paths.worm_data(worm, 'monitor_age', use_merged=True)
         df_merged.to_csv(path, index=False)
 

@@ -4,6 +4,9 @@ import json
 
 from emc.util import Paths
 from emc.data.constants import *
+from emc.log import setup_logger
+
+logger = setup_logger(__name__)
 
 
 def set_target() -> None:
@@ -35,15 +38,16 @@ def set_target() -> None:
         with open(path, 'r') as file:
             metadata = json.load(file)
 
-        print("Setting the expected infection level for scenarios...")
+        logger.info("Setting the expected infection level for scenarios...")
         for scenario in range(N_SCENARIOS):
-            print(f"\t- {scenario}")
+            logger.info(f"Scenario {scenario + 1}")
 
             # Determine how often PC is applied
             data = metadata[scenario]
             mda_freq = data['mda_freq']
 
             for simulation in range(N_SIMULATIONS):
+                logger.debug(f"\t {simulation + 1}/{N_SIMULATIONS}")
                 # Determine which rows to take in the monitor age survey and get the corresponding drug efficacy survey
                 start_ma = N_YEARS * n_age_cats * (N_SIMULATIONS * scenario + simulation)
                 df_de = drug_efficacy.get_group((scenario + 1, simulation + 1)).reset_index(drop=True)

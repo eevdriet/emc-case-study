@@ -9,6 +9,9 @@ from xgboost import XGBRegressor
 from emc.model.simulation import Simulation
 from emc.model.policy import Policy
 from emc.data.constants import SEED
+from emc.log import setup_logger
+
+logger = setup_logger(__name__)
 
 _X = dict[tuple[int, int], np.ndarray]
 _Y = dict[tuple[int, int], float]
@@ -50,10 +53,10 @@ class Classifier(ABC):
 
         if self.xgb == None:
             if self.parameters:
-                print("Using already stored hyperparameters")
+                logger.debug("Using already stored hyperparameters")
                 self._train_basic(X_data, y_data)
             else:
-                print("Generating new hyperparameters")
+                logger.debug("Generating new hyperparameters")
                 self._train(X_data, y_data)
 
     @abstractmethod
@@ -76,7 +79,7 @@ class Classifier(ABC):
     def _train_basic(self, X_train: pd.DataFrame, y_train: pd.Series):
         params = self.parameters
         self.xgb = XGBRegressor(**params, random_state=SEED, missing=np.nan)
-        print(f"Fitting with {len(X_train)} simulations...")
+        logger.debug(f"Fitting with {len(X_train)} simulations...")
         self.xgb.fit(X_train, y_train)
 
     @abstractmethod
@@ -118,28 +121,28 @@ class Classifier(ABC):
 
         # Prediction (only first result needed as only one row tested)
         return self.test(X_test, y_test)[0]
-    
+
     def getModel(self):
         """
         Get the model used in the classifier.
         :return: The model object.
         """
         return self.xgb
-        
+
     def setModel(self, model):
         """
         Set the model for the classifier.
         :param model: The model to be set.
         """
         self.xgb = model
-        
+
     def getPreprocessing(self):
         """
         Retrieve the preprocessing data including features and targets for training and testing.
         :return: A tuple containing features and targets for training and testing.
         """
         return (self.features_data, self.targets_data, self.features_test, self.targets_test)
-        
+
     def setPreprocessing(self, features_data, targets_data, features_test, targets_test) -> None:
         """
         Set the preprocessing data for the classifier.
@@ -167,7 +170,7 @@ class Classifier(ABC):
         newClassifier = constructor(policy, train, test)
         newClassifier.setModel(model)
         return newClassifier
-        
+
     def getStats(self):
         """
         Calculate and return the statistics including accuracy, precision, recall, and F1 score for the model.

@@ -9,10 +9,13 @@ from emc.model.label import Label
 from emc.data.constants import *
 
 # from emc.model.policy import Policy
+from emc.log import setup_logger
 
 # Required to avoid circular dependency
 if typing.TYPE_CHECKING:
     from emc.model.scenario import Scenario
+
+logger = setup_logger(__name__)
 
 
 @define
@@ -54,7 +57,7 @@ class Simulation:
         """
         costs = policy.calculate_cost(self.drug_efficacy_s)
         if isnan(costs):
-            print(f"ERROR: nan costs for {self.scenario.id, self.id}")
+            logger.debug(f"NaN costs for {self.scenario.id, self.id}")
 
         return costs
 

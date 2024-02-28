@@ -4,11 +4,14 @@ from xgboost import XGBRegressor
 
 from emc.classifiers import Classifier
 from emc.data.constants import SEED
+from emc.log import setup_logger
 from math import isnan
+
+logger = setup_logger(__name__)
 
 
 class SingleGradientBoosterDefault(Classifier):
-    
+
     def _preprocess(self, data: pd.DataFrame):
         groups = data.groupby(['scenario', 'simulation'])
 
@@ -48,7 +51,7 @@ class SingleGradientBoosterDefault(Classifier):
         self.parameters = params
 
         self.xgb = XGBRegressor(**params, random_state=SEED, missing=np.nan)
-        print(f"Fitting with {len(X_train)} simulations...")
+        logger.debug(f"Fitting with {len(X_train)} simulations...")
         self.xgb.fit(X_train, y_train)
 
     def test(self, X_test: np.ndarray, y_test: np.array) -> np.array:

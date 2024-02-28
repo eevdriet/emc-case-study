@@ -2,10 +2,12 @@ import json
 import scipy as sp
 from emc.data.constants import *
 from emc.util import Paths
+from emc.log import setup_logger
 from itertools import product
-from collections import defaultdict
 from typing import Tuple
 from math import isnan
+
+logger = setup_logger(__name__)
 
 
 class WelchTest:
@@ -98,11 +100,11 @@ class WelchTest:
         # Go through all scenarios
         for worm in Worm:
             worm = worm.value
-            print(f"Collecting statistics for the {worm} worm...")
+            logger.info(f"Collecting statistics for the {worm} worm...")
 
             for strategy, freq in product(MDA_STRATEGIES, MDA_FREQUENCIES):
                 scenario = (worm, strategy, freq)
-                print(f"\t- {scenario}")
+                logger.debug(f"\tScenario {scenario.id}")
 
                 # Load the levels file
                 path = Paths.levels(worm, bucket_size=self.__BUCKET_SIZE, mda_freq=freq, mda_strategy=strategy)
