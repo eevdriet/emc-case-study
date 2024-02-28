@@ -75,5 +75,9 @@ class Simulation:
         if year not in df['time'].values:
             return None
 
-        # Otherwise, use the ERR for the given year as prediction
-        return df.loc[df['time'] == year, 'ERR'].iloc[0]
+        # Otherwise, use the ERR for the given year as prediction if it is valid
+        ERR = df.loc[df['time'] == year, 'ERR'].iloc[0]
+        if isnan(ERR):
+            return None
+
+        return ERR

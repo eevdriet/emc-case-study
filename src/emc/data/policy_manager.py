@@ -208,6 +208,7 @@ class PolicyManager:
             return float('inf')
 
         latenesses = []
+        n_wrong_classifications = 0
 
         for iter, simulation in enumerate(self.test_simulations):
             key = (simulation.scenario.id, simulation.id)
@@ -229,8 +230,7 @@ class PolicyManager:
                     costs = simulation.calculate_cost(sub_policy)
                     # costs += RESISTANCE_NOT_FOUND_COSTS
                     # policy_simulation_costs[sub_policy].append(costs)
-                    logger.debug(
-                        f"Simulation {simulation.scenario.id, simulation.id} -> {sub_policy} with costs {costs} [No epi data]")
+                    logger.debug(f"Simulation {key} -> {sub_policy} with costs {costs} [No epi data]")
 
                     sub_policy_costs[sub_policy][key] = costs
                     self.sub_policy_simulations[sub_policy].add(key)
@@ -248,19 +248,18 @@ class PolicyManager:
                     # costs += RESISTANCE_NOT_FOUND_COSTS
                     # policy_simulation_costs[sub_policy].append(costs)
                     logger.debug(
-                        f"Simulation {simulation.scenario.id, simulation.id} -> {sub_policy} with costs {costs} [Epi < {DRUG_EFFICACY_THRESHOLD}, no drug data]")
+                        f"Simulation {key} -> {sub_policy} with costs {costs} [Epi < {DRUG_EFFICACY_THRESHOLD}, no drug data]")
 
                     sub_policy_costs[sub_policy][key] = costs
                     self.sub_policy_simulations[sub_policy].add(key)
                     break
-
 
                 # If data is available and resistance is indeed a problem, stop the simulation and register its cost
                 elif drug_signal < 0.85:
                     drug_policy = sub_policy.with_drug_survey()
                     costs = simulation.calculate_cost(drug_policy)
                     logger.debug(
-                        f"Simulation {simulation.scenario.id, simulation.id} -> {drug_policy} with costs {costs} [Epi < {DRUG_EFFICACY_THRESHOLD}, drug < 0.85]")
+                        f"Simulation {key} -> {drug_policy} with costs {costs} [Epi < {DRUG_EFFICACY_THRESHOLD}, drug < 0.85]")
                     # policy_simulation_costs[drug_policy].append(costs)
                     sub_policy_costs[sub_policy][key] = costs
                     self.sub_policy_simulations[sub_policy].add(key)
@@ -275,7 +274,7 @@ class PolicyManager:
 
                 costs = simulation.calculate_cost(policy)
                 logger.debug(
-                    f"Simulation {simulation.scenario.id, simulation.id} -> {policy} with costs {costs} [Epi>= {DRUG_EFFICACY_THRESHOLD}, drug >= 0.85]")
+                    f"Simulation {key} -> {policy} with costs {costs} [Epi>= {DRUG_EFFICACY_THRESHOLD}, drug >= 0.85]")
                 sub_policy_costs[policy][key] = costs
                 self.sub_policy_simulations[policy].add(key)
 
@@ -284,35 +283,34 @@ class PolicyManager:
                 # Verify whether the simulation still has poor drug efficacy but it was not detected
                 df = simulation.drug_efficacy_s
 
-                # OPTION 1 : whether it EVER drops below threshold%, independent of the year it happens
-                # n_missclassified_simulations += (df['ERR'] < DRUG_EFFICACY_THRESHOLD).any()
-
-                # OPTION 2 : whether it drops below threshold% AFTER THE POLICY ENDS, only for years after the last year of the policy
+                # Find the first year for which the ERR value is not nan
                 first_year = None
-
-                # Find the last year for which the ERR value is not nan
                 for time, ERR in df['ERR'].reset_index(drop=True).items():
                     if not isnan(ERR) and ERR < 0.85:
                         first_year = time
                         break
 
+                # Determine lateness of the policy
                 if first_year is None:
                     lateness = 0
                 else:
                     lateness = (20 if signal_year is None else signal_year) - first_year
 
                 logger.debug(f"Simulation {key} has lateness {lateness}")
-
                 latenesses.append(lateness)
 
-        # Average simulation costs per policy
-        # policy_costs = {}
-        # for policy, simulation_costs in policy_simulation_costs.items():
-        #     # Disregard costs that are nan
-        #     costs = [cost for cost in simulation_costs if not isnan(cost)]
-        #
-        #     # Calculate average policy costs
-        #     policy_costs[policy] = float('inf') if len(costs) == 0 else sum(costs) / len(costs)
+                # Verify whether the simulation was wrongly classified
+                if signal_year is None:
+                    # Find the last year for which the ERR value is not nan
+                    last_year = None
+                    for time, ERR in df['ERR'].reset_index(drop=True)[::-1].items():
+                        if not isnan(ERR) and ERR < 0.85:
+                            last_year = time
+                            break
+
+                    if last_year is not None:
+                        logger.debug(f"Simulation {key} was wrongly classified")
+                        n_wrong_classifications += 1
 
         total_subpolicy_costs = [cost for sub_policy in policy.sub_policies for cost in
                                  sub_policy_costs[sub_policy].values() if not isnan(cost)]
