@@ -62,11 +62,6 @@ class Regressor(ABC):
             Standardise all features
             Create X_train, y_train, X_test, y_test
         """
-        data = data.copy()
-
-        data.loc[:, 'inf_level_change'] = data['inf_level'].pct_change(fill_method=None)
-        data.loc[:, 'a_epg_obs_change'] = data['a_epg_obs'].pct_change(fill_method=None)
-        data.replace([np.inf, -np.inf], np.nan, inplace=True)
 
         groups = data.groupby(['scenario', 'simulation'])
 
@@ -74,6 +69,10 @@ class Regressor(ABC):
         targets = {}
 
         for key, df in groups:
+            df.loc[:, 'inf_level_change'] = df['inf_level'].pct_change(fill_method=None)
+            df.loc[:, 'a_epg_obs_change'] = df['a_epg_obs'].pct_change(fill_method=None)
+            df.replace([np.inf, -np.inf], np.nan, inplace=True)
+
             df = df.drop(columns=['simulation', 'scenario', 'time', 'ERR'])
 
             df = df.reset_index(drop=True)
@@ -111,19 +110,6 @@ class Regressor(ABC):
         :return: Prediction for each target based on the features
         """
         ...
-
-    def getParameters(self) -> dict:
-        """
-        Get the used hyperparameters
-        :return: dict containing the hyperparameters
-        """
-        return self.parameters
-
-    def setParameters(self, params) -> None:
-        """
-        Set the already found hyperparameters
-        """
-        self.parameters = params
 
     def predict(self, simulation: Simulation) -> Optional[float]:
         """
