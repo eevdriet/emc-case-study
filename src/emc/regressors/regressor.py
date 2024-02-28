@@ -164,9 +164,9 @@ class Regressor(ABC):
         :param test: The testing data.
         :return: A new instance of the classifier.
         """
-        newClassifier = constructor(policy, train, test)
-        newClassifier.setModel(model)
-        return newClassifier
+        newRegressor = constructor(policy, train, test)
+        newRegressor.setModel(model)
+        return newRegressor
     
     def getParameters(self):
         if self.regression_model == None:
