@@ -4,7 +4,6 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 import numpy as np
 
 import pandas as pd
-from xgboost import XGBRegressor
 
 from emc.model.simulation import Simulation
 from emc.model.policy import Policy
@@ -31,7 +30,7 @@ class Regressor(ABC):
         self.targets_test: Optional[_Y] = None
 
         # To be Loaded model
-        self.xgb = None
+        self.regression_model = None
 
     def initialize_and_train_model(self) -> None:
         """
@@ -48,13 +47,8 @@ class Regressor(ABC):
         X_data = np.vstack(tuple(self.features_data.values()))
         y_data = np.array(tuple(self.targets_data.values()))
 
-        if self.xgb == None:
-            if self.parameters:
-                print("Using already stored hyperparameters")
-                self._train_basic(X_data, y_data)
-            else:
-                print("Generating new hyperparameters")
-                self._train(X_data, y_data)
+        if self.regression_model == None:
+            self._train(X_data, y_data)
 
     def _preprocess(self, data: pd.DataFrame) -> tuple[_X, _Y]:
         """
@@ -63,28 +57,30 @@ class Regressor(ABC):
             Create X_train, y_train, X_test, y_test
         """
 
-        groups = data.groupby(['scenario', 'simulation'])
+        data = data.copy()
 
+        # Calculate percentage changes without looping
+        data['inf_level_change'] = data.groupby(['scenario', 'simulation'])['inf_level'].pct_change(fill_method=None)
+        data['a_epg_obs_change'] = data.groupby(['scenario', 'simulation'])['a_epg_obs'].pct_change(fill_method=None)
+
+        # Replace inf values with NaN
+        data.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+        # Prepare the target and features dictionaries
         features = {}
         targets = {}
 
-        for key, df in groups:
-            df.loc[:, 'inf_level_change'] = df['inf_level'].pct_change(fill_method=None)
-            df.loc[:, 'a_epg_obs_change'] = df['a_epg_obs'].pct_change(fill_method=None)
-            df.replace([np.inf, -np.inf], np.nan, inplace=True)
-
-            df = df.drop(columns=['simulation', 'scenario', 'time', 'ERR'])
-
-            df = df.reset_index(drop=True)
+        # Iterate over the groups to assemble the final features and targets
+        for (scenario, simulation), df in data.groupby(['scenario', 'simulation']):
+            # Get the last target value and skip if it's NaN
             target = df['target'].iloc[-1]
             if np.isnan(target):
                 continue
+            targets[(scenario, simulation)] = target
 
-            del df['target']
-            targets[key] = target
-
-            row = df.to_numpy().T.flatten()
-            features[key] = row
+            # Prepare the feature array without the target and other unnecessary columns
+            feature_df = df.drop(columns=['target', 'simulation', 'scenario', 'time', 'ERR']).reset_index(drop=True)
+            features[(scenario, simulation)] = feature_df.to_numpy().T.flatten()
 
         return features, targets
 
@@ -95,12 +91,6 @@ class Regressor(ABC):
         :param y_train: Train targets
         """
         ...
-
-    def _train_basic(self, X_train: pd.DataFrame, y_train: pd.Series):
-        params = self.parameters
-        self.xgb = XGBRegressor(**params, random_state=SEED, missing=np.nan)
-        print(f"Fitting with {len(X_train)} simulations...")
-        self.xgb.fit(X_train, y_train)
 
     @abstractmethod
     def test(self, X_test: np.ndarray, y_test: np.array) -> np.array:
@@ -134,14 +124,14 @@ class Regressor(ABC):
         Get the model used in the classifier.
         :return: The model object.
         """
-        return self.xgb
+        return self.regression_model
         
     def setModel(self, model):
         """
         Set the model for the classifier.
         :param model: The model to be set.
         """
-        self.xgb = model
+        self.regression_model = model
         
     def getPreprocessing(self):
         """
@@ -177,6 +167,12 @@ class Regressor(ABC):
         newClassifier = constructor(policy, train, test)
         newClassifier.setModel(model)
         return newClassifier
+    
+    def getParameters(self):
+        if self.regression_model == None:
+            return None
+        else:
+            return self.regression_model.get_params()
         
     def getStats(self):
         """
