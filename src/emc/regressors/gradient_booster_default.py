@@ -23,10 +23,10 @@ class GradientBoosterDefault(Regressor):
 
         self.parameters = params
 
-        self.xgb = XGBRegressor(**params, random_state=SEED, missing=np.nan)
+        self.regression_model = XGBRegressor(**params, random_state=SEED, missing=np.nan)
         print(f"Fitting with {len(X_train)} simulations...")
-        self.xgb.fit(X_train, y_train)
+        self.regression_model.fit(X_train, y_train)
 
     def test(self, X_test: np.ndarray, y_test: np.array) -> np.array:
-        predictions = self.xgb.predict(X_test)
+        predictions = self.regression_model.predict(X_test)
         return predictions

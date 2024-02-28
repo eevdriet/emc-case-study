@@ -11,7 +11,7 @@ from math import isnan
 class GradientBoosterRandomCV(Regressor):
     def _train(self, X_train: np.ndarray, y_train: np.array) -> None:
         print("Initializing XGBoost regressor with default parameters...")
-        xgb = XGBRegressor(random_state=SEED, missing=np.NaN)
+        regression_model = XGBRegressor(random_state=SEED, missing=np.NaN)
 
         # Define the parameter grid to search
         param_grid = {
@@ -26,7 +26,7 @@ class GradientBoosterRandomCV(Regressor):
         }
 
         print("Setting up Randomized Search CV for hyperparameter optimization...")
-        random_search = RandomizedSearchCV(estimator=xgb, param_distributions=param_grid, n_iter=100,
+        random_search = RandomizedSearchCV(estimator=regression_model, param_distributions=param_grid, n_iter=100,
                                            scoring='neg_mean_squared_error', n_jobs=-1, cv=5,
                                            random_state=SEED, verbose=1)
 
@@ -40,12 +40,12 @@ class GradientBoosterRandomCV(Regressor):
         print(random_search.best_params_)
 
         # Best estimator
-        self.xgb = random_search.best_estimator_
+        self.regression_model = random_search.best_estimator_
 
         self.parameters = random_search.best_params_
         print("Best estimator and parameters set for the model.")
 
     def test(self, X_test: np.ndarray, y_test: np.array) -> np.array:
         print(f"Predicting with {len(X_test)} simulations...")
-        predictions = self.xgb.predict(X_test)
+        predictions = self.regression_model.predict(X_test)
         return predictions

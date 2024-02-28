@@ -46,11 +46,11 @@ class GradientBoosterOptuna(Regressor):
 
         self.parameters = best_hyperparams
 
-        self.xgb = XGBRegressor(**best_hyperparams, random_state=SEED, missing=np.nan)
-        self.xgb.fit(X_train, y_train)
+        self.regression_model = XGBRegressor(**best_hyperparams, random_state=SEED, missing=np.nan)
+        self.regression_model.fit(X_train, y_train)
         print("Final model trained with best hyperparameters.")
 
     def test(self, X_test: np.ndarray, y_test: np.array) -> np.array:
         print(f"Predicting with {len(X_test)} simulations...")
-        predictions = self.xgb.predict(X_test)
+        predictions = self.regression_model.predict(X_test)
         return predictions
