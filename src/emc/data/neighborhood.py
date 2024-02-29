@@ -1,4 +1,4 @@
-from emc.model.policy import Policy
+from emc.model.policy import Policy, from_every_n_years
 from emc.data.constants import N_YEARS
 from typing import Generator, Callable
 
@@ -47,7 +47,7 @@ def identity_neighbors(policy: Policy) -> Neighbor:
 
 def fixed_interval_neighbors(policy: Policy) -> Neighbor:
     for interval in range(1, N_YEARS - 1):
-        yield from create_every_n_years_policy(interval)
+        yield from from_every_n_years(interval)
 
 
 if __name__ == '__main__':
