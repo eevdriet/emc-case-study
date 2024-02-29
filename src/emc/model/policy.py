@@ -22,16 +22,34 @@ class Policy:
         # Store the surveys as tuples for hashing purposes
         self.epi_surveys = tuple(epi_surveys)
         assert len(self.epi_surveys) == N_YEARS
+        assert self.epi_surveys[0], "Should conduct epidemiological survey in the first year"
+        assert not self.epi_surveys[N_YEARS - 1], "Should not conduct epidemiological survey in the final year"
 
         # Initially schedule no drug efficacy surveys
         self.drug_surveys = (False,) * N_YEARS
 
     @classmethod
-    def from_timepoints(cls, time_points: list[int]):
+    def from_timepoints(cls, time_points: list[int]) -> "Policy":
         assert min(time_points) >= 0, "Minimum time should be 0"
         assert max(time_points) < N_YEARS, f"Maximum time should be {N_YEARS - 1}"
 
         epi_surveys = tuple(time in time_points for time in range(N_YEARS))
+        return Policy(epi_surveys)
+
+    @classmethod
+    def from_every_n_years(cls, n: int) -> "Policy":
+        """
+        Create an initial policy to start the policy improvement from
+        :param n: How often to schedule an epidemiological survey for the initial policy
+        :return: Policy with an epidemiological survey every n years
+        """
+        # Perform the epi survey every n years
+        tests = (True,) + (False,) * (n - 1)
+        epi_surveys = tests * (N_YEARS // n) + tests[:N_YEARS % n]
+
+        # Always (never) do a survey in the first (last) year
+        epi_surveys = epi_surveys[:-1] + (False,)
+
         return Policy(epi_surveys)
 
     def calculate_cost(self, de_survey: pd.DataFrame) -> float:
@@ -220,33 +238,7 @@ class Policy:
                                    Time_Costs.KATO_KATZ.get('duplicate_record')) + count_post
         return math.ceil((time_pre + time_post) / timeAvailable)
 
-def create_every_n_years_policy(every_n_years: int) -> Policy:
-    """
-    Create an initial policy to start the policy improvement from
-    :param every_n_years: How often to schedule an epidemiological survey for the initial policy
-    :return: Policy with an epidemiological survey every n years
-    """
-    # Perform the epi survey every n years
-    tests = (True,) + (False,) * (every_n_years - 1)
-    epi_surveys = tests * (N_YEARS // every_n_years) + tests[:N_YEARS % every_n_years]
-
-    # Always (never) do a survey in the first (last) year
-    epi_surveys = epi_surveys[:-1] + (False,)
-
-    return Policy(epi_surveys)
-
-def create_init_policy(policy_dict: dict) -> Policy:
-    """
-    Create an initial policy to start the policy improvement from
-    :param every_n_years: How often to schedule an epidemiological survey for the initial policy
-    :return: Policy with an epidemiological survey every n years
-    """
-    # Input + Always (never) do a survey in the first (last) year
-    epi_surveys = (True,) + tuple(policy_dict.values()) + (False,)
-
-    return Policy(epi_surveys)
-
 
 if __name__ == '__main__':
-    policy = create_init_policy(5)
+    policy = Policy.from_every_n_years(5)
     print(policy)

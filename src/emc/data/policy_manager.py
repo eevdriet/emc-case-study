@@ -37,7 +37,7 @@ class PolicyManager:
     __NORMALISED_COLS = {'n_host', 'n_host_eggpos', 'a_epg_obs'}
 
     def __init__(self, scenarios: list[Scenario], strategy: str, frequency: int, worm: str, regression_model: regressor,
-                 neighborhoods: list[Neighborhood], init_policy : Policy):
+                 neighborhoods: list[Neighborhood], init_policy: Policy):
         self.logger = logging.getLogger(__name__)
 
         # Setup data fields
@@ -89,7 +89,7 @@ class PolicyManager:
                     if neighbor in costs:
                         logger.info(f"- Using previous costs       : {costs[neighbor]}")
                         neighbor_scores[neighbor] = costs[neighbor]
-                        continue    
+                        continue
 
                     self.__build_regressors(neighbor)
 
@@ -328,7 +328,7 @@ class PolicyManager:
 
         accuracy = 0
         if n_wrong_classifications / len(self.test_simulations) > 0.05:
-           accuracy = ACCURACY_VIOLATED_COSTS            
+            accuracy = ACCURACY_VIOLATED_COSTS
 
         # Penalty costs
         avg_lateness = sum(latenesses) / len(latenesses)
@@ -408,31 +408,6 @@ def main():
     # Use the policy manager
     logger.info(f"-- {worm}: {strategy} with {frequency} --")
     neighborhoods = [flip_neighbors]  # also swap_neighbors
-    neighborhoods = [fixed_interval_neighbors]
-    # neighborhoods = [identity_neighbors]
-
-    starting_policy = {
-        1  : True,
-        2  : True,
-        3  : True,
-        4  : True,
-        5  : True,
-        6  : True,
-        7  : True,
-        8  : True,
-        9  : True,
-        10 : True,
-        11 : True,
-        12 : True,
-        13 : True,
-        14 : True,
-        15 : True,
-        16 : True,
-        17 : True,
-        18 : True,
-        19 : True
-    }
-
 
     loader = DataLoader(worm)
     all_scenarios = loader.load_scenarios()
@@ -442,8 +417,8 @@ def main():
         if s.mda_freq == frequency and s.mda_strategy == strategy
     ]
 
-    initPolicy = create_init_policy(starting_policy)
-    manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods, initPolicy)
+    init_policy = Policy.from_every_n_years(1)
+    manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods, init_policy)
 
     # Register best policy and save all costs
     best_policy, policy_costs = manager.manage()
