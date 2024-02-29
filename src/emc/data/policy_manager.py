@@ -32,7 +32,7 @@ class PolicyManager:
     Manages the classification of different policies and their sub-policies
     """
 
-    __N_MAX_ITERS: int = 5
+    __N_MAX_ITERS: int = 1
     __TRAIN_TEST_SPLIT_SIZE: float = 0.2
     __NORMALISED_COLS = {'n_host', 'n_host_eggpos', 'a_epg_obs'}
 
