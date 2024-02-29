@@ -19,7 +19,7 @@ from emc.model.score import Score
 from emc.util import Writer, Paths
 
 from emc.regressors import *
-from emc.data.neighborhood import Neighborhood
+from emc.data.neighborhood import Neighborhood,flip_out_neighbors
 from emc.util import normalised, Pair
 
 
@@ -327,7 +327,7 @@ class PolicyManager:
             logger.error("Found division by zero on line 324 of policy manager")
 
         accuracy = 0
-        if n_wrong_classifications / len(self.test_simulations) > 0.05:
+        if n_wrong_classifications / len(self.test_simulations) > MAX_MISCLASSIFICATION_FRACTION:
             accuracy = ACCURACY_VIOLATED_COSTS
 
         # Penalty costs
@@ -343,7 +343,7 @@ class PolicyManager:
         logger.info(f"- Total wrong classifications: {n_wrong_classifications}/{len(self.test_simulations)}")
         logger.info(f"- Avg. financial costs       : {financial_costs}")
         logger.info(f"- Avg. penalty   costs       : {penalty_costs}")
-        logger.info(f"- 95% accuracy violated      : {accuracy > 0}")
+        logger.info(f"- {1 - MAX_MISCLASSIFICATION_FRACTION}% accuracy violated      : {accuracy > 0}")
         logger.info("---------------------------------------------------------")
         logger.info(f"Total costs                  : {total_costs}")
 
@@ -407,7 +407,7 @@ def main():
 
     # Use the policy manager
     logger.info(f"-- {worm}: {strategy} with {frequency} --")
-    neighborhoods = [flip_neighbors]  # also swap_neighbors
+    neighborhoods = [flip_out_neighbors]  # also swap_neighbors
 
     loader = DataLoader(worm)
     all_scenarios = loader.load_scenarios()
