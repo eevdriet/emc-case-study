@@ -11,7 +11,7 @@ import logging
 
 logger = setup_logger(__name__)
 
-from emc.model.policy import Policy, create_init_policy
+from emc.model.policy import Policy
 from emc.model.scenario import Scenario
 from emc.model.simulation import Simulation
 from emc.data.constants import *
@@ -402,7 +402,7 @@ def main():
     # TODO: adjust scenario before running the policy manager
     worm = Worm.HOOKWORM.value
     frequency = 1
-    strategy = 'sac'
+    strategy = 'community'
     regresModel = GradientBoosterDefault
 
     # Use the policy manager
