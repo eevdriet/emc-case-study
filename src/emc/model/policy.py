@@ -212,8 +212,7 @@ class Policy:
                                    Time_Costs.KATO_KATZ.get('duplicate_record')) + count_post
         return math.ceil((time_pre + time_post) / timeAvailable)
 
-
-def create_init_policy(every_n_years: int) -> Policy:
+def create_every_n_years_policy(every_n_years: int) -> Policy:
     """
     Create an initial policy to start the policy improvement from
     :param every_n_years: How often to schedule an epidemiological survey for the initial policy
@@ -225,6 +224,17 @@ def create_init_policy(every_n_years: int) -> Policy:
 
     # Always (never) do a survey in the first (last) year
     epi_surveys = epi_surveys[:-1] + (False,)
+
+    return Policy(epi_surveys)
+
+def create_init_policy(policy_dict: dict) -> Policy:
+    """
+    Create an initial policy to start the policy improvement from
+    :param every_n_years: How often to schedule an epidemiological survey for the initial policy
+    :return: Policy with an epidemiological survey every n years
+    """
+    # Input + Always (never) do a survey in the first (last) year
+    epi_surveys = (True,) + tuple(policy_dict.values()) + (False,)
 
     return Policy(epi_surveys)
 

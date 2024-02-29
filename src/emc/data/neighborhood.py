@@ -1,4 +1,4 @@
-from emc.model.policy import Policy
+from emc.model.policy import Policy, create_every_n_years_policy
 from emc.data.constants import N_YEARS
 from typing import Generator, Callable
 
@@ -33,6 +33,9 @@ def identity_neighbors(policy: Policy) -> Neighbor:
     for _ in range(1, N_YEARS - 1):
         yield policy.copy()
 
+def fixed_interval_neighbors(policy: Policy) -> Neighbor:
+    for i in range(1, N_YEARS - 1):
+        yield create_every_n_years_policy(i)
 
 if __name__ == '__main__':
     times = [True] * N_YEARS
@@ -40,4 +43,4 @@ if __name__ == '__main__':
         times[idx] = False
 
     policy = Policy(times)
-    print(list(p for p in flip_neighbors(policy)))
+    print(list(p for p in fixed_interval_neighbors(policy)))

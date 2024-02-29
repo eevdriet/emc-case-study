@@ -92,15 +92,6 @@ class Regressor(ABC):
         """
         ...
 
-    @abstractmethod
-    def test(self, X_test: np.ndarray, y_test: np.array) -> np.array:
-        """
-        :param X_test: Test features
-        :param y_test: Test targets
-        :return: Prediction for each target based on the features
-        """
-        ...
-
     def predict(self, simulation: Simulation) -> Optional[float]:
         """
         Predict the signal from a single simulation
@@ -114,10 +105,9 @@ class Regressor(ABC):
 
         # Reshape the simulation data into single rowed data
         X_test = self.features_test[key].reshape(1, -1)
-        y_test = np.array([self.targets_test[key]])
 
-        # Prediction (only first result needed as only one row tested)
-        return self.test(X_test, y_test)[0]
+        result = self.regression_model.predict(X_test)
+        return result
     
     def getModel(self):
         """
@@ -183,7 +173,7 @@ class Regressor(ABC):
         X_test = np.vstack(tuple(self.features_test.values()))
         y_test = np.array(tuple(self.targets_test.values()))
 
-        predictions = self.test(X_test, y_test)
+        predictions = self.regression_model.predict(X_test)
         y_test = (y_test < 0.85).astype(int)
         predictions = (predictions < 0.85).astype(int)
 
