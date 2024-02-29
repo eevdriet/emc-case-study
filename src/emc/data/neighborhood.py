@@ -1,4 +1,4 @@
-from emc.model.policy import Policy, create_every_n_years_policy
+from emc.model.policy import Policy
 from emc.data.constants import N_YEARS
 from typing import Generator, Callable
 
