@@ -99,6 +99,8 @@ class LevelBuilder:
             levels = self.mode_levels[str(baseline)]
             times = range(N_YEARS)
 
+            plt.gcf().set_facecolor('none')
+
             for res_mode, color in zip(RESISTANCE_MODES, self.__COLORS):
                 means, sds, mins, maxs, n_hosts = map(np.array, zip(*levels[res_mode]))
 
@@ -118,17 +120,25 @@ class LevelBuilder:
             plt.xlabel("Time (years)")
             plt.ylabel("Infection level")
             plt.ylim(0, 1)
-            plt.legend(title="Resistance mode")
-            plt.subplots_adjust(left=0.08, right=0.98, top=0.98, bottom=0.08)
+
+            # Legend
+            legend = plt.legend(title="Resistance mode", loc='upper center',
+                                ncols=len(RESISTANCE_MODES),
+                                bbox_to_anchor=(0.5, -0.05))  # , bbox_to_anchor=(0.5, -0.15))
+            legend.get_frame().set_alpha(0)
+            legend.get_title().set_position((0, -60))
+
+            # plt.subplots_adjust(left=0.08, right=0.98, top=0.98, bottom=0.08)
 
             # Optionally show and save the plot to the user
             if show:
                 plt.show()
+
             if save:
                 worm = self.scenarios[0].species
                 path = Paths.levels(worm, bucket_size=self.bucket_size, mda_freq=self.mda_freq,
                                     mda_strategy=self.mda_strategy, baseline=baseline)
-                plt.savefig(path)
+                plt.savefig(path, bbox_inches='tight', transparent=True)
 
             # Reset the plot
             plt.clf()
