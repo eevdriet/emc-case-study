@@ -26,6 +26,14 @@ class Policy:
         # Initially schedule no drug efficacy surveys
         self.drug_surveys = (False,) * N_YEARS
 
+    @classmethod
+    def from_timepoints(cls, time_points: list[int]):
+        assert min(time_points) >= 0, "Minimum time should be 0"
+        assert max(time_points) < N_YEARS, f"Maximum time should be {N_YEARS - 1}"
+
+        epi_surveys = tuple(time in time_points for time in range(N_YEARS))
+        return Policy(epi_surveys)
+
     def calculate_cost(self, de_survey: pd.DataFrame) -> float:
         total_cost = 0
 
