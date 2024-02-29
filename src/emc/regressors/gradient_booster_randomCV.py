@@ -44,8 +44,3 @@ class GradientBoosterRandomCV(Regressor):
 
         self.parameters = random_search.best_params_
         logger.debug("Best estimator and parameters set for the model.")
-
-    def test(self, X_test: np.ndarray, y_test: np.array) -> np.array:
-        logger.debug(f"Predicting with {len(X_test)} simulations...")
-        predictions = self.regression_model.predict(X_test)
-        return predictions

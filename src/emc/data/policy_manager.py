@@ -34,11 +34,10 @@ class PolicyManager:
 
     __N_MAX_ITERS: int = 5
     __TRAIN_TEST_SPLIT_SIZE: float = 0.2
-    __TRAIN_VAL_SPLIT_SIZE: float = 0.25
     __NORMALISED_COLS = {'n_host', 'n_host_eggpos', 'a_epg_obs'}
 
     def __init__(self, scenarios: list[Scenario], strategy: str, frequency: int, worm: str, regression_model: regressor,
-                 neighborhoods: list[Neighborhood]):
+                 neighborhoods: list[Neighborhood], init_policy : Policy):
         self.logger = logging.getLogger(__name__)
 
         # Setup data fields
@@ -61,19 +60,23 @@ class PolicyManager:
         # Setup local iterative search
         self.neighborhoods = neighborhoods
 
+        # Setup first policy
+        self.init_policy = init_policy
+
     def manage(self):
         # TODO: figure out whether to use a better search scheme for new policies
 
         # Setup iteration variables
         logger.info("Start iterated local search")
         self.policy_scores = {}
+        costs = {}
 
         best_score = float('inf')
         best_policy = None
         iteration = 0
 
         # Setup policy
-        curr_policy = create_init_policy(1)
+        curr_policy = self.init_policy
 
         while iteration < self.__N_MAX_ITERS:
             neighbor_scores = {}
@@ -82,16 +85,18 @@ class PolicyManager:
                 neighbors: list[Policy] = list(neighborhood(curr_policy))
                 for it, neighbor in enumerate(neighbors, 1):
                     logger.info(f"\n{neighbor} [{it}/{len(neighbors)}]")
-                    # try:
-                    # Get the score for the current policy and update
+
+                    if neighbor in costs:
+                        logger.info(f"- Using previous costs       : {costs[neighbor]}")
+                        neighbor_scores[neighbor] = costs[neighbor]
+                        continue    
+
                     self.__build_regressors(neighbor)
 
                     # Determine the score and make sure no invalid data is present
                     score = self.__calculate_score(neighbor)
                     neighbor_scores[neighbor] = score
-
-                    # except Exception as err:
-                    #     logger.error(f"Policy {neighbor} raises an exception: {err}")
+                    costs[neighbor] = score
 
             # Register all policy score
             self.policy_scores = {**self.policy_scores, **neighbor_scores}
@@ -258,9 +263,6 @@ class PolicyManager:
 
             # If resistance never becomes a problem under the policy, register its costs without drug efficacy surveys
             else:
-                if key in self.sub_policy_simulations[policy]:
-                    continue
-
                 costs = simulation.calculate_cost(policy)
                 logger.debug(
                     f"Simulation {key} -> {policy} with costs {costs} [Epi>= {DRUG_EFFICACY_THRESHOLD}, drug >= 0.85]")
@@ -324,9 +326,13 @@ class PolicyManager:
             financial_costs = float('inf')
             logger.error("Found division by zero on line 324 of policy manager")
 
+        accuracy = 0
+        if n_wrong_classifications / len(self.test_simulations) > 0.05:
+           accuracy = ACCURACY_VIOLATED_COSTS            
+
         # Penalty costs
         avg_lateness = sum(latenesses) / len(latenesses)
-        penalty_costs = avg_lateness * RESISTANCE_NOT_FOUND_COSTS
+        penalty_costs = avg_lateness * RESISTANCE_NOT_FOUND_COSTS + accuracy
 
         # Total
         total_costs = financial_costs + penalty_costs
@@ -337,6 +343,7 @@ class PolicyManager:
         logger.info(f"- Total wrong classifications: {n_wrong_classifications}/{len(self.test_simulations)}")
         logger.info(f"- Avg. financial costs       : {financial_costs}")
         logger.info(f"- Avg. penalty   costs       : {penalty_costs}")
+        logger.info(f"- 95% accuracy violated      : {accuracy > 0}")
         logger.info("---------------------------------------------------------")
         logger.info(f"Total costs                  : {total_costs}")
 
@@ -390,13 +397,42 @@ class PolicyManager:
 
 def main():
     from emc.data.data_loader import DataLoader
-    from emc.data.neighborhood import flip_neighbors, swap_neighbors, identity_neighbors
+    from emc.data.neighborhood import flip_neighbors, swap_neighbors, identity_neighbors, fixed_interval_neighbors
 
     # TODO: adjust scenario before running the policy manager
     worm = Worm.HOOKWORM.value
     frequency = 1
-    strategy = 'community'
+    strategy = 'sac'
     regresModel = GradientBoosterDefault
+
+    # Use the policy manager
+    logger.info(f"-- {worm}: {strategy} with {frequency} --")
+    neighborhoods = [flip_neighbors]  # also swap_neighbors
+    neighborhoods = [fixed_interval_neighbors]
+    # neighborhoods = [identity_neighbors]
+
+    starting_policy = {
+        1  : True,
+        2  : True,
+        3  : True,
+        4  : True,
+        5  : True,
+        6  : True,
+        7  : True,
+        8  : True,
+        9  : True,
+        10 : True,
+        11 : True,
+        12 : True,
+        13 : True,
+        14 : True,
+        15 : True,
+        16 : True,
+        17 : True,
+        18 : True,
+        19 : True
+    }
+
 
     loader = DataLoader(worm)
     all_scenarios = loader.load_scenarios()
@@ -406,10 +442,8 @@ def main():
         if s.mda_freq == frequency and s.mda_strategy == strategy
     ]
 
-    # Use the policy manager
-    logger.info(f"-- {worm}: {strategy} with {frequency} --")
-    neighborhoods = [flip_neighbors]  # also swap_neighbors
-    manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods)
+    initPolicy = create_init_policy(starting_policy)
+    manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods, initPolicy)
 
     # Register best policy and save all costs
     best_policy, policy_costs = manager.manage()
