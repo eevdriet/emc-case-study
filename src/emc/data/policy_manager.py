@@ -19,7 +19,7 @@ from emc.model.score import Score
 from emc.util import Writer, Paths
 
 from emc.regressors import *
-from emc.data.neighborhood import Neighborhood,flip_out_neighbors
+from emc.data.neighborhood import Neighborhood, flip_out_neighbors
 from emc.util import normalised, Pair
 
 
@@ -71,7 +71,7 @@ class PolicyManager:
         self.policy_scores = {}
         costs = {}
 
-        best_score = float('inf')
+        best_score = Score.create_missing()
         best_policy = None
         iteration = 0
 
@@ -84,7 +84,6 @@ class PolicyManager:
             for neighborhood in self.neighborhoods:
                 neighbors: list[Policy] = list(neighborhood(curr_policy))
                 for it, neighbor in enumerate(neighbors, 1):
-                    logger.info(f"\n{neighbor} [{it}/{len(neighbors)}]")
 
                     if neighbor in costs:
                         logger.info(f"- Using previous costs       : {costs[neighbor]}")
@@ -95,6 +94,7 @@ class PolicyManager:
 
                     # Determine the score and make sure no invalid data is present
                     score = self.__calculate_score(neighbor)
+                    logger.info(score)
                     neighbor_scores[neighbor] = score
                     costs[neighbor] = score
 
@@ -314,40 +314,12 @@ class PolicyManager:
                         logger.debug(f"Simulation {key} was wrongly classified")
                         n_wrong_classifications += 1
 
-        # Calculate final costs
-        total_subpolicy_costs = [cost for sub_policy in policy.sub_policies for cost in
-                                 sub_policy_costs[sub_policy].values() if not isnan(cost)]
-
-        # Financial costs
-        n = len(total_subpolicy_costs)
-        if n:
-            financial_costs = sum(total_subpolicy_costs) / len(total_subpolicy_costs)
-        else:
-            financial_costs = float('inf')
-            logger.error("Found division by zero on line 324 of policy manager")
-
-        accuracy = 0
-        if n_wrong_classifications / len(self.test_simulations) > MAX_MISCLASSIFICATION_FRACTION:
-            accuracy = ACCURACY_VIOLATED_COSTS
-
-        # Penalty costs
-        avg_lateness = sum(latenesses) / len(latenesses)
-        penalty_costs = avg_lateness * RESISTANCE_NOT_FOUND_COSTS + accuracy
-
-        # Total
-        total_costs = financial_costs + penalty_costs
-
-        # Cost overview
-        logger.info(f"- Total simulations          : {n} (nan: {len(self.test_simulations) - n})")
-        logger.info(f"- Total (avg) lateness       : {sum(latenesses)} ({avg_lateness})")
-        logger.info(f"- Total wrong classifications: {n_wrong_classifications}/{len(self.test_simulations)}")
-        logger.info(f"- Avg. financial costs       : {financial_costs}")
-        logger.info(f"- Avg. penalty   costs       : {penalty_costs}")
-        logger.info(f"- {1 - MAX_MISCLASSIFICATION_FRACTION}% accuracy violated      : {accuracy > 0}")
-        logger.info("---------------------------------------------------------")
-        logger.info(f"Total costs                  : {total_costs}")
-
-        return total_costs
+        # Calculate final costs and display
+        return Score(policy=policy,
+                     n_simulations=len(self.test_simulations),
+                     n_wrong_classifications=n_wrong_classifications,
+                     latenesses=latenesses,
+                     sub_policy_costs=sub_policy_costs)
 
     def __split_data(self) -> SplitData:
         """
@@ -400,9 +372,9 @@ def main():
     from emc.data.neighborhood import flip_neighbors, swap_neighbors, identity_neighbors, fixed_interval_neighbors
 
     # TODO: adjust scenario before running the policy manager
-    worm = Worm.HOOKWORM.value
+    worm = Worm.ASCARIS.value
     frequency = 1
-    strategy = 'community'
+    strategy = 'sac'
     regresModel = GradientBoosterDefault
 
     # Use the policy manager
@@ -421,14 +393,14 @@ def main():
     manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods, init_policy)
 
     # Register best policy and save all costs
-    best_policy, policy_costs = manager.manage()
-    json_costs = {str(policy.epi_time_points): cost for policy, cost in policy_costs.items()}
+    best_policy, policy_scores = manager.manage()
+    json_costs = {str(policy.epi_time_points): score.to_json() for policy, score in policy_scores.items()}
     path = Paths.data('policies') / f"{worm}{frequency}{strategy}.json"
     path.parent.mkdir(exist_ok=True, parents=True)
     with open(path, 'w') as file:
         json.dump(json_costs, file, allow_nan=True, indent=4)
 
-    logger.info(f"Optimal policy is {best_policy} with costs {policy_costs[best_policy]}")
+    logger.info(f"Optimal policy is {best_policy} with costs {policy_scores[best_policy]}")
 
 
 if __name__ == '__main__':

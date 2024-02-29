@@ -1,27 +1,51 @@
-from attrs import define, field
 from emc.log import setup_logger
 from emc.model.policy import Policy
 from emc.data.constants import *
-from collections import defaultdict
 from math import isnan
+import numpy as np
 
 logger = setup_logger(__name__)
 
 
-@define
 class Score:
     """
     Aggregates all objectives that can be used to score a policy on its quality
     """
-    policy: Policy
 
-    n_simulations: int
+    def __init__(self, policy: Policy, n_simulations: int, n_wrong_classifications: int, latenesses: list[int],
+                 sub_policy_costs: dict[Policy, dict[tuple[int, int], float]]):
+        # Raw data
+        self.policy = policy
+        self.n_simulations = n_simulations
+        self.n_wrong_classifications = n_wrong_classifications
 
-    n_wrong_classifications: int
+        self.latenesses = latenesses
+        self.sub_policy_cost = sub_policy_costs
 
-    latenesses: list[int]
+        # Statistics
+        self.total_sub_policy_costs = [cost for sub_policy in self.policy.sub_policies for cost in
+                                       self.sub_policy_cost[sub_policy].values() if not isnan(cost)]
+        self.nan_simulations = self.n_simulations - len(self.total_sub_policy_costs)
 
-    sub_policy_costs: dict[Policy, dict[tuple[int, int], float]] = defaultdict(dict)
+        self.avg_lateness = sum(self.latenesses) / len(self.latenesses)
+
+        self.accuracy = 1 - (self.n_wrong_classifications / self.n_simulations)
+
+        # Costs
+        self.lateness_costs = self.avg_lateness * RESISTANCE_NOT_FOUND_COSTS
+        self.accuracy_costs = (self.accuracy < 1 - MAX_MISCLASSIFICATION_FRACTION) * ACCURACY_VIOLATED_COSTS
+
+    def to_json(self):
+        return {
+            'n_simulations': self.n_simulations,
+            'n_wrong_classifications': self.n_wrong_classifications,
+            'accuracy': self.accuracy,
+            'avg_lateness': self.avg_lateness,
+            'financial_costs': self.financial_costs,
+            'lateness_costs': self.lateness_costs,
+            'accuracy_costs': self.accuracy_costs,
+            'total_costs': float(self)
+        }
 
     @classmethod
     def create_missing(cls) -> "Score":
@@ -39,26 +63,31 @@ class Score:
 
         return score
 
+    @property
+    def financial_costs(self):
+        if len(self.total_sub_policy_costs):
+            return sum(self.total_sub_policy_costs) / len(self.total_sub_policy_costs)
+
+        return float('inf')
+
+    @property
+    def penalty_costs(self):
+        return self.lateness_costs + self.accuracy_costs
+
+    @property
+    def total_costs(self):
+        return self.financial_costs + self.penalty_costs
+
     def __float__(self):
-        total_subpolicy_costs = [cost for sub_policy in self.policy.sub_policies for cost in
-                                 self.sub_policy_costs[sub_policy].values() if not isnan(cost)]
-        logger.info(
-            f"- Totaal used simulations: {len(total_subpolicy_costs)} (nan: {self.n_simulations - len(total_subpolicy_costs)})")
+        return np.float64(self.total_costs).item()
 
-        if len(total_subpolicy_costs):
-            total_costs = sum(total_subpolicy_costs) / len(total_subpolicy_costs)
-        else:
-            total_costs = float('inf')
-            logger.error("Found division by zero on line 324 of policy manager")
-        logger.info(f"- Gemiddelde financiele kosten: {total_costs}")
-
-        avg_lateness = sum(self.latenesses) / len(self.latenesses)
-        penalty_costs = avg_lateness * RESISTANCE_NOT_FOUND_COSTS
-        logger.info(
-            f"- Total (avg) lateness: {sum(self.latenesses)} ({avg_lateness})")
-        logger.info(f"- Gemiddelde penalty kosten: {penalty_costs}")
-
-        total_costs += penalty_costs
-
-        logger.info(f"-----------------\nTotal costs: {total_costs}")
-        return float(total_costs)
+    def __str__(self):
+        return f"""{self.policy}
+- Total simulations (nan)  : {self.n_simulations} ({self.nan_simulations})
+- Total lateness (average) : {sum(self.latenesses)} ({self.avg_lateness})
+- Total wrong (accuracy)   : {self.n_wrong_classifications} ({self.accuracy})
+- Avg. financial costs     : {self.financial_costs}
+- Avg. penalty   costs     : {self.penalty_costs} (lateness {self.lateness_costs} + accuracy {self.accuracy_costs})
+---------------------------------------------------------
+Total score                : {float(self)}
+"""
