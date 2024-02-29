@@ -81,6 +81,9 @@ class Score:
     def __float__(self):
         return np.float64(self.total_costs).item()
 
+    def __lt__(self, other: "Score"):
+        return float(self) < float(other)
+
     def __str__(self):
         return f"""{self.policy}
 - Total simulations (nan)  : {self.n_simulations} ({self.nan_simulations})

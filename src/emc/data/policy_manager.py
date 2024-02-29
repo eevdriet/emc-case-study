@@ -104,14 +104,14 @@ class PolicyManager:
             # Update the best policy if an improvement was found
             curr_policy, curr_score = min(neighbor_scores.items(), key=lambda pair: pair[1])
             if curr_score < best_score:
-                logger.info(f"\n{curr_policy} is improving! Score {curr_score} < {best_score}\n")
+                logger.info(f"{curr_policy} is improving! Score {float(curr_score)}\n")
                 best_score = curr_score
                 best_policy = curr_policy.copy()
                 iteration = 0
             # Otherwise continue with a random neighbor
             else:
                 iteration += 1
-                logger.info(f"\nNo policy is improving, now on iteration {iteration + 1}/{self.__N_MAX_ITERS}\n")
+                logger.info(f"No policy is improving, now on iteration {iteration + 1}/{self.__N_MAX_ITERS}\n")
 
         return best_policy, self.policy_scores
 
