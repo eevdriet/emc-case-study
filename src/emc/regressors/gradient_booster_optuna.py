@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import optuna
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import f1_score
 from xgboost import XGBRegressor
 
 from emc.regressors import Regressor
@@ -31,14 +31,20 @@ class GradientBoosterOptuna(Regressor):
             model = XGBRegressor(**hyperparams, random_state=SEED, missing=np.nan)
             model.fit(X_train, y_train)
 
-            preds = model.predict(X_train)
-            mse = mean_squared_error(y_train, preds)
+            X_test = np.vstack(tuple(self.features_test.values()))
+            y_test = np.array(tuple(self.targets_test.values()))
 
-            logger.debug(f"Trial {trial.number} MSE: {mse}")
+            predictions = model.predict(X_test)
+            y_test = (y_test < 0.85).astype(int)
+            predictions = (predictions < 0.85).astype(int)
 
-            return mse
+            f1 = f1_score(y_test, predictions, average='weighted')
 
-        study = optuna.create_study(direction='minimize')
+            logger.debug(f"Trial {trial.number} F1: {f1}")
+
+            return f1
+
+        study = optuna.create_study(direction='maximize')
         logger.debug("Optimization process started...")
         study.optimize(objective, n_trials=100, timeout=600)
         logger.debug("Optimization process completed.")
