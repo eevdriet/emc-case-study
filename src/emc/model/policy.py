@@ -95,6 +95,12 @@ class Policy:
         costs = self.__consumable(de_survey, year) + self.__personnel(de_survey, year) + self.__transportation(
             de_survey, year)
 
+        if year is not None and year < 20:
+            series = de_survey.loc[de_survey['time'] == year, 'cost']
+            if not isnan(costs):
+                assert not series.empty, "No such year in costs"
+                assert costs == series.iloc[0], "Costs do not match"
+
         return costs
 
     def __hash__(self):
