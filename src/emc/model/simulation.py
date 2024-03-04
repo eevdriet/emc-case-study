@@ -49,7 +49,7 @@ class Simulation:
     # Identifier of the simulation
     id: int = field(eq=False, default=-1)
 
-    def calculate_cost(self, policy: "Policy", allow_average: bool = True):
+    def calculate_cost(self, policy: "Policy", allow_average: bool = True) -> float:
         """
         Calculate the cost of a given policy for the simulation
         :param policy: Policy to determine cost for
@@ -57,6 +57,19 @@ class Simulation:
         :return: Cost of the policy
         """
         costs = policy.calculate_cost(self.drug_efficacy_s, allow_average=allow_average)
+        if isnan(costs):
+            logger.debug(f"NaN costs for {self.scenario.id, self.id}")
+
+        return costs
+
+    def calculate_drug_cost(self, policy: "Policy", year: Optional[int] = None) -> float:
+        """
+        Calculate the drug survey cost of a given policy for the simulation
+        :param policy: Policy to determine cost for
+        :param year: Year to schedule if any, otherwise take an average over all years
+        :return: Drug cost of the policy
+        """
+        costs = policy.calculate_drug_cost(self.drug_efficacy_s, year)
         if isnan(costs):
             logger.debug(f"NaN costs for {self.scenario.id, self.id}")
 
