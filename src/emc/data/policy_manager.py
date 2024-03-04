@@ -19,7 +19,7 @@ from emc.model.score import Score
 from emc.util import Writer, Paths
 
 from emc.regressors import *
-from emc.data.neighborhood import Neighborhood,flip_out_neighbors
+from emc.data.neighborhood import Neighborhood, flip_out_neighbors
 from emc.util import normalised, Pair
 
 
@@ -222,7 +222,7 @@ class PolicyManager:
                 classifier = self.policy_classifiers[sub_policy]
 
                 # Continue with epidemiological surveys as long as resistance does not seem to be a problem yet
-                epi_signal = classifier.predict(simulation)
+                epi_signal = classifier.verify(simulation)
 
                 if epi_signal is None:  # cannot use simulations that have incomplete data
                     costs = simulation.calculate_cost(sub_policy)
@@ -237,7 +237,7 @@ class PolicyManager:
                     continue
 
                 # Otherwise, verify whether resistance is a problem by scheduling a drug efficacy the year after
-                drug_signal = simulation.predict(sub_policy)
+                drug_signal = simulation.verify(sub_policy)
 
                 # If no drug efficacy data is available, penalize the policy for not finding a signal sooner
                 if drug_signal is None:
@@ -400,9 +400,9 @@ def main():
     from emc.data.neighborhood import flip_neighbors, swap_neighbors, identity_neighbors, fixed_interval_neighbors
 
     # TODO: adjust scenario before running the policy manager
-    worm = Worm.HOOKWORM.value
+    worm = Worm.ASCARIS.value
     frequency = 1
-    strategy = 'community'
+    strategy = 'sac'
     regresModel = GradientBoosterDefault
 
     # Use the policy manager

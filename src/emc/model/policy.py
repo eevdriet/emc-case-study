@@ -52,7 +52,14 @@ class Policy:
 
         return Policy(epi_surveys)
 
-    def calculate_cost(self, de_survey: pd.DataFrame) -> float:
+    def calculate_cost(self, de_survey: pd.DataFrame, allow_average: bool = True) -> float:
+        """
+        Calculate the cost of the policy for the given simulation data
+        :param de_survey: Data from a simulation
+        :param allow_average: Whether cost is allowed to be calculated based on average over all policy years
+        :return: Cost of the policy
+        """
+
         total_cost = 0
 
         # Calculate the cost of the drug efficacy surveys and add them to the total costs if relevant
@@ -61,7 +68,12 @@ class Policy:
         drug_surveys = len(self.drug_time_points) != 0
         drug_data_complete = all(not isnan(cost) for cost in drug_surveys_costs)
 
-        if not drug_surveys or not drug_data_complete:
+        # Treat no drug surveys as missing costs
+        if not drug_surveys:
+            drug_surveys_costs = [np.nan]
+
+        # Base the costs on the average over all policy years if allowed and current costs invalid
+        if allow_average and (not drug_surveys or not drug_data_complete):
             drug_surveys_costs = [self.__calculate_drug_cost(de_survey)]
 
         if drug_surveys and drug_data_complete:

@@ -49,21 +49,22 @@ class Simulation:
     # Identifier of the simulation
     id: int = field(eq=False, default=-1)
 
-    def calculate_cost(self, policy):
+    def calculate_cost(self, policy: "Policy", allow_average: bool = True):
         """
         Calculate the cost of a given policy for the simulation
         :param policy: Policy to determine cost for
+        :param allow_average: Whether cost is allowed to be calculated based on average over all policy years
         :return: Cost of the policy
         """
-        costs = policy.calculate_cost(self.drug_efficacy_s)
+        costs = policy.calculate_cost(self.drug_efficacy_s, allow_average=allow_average)
         if isnan(costs):
             logger.debug(f"NaN costs for {self.scenario.id, self.id}")
 
         return costs
 
-    def predict(self, policy) -> Optional[float]:
+    def verify(self, policy) -> Optional[float]:
         """
-        Predict whether drug efficacy becomes a problem under the given policy
+        Verify whether drug efficacy becomes a problem under the given policy
         :param policy: Policy to find drug efficacy from
         :return: Drug efficacy of the survey the year after the policy ends
         """
@@ -81,3 +82,6 @@ class Simulation:
             return None
 
         return ERR
+
+    def __hash__(self):
+        return hash((self.scenario.id, self.id))
