@@ -30,15 +30,27 @@ def plot_signals(counter: Counter, path: Path):
     # del counter[NO_SIGNAL]
 
     # Create histogram from the signals
-    bins = np.arange(-3, N_YEARS, 1)
+    data = list(elem for elem in counter.elements() if elem >= 0)
+    bins = np.arange(-2, N_YEARS, 1)
+    colors = ['orange'] + ['green'] + ['blue'] * (len(bins) - 2)
+
     plt.gcf().set_facecolor('none')
-    plt.hist(counter.keys(), weights=counter.values(), bins=bins)
+    plt.hist(data, bins=bins, label='True signal (year)', color='green')
+    plt.hist([NO_DATA] * counter[NO_DATA], bins=bins, color='red', label='Insufficient data (ID)')
+    plt.hist([NO_SIGNAL] * counter[NO_SIGNAL], bins=bins, color='yellow', label='No signal (NS)')
 
     # Labels
-    plt.xticks(bins + 0.5, bins)
-    plt.xlim(-2, N_YEARS - 1)
+    plt.xticks(bins + 0.5, ['NS', 'ID'] + list(bins[2:]))
+    plt.xlim(-2.5, N_YEARS - 1)
     plt.xlabel("Time (years)")
-    plt.ylabel("Number of true signals found")
+    plt.ylabel("Number of signals found")
+    legend = plt.legend(title="Type of signal", loc='upper center',
+                        ncols=3,
+                        edgecolor='black',
+                        bbox_to_anchor=(0.5, -0.15),
+                        frameon=True)  # , bbox_to_anchor=(0.5, -0.15))
+    legend.get_frame().set_alpha(None)
+    legend.get_frame().set_facecolor((1, 1, 1, 0))
 
     # Save and discard
     plt.savefig(path, bbox_inches='tight', transparent=True)
