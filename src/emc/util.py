@@ -1,24 +1,42 @@
+import logging
 from pathlib import Path
+import pickle
 from typing import Tuple, TypeVar, Optional, Any
+import numpy as np
 import pandas as pd
 import json
+
+from emc.log import setup_logger
 
 # Type definitions
 T = TypeVar('T')
 Pair = Tuple[T, T]
 
+# Logger setup
+logger = setup_logger(__name__)
 
-def first_or_mean(series: pd.Series, val: Optional[Any]) -> Any:
+
+def first_or_mean(df: pd.DataFrame, col: str, year: Optional[Any]) -> Any:
     """
     Find the first occurrence of a given value of the series or its mean if no value is given
-    :param series: Series to collect data from
-    :param val: Value to find if relevant
+    :param df: Series to collect data from
+    :param year: Value to find if relevant
     :return: Mean or first in the series
     """
-    if val is None:
-        return series.mean()
+    logger = logging.getLogger(__name__)
 
-    return series[series == val].iloc[0]
+    if col not in df.columns:
+        logger.warning(f"Column '{col}' not found when getting first/mean")
+        return np.nan
+
+    if year is None:
+        return df[col].mean(skipna=True)
+
+    if 'time' in df.columns:
+        return df.loc[df['time'] == year, col].iloc[0]
+
+    logger.warning(f"Column 'time' not found when getting first/mean")
+    return np.nan
 
 
 def normalised(series: pd.Series, missing_val: float = 0.5):
@@ -28,11 +46,14 @@ def normalised(series: pd.Series, missing_val: float = 0.5):
     :param missing_val: Value to fill out when normalisation is invalid
     :return:
     """
+    logger = logging.getLogger(__name__)
+
     min_val = series.min()
     max_val = series.max()
 
     # In case normalisation is impossible, set all values as missing
     if min_val == max_val:
+        logger.warning(f"Same min/max value, using {missing_val} as default")
         return pd.Series([missing_val] * len(series), index=series.index)
 
     # Otherwise, normalise between 0 and 1
@@ -78,7 +99,7 @@ class Paths:
         :return: Data folder of the project
         """
         return cls.__safe_path(cls.__ROOT / 'data' / typ)
-    
+
     @classmethod
     def hyperparameter_opt(cls, filename : str, plotdata: str = False) -> Path:
          """
@@ -134,7 +155,52 @@ class Paths:
 
     @classmethod
     def stats(cls):
-        return cls.__safe_path(cls.data('statistics') / 'stats.json')
+        """
+        Access the statistics path of the project.
+
+        :return: Path to the statistics directory
+        """
+        path = cls.data('statistics') / 'stats.json'
+        return cls.__safe_path(path)
+
+    @classmethod
+    def log(cls):
+        """
+        Access the log path of the project.
+
+        :return: Path to the log directory
+        """
+        path = cls.__ROOT / 'log'
+        return cls.__safe_path(path)
+
+    @classmethod
+    def models(cls, worm: str, mda_freq: int, mda_strategy: str, constructor: str, filename: str) -> Path:
+        """
+        Access the model path of the project given parameters.
+
+        :param worm: Name of the worm
+        :param mda_freq: De-worming frequency
+        :param mda_strategy: De-worming strategy
+        :param filename: Name of the file
+        :return: Path to the model file
+        """
+        path = cls.data('model') / str(constructor) / str(worm) / str(mda_strategy) / str(mda_freq) / str(filename)
+        return cls.__safe_path(path)
+
+    @classmethod
+    def preprocessing(cls, worm: str, mda_freq: int, mda_strategy: str, filename: str) -> Path:
+        """
+        Access the model path of the project given parameters.
+
+        :param worm: Name of the worm
+        :param mda_freq: De-worming frequency
+        :param mda_strategy: De-worming strategy
+        :param filename: Name of the file
+        :return: Path to the model file
+        """
+        path = cls.data('preprocessing') / str(worm) / str(mda_strategy) / str(mda_freq) / str(filename)
+        return cls.__safe_path(path)
+
 
 class Writer:
     """
@@ -148,31 +214,32 @@ class Writer:
         :param filename: Name of the JSON file
         :return: Data loaded from the JSON file
         """
+        path.parent.mkdir(parents=True, exist_ok=True)
         try:
             with open(path, 'r') as file:
                 data = json.load(file)
             return data
-        except FileNotFoundError:
+        except:
             return {}
-    
+
     @classmethod
-    def __write_json_file(cls, path, data):
+    def __write_json_file(cls, path: Path, data: Any):
         """
         Write data to a JSON file
-        :param filename: Name of the JSON file
+        :param path: Path to the JSON file
         :param data: Data to be written
         """
         try:
             with open(path, 'w') as file:
                 json.dump(data, file, indent=4)
         except Exception as e:
-            print(f"Error writing to JSON file: {e}")
-    
+            logger.error(f"Error writing to JSON file: {e}")
+
     @classmethod
-    def update_json_file(cls, path, key, value):
+    def update_json_file(cls, path: Path, key: Any, value: Any):
         """
         Update JSON file with a key-value pair
-        :param filename: Name of the JSON file
+        :param path: Path to the JSON file
         :param key: Key to update
         :param value: Value to update
         """
@@ -182,6 +249,12 @@ class Writer:
 
     @classmethod
     def get_value_from_json(cls, path, key):
+        """
+        Try to get a value from a
+        :param path: Path to the JSON file
+        :param key: Key for the value to find
+        :return: Value corresponding to the key if it exists
+        """
         try:
             with open(path, 'r') as file:
                 data = json.load(file)
@@ -190,8 +263,52 @@ class Writer:
                 else:
                     return False
         except FileNotFoundError:
-            # print(f"File not found: {path}")
+            logger.error(f"File not found: {path}")
             return False
         except json.JSONDecodeError:
-            print(f"Invalid JSON format in the file: {path}")
+            logger.error(f"Invalid JSON format in the file: {path}")
             return False
+
+    @classmethod
+    def savePickle(cls, path: Path, data) -> None:
+        """
+        Save the model to a file using pickle serialization.
+
+        :param path: Path to save the model file
+        :param data: Data to save to the path
+        :return: None
+        """
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, 'wb') as file:
+            pickle.dump(data, file)
+
+    @classmethod
+    def loadPickle(cls, path: Path):
+        """
+        Load the data from a file.
+
+        :param path: Path to the data file
+        :return: Loaded data if the file exists, False otherwise
+        """
+        if path.exists():
+            with open(path, 'rb') as file:
+                data = pickle.load(file)
+            return data
+        else:
+            return None
+
+    @classmethod
+    def saveNumpy(cls, path: Path, data):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        np.save(path, data)
+
+    @classmethod
+    def loadNumpy(cls, path: Path):
+        if path.exists():
+            return np.load(path)
+        else:
+            return None
+
+
+if __name__ == '__main__':
+    print(normalised(pd.Series([248.91, 282.16, 180.80, 211.54])))

@@ -8,7 +8,10 @@ import pandas as pd
 
 from emc.model.scenario import Scenario
 from emc.util import Paths
+from emc.log import setup_logger
 from emc.data.constants import *
+
+logger = setup_logger(__name__)
 
 Level = tuple[float, float, float, float, int]  # mean, sd, min, max, no. observations
 Levels = dict[str, list[Level]]
@@ -84,7 +87,7 @@ class LevelBuilder:
         :param show: Whether to show the plot
         """
         if not self.mode_levels:
-            print("Levels do not exist, build first using `build_levels`")
+            logger.warning("Levels do not exist, build first using `build_levels`")
             return
 
         # Plot the levels for each resistance mode for each base line
@@ -95,6 +98,8 @@ class LevelBuilder:
 
             levels = self.mode_levels[str(baseline)]
             times = range(N_YEARS)
+
+            plt.gcf().set_facecolor('none')
 
             for res_mode, color in zip(RESISTANCE_MODES, self.__COLORS):
                 means, sds, mins, maxs, n_hosts = map(np.array, zip(*levels[res_mode]))
@@ -115,16 +120,25 @@ class LevelBuilder:
             plt.xlabel("Time (years)")
             plt.ylabel("Infection level")
             plt.ylim(0, 1)
-            plt.legend(title="Resistance mode")
+
+            # Legend
+            legend = plt.legend(title="Resistance mode", loc='upper center',
+                                ncols=len(RESISTANCE_MODES),
+                                bbox_to_anchor=(0.5, -0.05))  # , bbox_to_anchor=(0.5, -0.15))
+            legend.get_frame().set_alpha(0)
+            legend.get_title().set_position((0, -60))
+
+            # plt.subplots_adjust(left=0.08, right=0.98, top=0.98, bottom=0.08)
 
             # Optionally show and save the plot to the user
             if show:
                 plt.show()
+
             if save:
                 worm = self.scenarios[0].species
                 path = Paths.levels(worm, bucket_size=self.bucket_size, mda_freq=self.mda_freq,
                                     mda_strategy=self.mda_strategy, baseline=baseline)
-                plt.savefig(path)
+                plt.savefig(path, bbox_inches='tight', transparent=True)
 
             # Reset the plot
             plt.clf()
@@ -136,7 +150,7 @@ class LevelBuilder:
         :return: Infection levels
         """
 
-        print(f'[{baseline}, {baseline + self.bucket_size})')
+        logger.info(f'[{baseline}, {baseline + self.bucket_size})')
 
         for res_mode in RESISTANCE_MODES:
             data = pd.DataFrame()
@@ -145,7 +159,7 @@ class LevelBuilder:
                 if scenario.res_mode != res_mode:
                     continue
 
-                print(scenario.id)
+                logger.debug(f"Scenario {scenario.id}")
 
                 for simulation in scenario:
                     df = simulation.monitor_age
@@ -209,12 +223,10 @@ def build_levels(overwrite):
 
         for bucket_size in BUCKET_SIZES:
             for strategy, freq in product(MDA_STRATEGIES + [None], MDA_FREQUENCIES + [None]):
-                print(f"-- {bucket_size} with {freq=}, {strategy=}")
+                logger.info(f"-- {bucket_size} with {freq=}, {strategy=}")
                 builder.build(bucket_size, mda_strategy=strategy, mda_freq=freq, overwrite=overwrite)
                 builder.plot(save=True, show=False)
 
-    print("Done")
-
 
 if __name__ == "__main__":
-    build_levels(overwrite=True)
+    build_levels(overwrite=False)

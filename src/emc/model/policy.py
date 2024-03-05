@@ -1,6 +1,8 @@
 import math
+from math import isnan
 
 import pandas as pd
+import numpy as np
 from typing import Generator, Iterable, Optional
 
 from emc.model.costs import Costs
@@ -20,18 +22,49 @@ class Policy:
         # Store the surveys as tuples for hashing purposes
         self.epi_surveys = tuple(epi_surveys)
         assert len(self.epi_surveys) == N_YEARS
+        assert self.epi_surveys[0], "Should conduct epidemiological survey in the first year"
+        assert not self.epi_surveys[N_YEARS - 1], "Should not conduct epidemiological survey in the final year"
 
         # Initially schedule no drug efficacy surveys
         self.drug_surveys = (False,) * N_YEARS
+
+    @classmethod
+    def from_timepoints(cls, time_points: list[int]) -> "Policy":
+        assert min(time_points) >= 0, "Minimum time should be 0"
+        assert max(time_points) < N_YEARS, f"Maximum time should be {N_YEARS - 1}"
+
+        epi_surveys = tuple(time in time_points for time in range(N_YEARS))
+        return Policy(epi_surveys)
+
+    @classmethod
+    def from_every_n_years(cls, n: int) -> "Policy":
+        """
+        Create an initial policy to start the policy improvement from
+        :param n: How often to schedule an epidemiological survey for the initial policy
+        :return: Policy with an epidemiological survey every n years
+        """
+        # Perform the epi survey every n years
+        tests = (True,) + (False,) * (n - 1)
+        epi_surveys = tests * (N_YEARS // n) + tests[:N_YEARS % n]
+
+        # Always (never) do a survey in the first (last) year
+        epi_surveys = epi_surveys[:-1] + (False,)
+
+        return Policy(epi_surveys)
 
     def calculate_cost(self, de_survey: pd.DataFrame) -> float:
         total_cost = 0
 
         # Calculate the cost of the drug efficacy surveys and add them to the total costs if relevant
-        if len(self.drug_time_points) == 0:
+        drug_surveys_costs = [self.__calculate_drug_cost(de_survey, year) for year in self.drug_time_points]
+
+        drug_surveys = len(self.drug_time_points) != 0
+        drug_data_complete = all(not isnan(cost) for cost in drug_surveys_costs)
+
+        if not drug_surveys or not drug_data_complete:
             drug_surveys_costs = [self.__calculate_drug_cost(de_survey)]
-        else:
-            drug_surveys_costs = [self.__calculate_drug_cost(de_survey, year) for year in self.drug_time_points]
+
+        if drug_surveys and drug_data_complete:
             total_cost += sum(drug_surveys_costs)
 
         # Use half of the average drug efficacy survey cost for the epidemiological survey cost
@@ -47,8 +80,10 @@ class Policy:
         :param year: Year to schedule if any, otherwise take an average over all years
         :return: Cost of scheduling the survey
         """
-        return self.__consumable(de_survey, year) + self.__personnel(de_survey, year) + self.__transportation(de_survey,
-                                                                                                              year)
+        costs = self.__consumable(de_survey, year) + self.__personnel(de_survey, year) + self.__transportation(
+            de_survey, year)
+
+        return costs
 
     def __hash__(self):
         return hash(self.epi_surveys)
@@ -65,6 +100,16 @@ class Policy:
     def __repr__(self):
         name = self.__class__.__name__
         return f"{name}({self.epi_time_points})"
+
+    def __getitem__(self, year: int) -> bool:
+        assert 0 <= year < N_YEARS, "Year to schedule epidemiological survey needs to be valid"
+        return self.epi_surveys[year]
+
+    def __setitem__(self, year: int, do_survey: bool) -> "Policy":
+        assert 0 <= year < N_YEARS, "Year to schedule epidemiological survey needs to be valid"
+
+        # Create a new policy by setting the survey
+        self.epi_surveys = self.epi_surveys[:year] + (do_survey,) + self.epi_surveys[year + 1:]
 
     @property
     def last_year(self):
@@ -112,6 +157,9 @@ class Policy:
 
                 yield Policy(curr_years + next_years)
 
+    def copy(self):
+        return Policy(self.epi_surveys)
+
     @classmethod
     def __consumable(cls, de_survey: pd.DataFrame, year: Optional[int] = None):
         """
@@ -121,8 +169,12 @@ class Policy:
         :return: Consumable costs
         """
         # Get data
-        total_useful_tests = first_or_mean(de_survey['total_useful_tests'], year)
-        skipped_NaN_tests = first_or_mean(de_survey['skipped_NaN_tests'], year)
+        total_useful_tests = first_or_mean(de_survey, 'total_useful_tests', year)
+        skipped_NaN_tests = first_or_mean(de_survey, 'skipped_NaN_tests', year)
+
+        # TODO: handle missing observations before calculating costs to avoid this error prevention below
+        if isnan(total_useful_tests) or isnan(skipped_NaN_tests):
+            return np.nan
 
         # Calculate costs
         N_baseline = total_useful_tests + skipped_NaN_tests
@@ -159,10 +211,14 @@ class Policy:
         :return: Survey days
         """
         # Get data
-        total_useful_tests = first_or_mean(de_survey['total_useful_tests'], year)
-        skipped_NaN_tests = first_or_mean(de_survey['skipped_NaN_tests'], year)
-        true_a_pre = first_or_mean(de_survey['true_a_pre'], year)
-        true_a_post = first_or_mean(de_survey['true_a_post'], year)
+        total_useful_tests = first_or_mean(de_survey, 'total_useful_tests', year)
+        skipped_NaN_tests = first_or_mean(de_survey, 'skipped_NaN_tests', year)
+        true_a_pre = first_or_mean(de_survey, 'true_a_pre', year)
+        true_a_post = first_or_mean(de_survey, 'true_a_post', year)
+
+        # TODO: handle missing observations before calculating costs to avoid this error prevention below
+        if any(isnan(var) for var in [total_useful_tests, skipped_NaN_tests, true_a_post, true_a_pre]):
+            return np.nan
 
         # Set parameters
         workers = 4  # Under assumption of single mobile field team: 1 nurse, three technicians
@@ -184,6 +240,5 @@ class Policy:
 
 
 if __name__ == '__main__':
-    import inspect
-
-    print(inspect.getsource(Policy.__hash__))
+    policy = Policy.from_every_n_years(5)
+    print(policy)

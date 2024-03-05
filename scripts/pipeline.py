@@ -7,6 +7,9 @@ from set_init_target import set_target
 from collections import OrderedDict
 
 from emc.data.level_builder import build_levels
+from emc.log import setup_logger
+
+logger = setup_logger(__name__)
 
 
 class Pipeline:
@@ -41,7 +44,7 @@ class Pipeline:
         for name in self.names:
             # Information banner
             header = f"\n\n\n{'-' * 20} {name} {'-' * 20}"
-            print(header)
+            logger.info(header)
 
             # Execute named process
             process = self.__NAMED_PROCESSES[name]

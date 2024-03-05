@@ -3,15 +3,19 @@ import typing
 import pandas as pd
 from attrs import define, field
 from typing import Optional
+from math import isnan
 
 from emc.model.label import Label
 from emc.data.constants import *
 
 # from emc.model.policy import Policy
+from emc.log import setup_logger
 
 # Required to avoid circular dependency
 if typing.TYPE_CHECKING:
     from emc.model.scenario import Scenario
+
+logger = setup_logger(__name__)
 
 
 @define
@@ -51,7 +55,11 @@ class Simulation:
         :param policy: Policy to determine cost for
         :return: Cost of the policy
         """
-        return policy.calculate_cost(self.drug_efficacy_s)
+        costs = policy.calculate_cost(self.drug_efficacy_s)
+        if isnan(costs):
+            logger.debug(f"NaN costs for {self.scenario.id, self.id}")
+
+        return costs
 
     def predict(self, policy) -> Optional[float]:
         """
@@ -67,5 +75,9 @@ class Simulation:
         if year not in df['time'].values:
             return None
 
-        # Otherwise, use the ERR for the given year as prediction
-        return df.loc[df['time'] == year, 'ERR'].iloc[0]
+        # Otherwise, use the ERR for the given year as prediction if it is valid
+        ERR = df.loc[df['time'] == year, 'ERR'].iloc[0]
+        if isnan(ERR):
+            return None
+
+        return ERR

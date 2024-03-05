@@ -32,11 +32,14 @@ COLUMNS = ['scenario', 'simulation', 'time']
 INT_COLUMNS = ['scenario', 'simulation']
 
 # Monitor age
-MA_COLUMNS = COLUMNS + ['n_host', 'n_host_eggpos',
-                        'exp_inf_level', 'inf_level', 'inf_level_change',
-                        'a_epg_obs', 'a_epg_obs_change',
-                        # 'a_drug_efficacy_true',
-                        'ERR', 'target']
+MA_COLUMNS = COLUMNS + ['n_host', 
+                        'n_host_eggpos',
+                        'exp_inf_level', 
+                        'inf_level',
+                        'a_epg_obs', 
+                        'a_drug_efficacy_true',
+                        'ERR', 
+                        'target']
 
 MA_INT_COLUMNS = INT_COLUMNS + ['time', 'n_host', 'n_host_eggpos']
 
@@ -55,4 +58,7 @@ MDA_STRATEGIES = ['sac', 'community']
 SEED = 76
 
 RESISTANCE_MODES = ["none", "dominant", "codominant", "recessive"]
-RESISTANCE_NOT_FOUND_COSTS = 100_000
+RESISTANCE_NOT_FOUND_COSTS = 1_000
+ACCURACY_VIOLATED_COSTS = 1_000
+DRUG_EFFICACY_THRESHOLD = 0.88
+MAX_MISCLASSIFICATION_FRACTION = 1
