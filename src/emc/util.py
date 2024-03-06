@@ -101,13 +101,15 @@ class Paths:
         return cls.__safe_path(cls.__ROOT / 'data' / typ)
 
     @classmethod
-    def hyperparameter_opt(cls, filename: str) -> Path:
+    def hyperparameter_opt(cls, filename : str, plotdata: str = False) -> Path:
+         """
+        Access the hyperparameter path of the project from anywhere
+        :return: hyperparameter folder of the project
         """
-       Access the hyperparameter path of the project from anywhere
-       :return: hyperparameter folder of the project
-       """
-        path = cls.data('hyperparameter') / filename
-        return cls.__safe_path(path)
+         if plotdata:
+             return cls.__safe_path(cls.__ROOT / 'data' / 'hyperparameter' / 'plotdata' / filename)
+         else:
+            return cls.__safe_path(cls.__ROOT / 'data' / 'hyperparameter' / filename)
 
     @classmethod
     def worm_data(cls, worm: str, data_type: str, use_merged: bool = True) -> Path:

@@ -236,8 +236,8 @@ class PolicyManager:
                 if epi_signal >= DRUG_EFFICACY_THRESHOLD:  # skip drug efficacy survey when signal is still fine
                     continue
 
-                # Otherwise, verify whether resistance is a problem by scheduling a drug efficacy the year after
-                drug_signal = simulation.predict(sub_policy)
+        #         # Otherwise, verify whether resistance is a problem by scheduling a drug efficacy the year after
+        #         drug_signal = simulation.predict(sub_policy)
 
                 # If no drug efficacy data is available, penalize the policy for not finding a signal sooner
                 if drug_signal is None:
