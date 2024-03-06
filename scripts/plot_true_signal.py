@@ -31,17 +31,16 @@ def plot_signals(counter: Counter, path: Path):
 
     # Create histogram from the signals
     data = list(elem for elem in counter.elements() if elem >= 0)
-    bins = np.arange(-2, N_YEARS, 1)
-    colors = ['orange'] + ['green'] + ['blue'] * (len(bins) - 2)
+    bins = np.arange(NO_SIGNAL, N_YEARS, 1)
 
     plt.gcf().set_facecolor('none')
-    plt.hist(data, bins=bins, label='True signal (year)', color='green')
-    plt.hist([NO_DATA] * counter[NO_DATA], bins=bins, color='red', label='Insufficient data (ID)')
-    plt.hist([NO_SIGNAL] * counter[NO_SIGNAL], bins=bins, color='yellow', label='No signal (NS)')
+    plt.hist(data, bins=bins, label='True signal (year)', color=BLUE)
+    plt.hist([NO_DATA] * counter[NO_DATA], bins=bins, color=MAGENTA, label='Insufficient data (ID)')
+    plt.hist([NO_SIGNAL] * counter[NO_SIGNAL], bins=bins, color=YELLOW, label='No signal (NS)')
 
     # Labels
     plt.xticks(bins + 0.5, ['NS', 'ID'] + list(bins[2:]))
-    plt.xlim(-2.5, N_YEARS - 1)
+    plt.xlim(NO_SIGNAL - 0.5, N_YEARS - 1)
     plt.xlabel("Time (years)")
     plt.ylabel("Number of signals found")
     legend = plt.legend(title="Type of signal", loc='upper center',
