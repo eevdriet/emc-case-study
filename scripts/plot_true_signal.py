@@ -60,6 +60,9 @@ def main():
     for worm in Worm:
         worm = worm.value
 
+        loader = DataLoader(worm)
+        all_scenarios = loader.load_scenarios()
+
         for mda_strategy in MDA_STRATEGIES:
             for mda_freq in MDA_FREQUENCIES:
                 # res_mode = 'codominant'
@@ -72,18 +75,12 @@ def main():
 
                 # Use the policy manager
                 logger.info(f"-- {worm}: {mda_strategy} with {mda_freq} --")
-                loader = DataLoader(worm)
-                all_scenarios = loader.load_scenarios()
 
                 scenarios = [
                     s for s in all_scenarios
                     if s.mda_strategy == mda_strategy and s.mda_freq == mda_freq
                 ]
-
-                simulations = []
-
-                for scenario in scenarios:
-                    simulations += scenario.simulations
+                simulations = [simulation for scenario in scenarios for simulation in scenario]
 
                 # Randomly order the simulations and split into train/validation
                 if USING_TEST:

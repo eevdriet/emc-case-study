@@ -12,8 +12,8 @@
 
 Provide step-by-step series of examples and explanations about how to get a development environment running.
 ```
-git clone https://yourproject.git
-cd yourproject
+git clone https://github.com/eevdriet/emc-case-study
+cd emc-case-study
 npm install
 ```
 

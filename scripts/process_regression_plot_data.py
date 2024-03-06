@@ -1,16 +1,18 @@
 from emc.util import Paths
+from emc.data.constants import *
 
 import json
 import matplotlib.pyplot as plt
-
 
 import matplotlib.pyplot as plt
 import json
 from enum import Enum, auto
 
+
 class DisplayMode(Enum):
     ALL = auto()
     SEPARATELY = auto()
+
 
 def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
     worms = ['ascaris', 'hookworm']
@@ -24,6 +26,10 @@ def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
         # Flatten axs if it's a single row or column to make indexing easier
         if len(axs.shape) == 1:
             axs = axs.reshape(1, -1)
+
+        # Adjust spacing between rows
+        plt.subplots_adjust(hspace=0.3)
+
     elif display_mode == DisplayMode.SEPARATELY:
         fig = None
         axs = None
@@ -31,13 +37,18 @@ def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
     lines = []  # To store the line objects for the legend
     labels = []  # To store the labels for the legend
 
-    for i, worm in enumerate(worms):
-        for j, strategy in enumerate(strategies):
-            for k, frequency in enumerate(frequencies):
+    for i, worm in enumerate(Worm):
+        worm = worm.value
+
+        for j, strategy in enumerate(MDA_STRATEGIES):
+            for k, frequency in enumerate(MDA_FREQUENCIES):
                 # Read data from JSON file
-                path1 = Paths.hyperparameter_opt(f'classifier_stats_f1score_{worm}_{strategy}_{frequency}_SingleGradientBoosterBayesian.json', True)
-                path2 = Paths.hyperparameter_opt(f'classifier_stats_{worm}_{strategy}_{frequency}_SingleGradientBoosterDefault.json', True)
-                path3 = Paths.hyperparameter_opt(f'classifier_stats_{worm}_{strategy}_{frequency}_SingleGradientBoosterBayesian.json', True)
+                path1 = Paths.hyperparameter_opt(
+                    f'classifier_stats_f1score_{worm}_{strategy}_{frequency}_SingleGradientBoosterBayesian.json', True)
+                path2 = Paths.hyperparameter_opt(
+                    f'classifier_stats_{worm}_{strategy}_{frequency}_SingleGradientBoosterDefault.json', True)
+                path3 = Paths.hyperparameter_opt(
+                    f'classifier_stats_{worm}_{strategy}_{frequency}_SingleGradientBoosterBayesian.json', True)
 
                 with open(path1, 'r') as file:
                     data = json.load(file)
@@ -65,21 +76,23 @@ def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
                 elif display_mode == DisplayMode.SEPARATELY:
                     # Create a separate figure for each subplot
                     fig, ax = plt.subplots(figsize=(8, 4))
-                
-                line1, = ax.plot(time_points, f1_score_def, label='F1 score', alpha=1, color='#CD5C5C')
+
+                line1, = ax.plot(time_points, f1_score_def, label='F1 score', alpha=1, color=YELLOW)
                 # line2, = ax.plot(time_points, accuracy_opt, label='Optimized Accuracy by MSE', alpha=1, color='#FFA07A')
-                line2, = ax.plot(time_points, accuracy_def, label='Accuracy', alpha=1, color='#1f77b4') 
+                line2, = ax.plot(time_points, accuracy_def, label='Accuracy', alpha=1, color=MAGENTA)
 
                 # #CD5C5C')
                 # # line2, = ax.plot(time_points, accuracy_opt, label='Optimized Accuracy by MSE', alpha=1, color='#FFA07A')
                 # line2, = ax.plot(time_points, f1_score, label='F1 score Optimised', alpha=1, color='#008000') 
+                plt.gcf().set_facecolor('none')
 
                 if i == j == k == 0:
                     lines.extend([line1, line2])
                     labels.extend(['F1 score', 'Accuracy'])
 
-                ax.set_title(f'{worm.capitalize()} - {strategy.capitalize()} - Frequency {frequency}')
-                ax.set_xlabel('Time Points')
+                ax.set_title(f'{worm}-{strategy[0]}-{frequency}')
+                ax.set_xticks(range(N_YEARS), labels=[str(year) if year % 2 == 0 else "" for year in range(N_YEARS)])
+                ax.set_xlabel('Time (years)')
                 ax.set_ylabel('Metrics')
                 ax.set_ylim(0, 1)
                 ax.grid(False)
@@ -87,35 +100,42 @@ def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
                 if display_mode == DisplayMode.SEPARATELY:
                     # Create a separate figure for each subplot
                     fig, ax = plt.subplots(figsize=(7, 6))
-                    
-                    line1, = ax.plot(time_points, accuracy_def, label='Default Accuracy', alpha=1, color='#CD5C5C')
-                    line2, = ax.plot(time_points, accuracy, label='Optimized Accuracy by F1', alpha=1, color='#008000')
+
+                    line1, = ax.plot(time_points, f1_score_def, label='Default accuracy', alpha=1, color=YELLOW)
+                    line2, = ax.plot(time_points, f1_score, label='Optimized accuracy by F1', alpha=1, color=GREEN)
 
                     # Set the title below the figure
                     # ax.set_title(f'{worm.capitalize()} - {strategy.capitalize()} - Frequency {frequency}', y=-0.3)
-                    
-                    ax.set_xlabel('Time Points')
-                    ax.set_ylabel('Metrics')
+
+                    ax.set_xlabel('Time (years)')
+                    ax.set_ylabel('Accuracy')
                     ax.set_ylim(0, 1)
                     ax.grid(False)
 
                     # Set the legend below the figure
-                    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.10), ncol=2)
+                    legend = ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.10), ncol=2)
+                    legend.get_frame().set_alpha(None)
+                    legend.get_frame().set_facecolor((1, 1, 1, 0))
 
-                    plt.tight_layout()
-                    plt.show()
+                    freq_str = f'{frequency}year' if frequency else 'any_freq'
+                    strategy_str = strategy if strategy else 'anyone'
+                    path = Paths.hyperparameter_opt(f"{worm}_{freq_str}_{strategy_str}.png", plotdata=True)
+
+                    plt.savefig(path, bbox_inches='tight', transparent=True)
+                    plt.clf()
 
     if display_mode == DisplayMode.ALL:
-        fig.legend(lines, labels, loc='lower center', ncol=2, bbox_to_anchor=(0.5, 0))
-        plt.tight_layout()
+        path = Paths.hyperparameter_opt(f"plots.png", plotdata=True)
+        legend = fig.legend(lines, labels, loc='lower center', ncol=2, bbox_to_anchor=(0.5, 0))
+        legend.get_frame().set_alpha(None)
+        legend.get_frame().set_facecolor((1, 1, 1, 0))
+
+        fig.savefig(path, transparent=True, bbox_inches='tight')
         plt.show()
+
 
 if __name__ == '__main__':
     show_regression_plot(DisplayMode.ALL)
-
-
-
-
 
 # import json
 # import matplotlib.pyplot as plt
