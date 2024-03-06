@@ -78,12 +78,12 @@ def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
                     fig, ax = plt.subplots(figsize=(8, 4))
 
                 line1, = ax.plot(time_points, f1_score_def, label='F1 score', alpha=1, color=YELLOW)
-                # line2, = ax.plot(time_points, accuracy_opt, label='Optimized Accuracy by MSE', alpha=1, color='#FFA07A')
+                # l2, = ax.plot(time_points, accuracy_opt, label='Optimized Accuracy by MSE', alpha=1, color='#FFA07A')
                 line2, = ax.plot(time_points, accuracy_def, label='Accuracy', alpha=1, color=MAGENTA)
 
                 # #CD5C5C')
-                # # line2, = ax.plot(time_points, accuracy_opt, label='Optimized Accuracy by MSE', alpha=1, color='#FFA07A')
-                # line2, = ax.plot(time_points, f1_score, label='F1 score Optimised', alpha=1, color='#008000') 
+                # l2, = ax.plot(time_points, accuracy_opt, label='Optimised Accuracy by MSE', alpha=1, color='#FFA07A')
+                # l2, = ax.plot(time_points, f1_score, label='F1 score Optimised', alpha=1, color='#008000')
                 plt.gcf().set_facecolor('none')
 
                 if i == j == k == 0:
@@ -137,44 +137,46 @@ def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
 if __name__ == '__main__':
     show_regression_plot(DisplayMode.ALL)
 
-# import json
-# import matplotlib.pyplot as plt
+"""
+import json
+import matplotlib.pyplot as plt
 
-# worms = ['ascaris', 'hookworm']
-# strategies = ['sac', 'community']
-# frequencies = ['1', '2']
+worms = ['ascaris', 'hookworm']
+strategies = ['sac', 'community']
+frequencies = ['1', '2']
 
-# for worm in worms:
-#     for strategy in strategies:
-#         for frequency in frequencies:
-#             # Read data from JSON file
-#             with open(f'classifier_stats_{worm}_{strategy}_{frequency}_SingleGradientBoosterBayesian.json', 'r') as file:
-#                 data = json.load(file)
+for worm in worms:
+    for strategy in strategies:
+        for frequency in frequencies:
+            # Read data from JSON file
+            with open(f'classifier_stats_{worm}_{strategy}_{frequency}_SingleGradientBoosterBayesian.json', 'r') as file:
+                data = json.load(file)
 
-#             # Extract metrics
-#             time_points = list(data.keys())[1:]  # Skip first two time points
-#             accuracy = [data[time]['accuracy'] for time in time_points]
-#             precision = [data[time]['precision'] for time in time_points]
-#             recall = [data[time]['recall'] for time in time_points]
-#             f1_score = [data[time]['f1_score'] for time in time_points]
+            # Extract metrics
+            time_points = list(data.keys())[1:]  # Skip first two time points
+            accuracy = [data[time]['accuracy'] for time in time_points]
+            precision = [data[time]['precision'] for time in time_points]
+            recall = [data[time]['recall'] for time in time_points]
+            f1_score = [data[time]['f1_score'] for time in time_points]
 
-#             # Plotting
-#             plt.figure(figsize=(10, 6))
+            # Plotting
+            plt.figure(figsize=(10, 6))
 
-#             plt.plot(time_points, accuracy, marker='o', label='Accuracy')
-#             plt.plot(time_points, precision, marker='o', label='Precision')
-#             plt.plot(time_points, recall, marker='o', label='Recall')
-#             plt.plot(time_points, f1_score, marker='o', label='F1-score')
+            plt.plot(time_points, accuracy, marker='o', label='Accuracy')
+            plt.plot(time_points, precision, marker='o', label='Precision')
+            plt.plot(time_points, recall, marker='o', label='Recall')
+            plt.plot(time_points, f1_score, marker='o', label='F1-score')
 
-#             plt.title('Performance Metrics Over Time')
-#             plt.xlabel('Time Points')
-#             plt.ylabel('Metrics')
-#             plt.xticks(rotation=45)
-#             plt.legend()
-#             plt.grid(True)
+            plt.title('Performance Metrics Over Time')
+            plt.xlabel('Time Points')
+            plt.ylabel('Metrics')
+            plt.xticks(rotation=45)
+            plt.legend()
+            plt.grid(True)
 
-#             # Set y-axis limits from 0 to 1
-#             plt.ylim(0, 1)
+            # Set y-axis limits from 0 to 1
+            plt.ylim(0, 1)
 
-#             plt.tight_layout()
-#             plt.show()
+            plt.tight_layout()
+            plt.show()
+"""

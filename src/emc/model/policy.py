@@ -105,7 +105,7 @@ class Policy:
         assert 0 <= year < N_YEARS, "Year to schedule epidemiological survey needs to be valid"
         return self.epi_surveys[year]
 
-    def __setitem__(self, year: int, do_survey: bool) -> "Policy":
+    def __setitem__(self, year: int, do_survey: bool):
         assert 0 <= year < N_YEARS, "Year to schedule epidemiological survey needs to be valid"
 
         # Create a new policy by setting the survey
