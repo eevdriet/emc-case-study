@@ -1,5 +1,6 @@
 import math
 
+
 class Time_Costs:
     """
     Helper static class with the time constants that are used throughout the surveys
@@ -41,4 +42,3 @@ class Time_Costs:
     @staticmethod
     def __countFEC(count: int):
         return pow(10, 1.8349 + 0.1731 * pow(math.log10(count + 1), 2))
-

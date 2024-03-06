@@ -57,10 +57,12 @@ def plot_costs(costs: Costs, path: Path):
     ax1.set_xlabel("Time")
     ax1.set_ylabel("Drug efficacy survey cost")
     bp = ax1.boxplot(boxplot_data)
+    for median in bp['medians']:
+        median.set_color(BLUE)
 
     # Line displaying number of missing observations
     ax2 = ax1.twinx()
-    line = ax2.plot(range(1, N_YEARS - 1), nan_counts[:-1], color='red', linestyle='-', marker='o', label='Mean')
+    line = ax2.plot(range(1, N_YEARS - 1), nan_counts[:-1], color=MAGENTA, linestyle='-', marker='o', label='Mean')
     ax2.set_ylabel("Number of missing data per time point")
 
     # Combined legend

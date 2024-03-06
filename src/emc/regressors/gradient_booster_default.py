@@ -8,6 +8,7 @@ from emc.log import setup_logger
 
 logger = setup_logger(__name__)
 
+
 class GradientBoosterDefault(Regressor):
     def _train(self, X_train: np.ndarray, y_train: np.array) -> None:
         params = {

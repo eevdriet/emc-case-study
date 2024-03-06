@@ -222,7 +222,7 @@ class PolicyManager:
                 classifier = self.policy_classifiers[sub_policy]
 
                 # Continue with epidemiological surveys as long as resistance does not seem to be a problem yet
-                epi_signal = classifier.verify(simulation)
+                epi_signal = classifier.predict(simulation)
 
                 if epi_signal is None:  # cannot use simulations that have incomplete data
                     costs = simulation.calculate_cost(sub_policy)

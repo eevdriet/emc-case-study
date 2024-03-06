@@ -104,7 +104,7 @@ class WelchTest:
 
             for strategy, freq in product(MDA_STRATEGIES, MDA_FREQUENCIES):
                 scenario = (worm, strategy, freq)
-                logger.debug(f"\tScenario {scenario.id}")
+                logger.debug(f"\tScenario {scenario}")
 
                 # Load the levels file
                 path = Paths.levels(worm, bucket_size=self.__BUCKET_SIZE, mda_freq=freq, mda_strategy=strategy)
