@@ -69,7 +69,7 @@ class PolicyManager:
         # Setup iteration variables
         logger.info("Start iterated local search")
         self.policy_scores = {}
-        costs = {}
+        scores = {}
 
         best_score = Score.create_missing()
         iteration = 0
@@ -82,11 +82,12 @@ class PolicyManager:
 
             for neighborhood in self.neighborhoods:
                 neighbors: list[Policy] = list(neighborhood(curr_policy))
-                for it, neighbor in enumerate(neighbors, 1):
 
-                    if neighbor in costs:
-                        logger.info(f"- Using previous costs       : {float(costs[neighbor])}")
-                        neighbor_scores[neighbor] = costs[neighbor]
+                for it, neighbor in enumerate(neighbors, 1):
+                    if neighbor in scores:
+                        score = scores[neighbor]
+                        logger.info(f"{score.policy}\n- Using previous score : {float(scores[neighbor])}")
+                        neighbor_scores[neighbor] = score
                         continue
 
                     self.__build_regressors(neighbor)
@@ -95,7 +96,7 @@ class PolicyManager:
                     score = self.__calculate_score(neighbor)
                     logger.info(score)
                     neighbor_scores[neighbor] = score
-                    costs[neighbor] = score
+                    scores[neighbor] = score
 
             # Register all policy score
             self.policy_scores = {**self.policy_scores, **neighbor_scores}
