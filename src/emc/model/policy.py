@@ -94,7 +94,7 @@ class Policy:
         """
         # Compute average if no specific year is given
         if year is None:
-            return de_survey['cost'].mean(skipna=False)
+            return de_survey['cost'].mean(skipna=True)
 
         # Otherwise verify the year is valid and get its cost
         series = de_survey.loc[de_survey['time'] == year, 'cost']

@@ -90,11 +90,11 @@ class Simulation:
             return None
 
         # Otherwise, use the ERR for the given year as prediction if it is valid
-        ERR = df.loc[df['time'] == year, 'ERR'].iloc[0]
-        if isnan(ERR):
+        ERR = df.loc[df['time'] == year, 'ERR']
+        if ERR.empty:
             return None
 
-        return ERR
+        return ERR.iloc[0]
 
     def __hash__(self):
         return hash((self.scenario.id, self.id))

@@ -69,10 +69,9 @@ class PolicyManager:
         # Setup iteration variables
         logger.info("Start iterated local search")
         self.policy_scores = {}
-        costs = {}
+        scores = {}
 
-        best_score = float('inf')
-        best_policy = None
+        best_score = Score.create_missing()
         iteration = 0
 
         # Setup policy
@@ -83,20 +82,21 @@ class PolicyManager:
 
             for neighborhood in self.neighborhoods:
                 neighbors: list[Policy] = list(neighborhood(curr_policy))
-                for it, neighbor in enumerate(neighbors, 1):
-                    logger.info(f"\n{neighbor} [{it}/{len(neighbors)}]")
 
-                    if neighbor in costs:
-                        logger.info(f"- Using previous costs       : {costs[neighbor]}")
-                        neighbor_scores[neighbor] = costs[neighbor]
+                for it, neighbor in enumerate(neighbors, 1):
+                    if neighbor in scores:
+                        score = scores[neighbor]
+                        logger.info(f"{score.policy}\n- Using previous score : {float(scores[neighbor])}")
+                        neighbor_scores[neighbor] = score
                         continue
 
                     self.__build_regressors(neighbor)
 
                     # Determine the score and make sure no invalid data is present
                     score = self.__calculate_score(neighbor)
+                    logger.info(score)
                     neighbor_scores[neighbor] = score
-                    costs[neighbor] = score
+                    scores[neighbor] = score
 
             # Register all policy score
             self.policy_scores = {**self.policy_scores, **neighbor_scores}
@@ -104,16 +104,16 @@ class PolicyManager:
             # Update the best policy if an improvement was found
             curr_policy, curr_score = min(neighbor_scores.items(), key=lambda pair: pair[1])
             if curr_score < best_score:
-                logger.info(f"\n{curr_policy} is improving! Score {curr_score} < {best_score}\n")
+                logger.info(f"{curr_policy} is improving! Score {float(curr_score)}\n")
                 best_score = curr_score
                 best_policy = curr_policy.copy()
                 iteration = 0
             # Otherwise continue with a random neighbor
             else:
                 iteration += 1
-                logger.info(f"\nNo policy is improving, now on iteration {iteration + 1}/{self.__N_MAX_ITERS}\n")
+                logger.info(f"No policy is improving, now on iteration {iteration + 1}/{self.__N_MAX_ITERS}\n")
 
-        return best_policy, self.policy_scores
+        return best_score, self.policy_scores
 
     def __build_regressors(self, policy: Policy) -> None:
         """
@@ -314,40 +314,12 @@ class PolicyManager:
                         logger.debug(f"Simulation {key} was wrongly classified")
                         n_wrong_classifications += 1
 
-        # Calculate final costs
-        total_subpolicy_costs = [cost for sub_policy in policy.sub_policies for cost in
-                                 sub_policy_costs[sub_policy].values() if not isnan(cost)]
-
-        # Financial costs
-        n = len(total_subpolicy_costs)
-        if n:
-            financial_costs = sum(total_subpolicy_costs) / len(total_subpolicy_costs)
-        else:
-            financial_costs = float('inf')
-            logger.error("Found division by zero on line 324 of policy manager")
-
-        accuracy = 0
-        if n_wrong_classifications / len(self.test_simulations) > MAX_MISCLASSIFICATION_FRACTION:
-            accuracy = ACCURACY_VIOLATED_COSTS
-
-        # Penalty costs
-        avg_lateness = sum(latenesses) / len(latenesses)
-        penalty_costs = avg_lateness * RESISTANCE_NOT_FOUND_COSTS + accuracy
-
-        # Total
-        total_costs = financial_costs + penalty_costs
-
-        # Cost overview
-        logger.info(f"- Total simulations          : {n} (nan: {len(self.test_simulations) - n})")
-        logger.info(f"- Total (avg) lateness       : {sum(latenesses)} ({avg_lateness})")
-        logger.info(f"- Total wrong classifications: {n_wrong_classifications}/{len(self.test_simulations)}")
-        logger.info(f"- Avg. financial costs       : {financial_costs}")
-        logger.info(f"- Avg. penalty   costs       : {penalty_costs}")
-        logger.info(f"- {1 - MAX_MISCLASSIFICATION_FRACTION}% accuracy violated      : {accuracy > 0}")
-        logger.info("---------------------------------------------------------")
-        logger.info(f"Total costs                  : {total_costs}")
-
-        return total_costs
+        # Calculate final costs and display
+        return Score(policy=policy,
+                     n_simulations=len(self.test_simulations),
+                     n_wrong_classifications=n_wrong_classifications,
+                     responses=latenesses,
+                     sub_policy_costs=sub_policy_costs)
 
     def __split_data(self) -> SplitData:
         """
@@ -400,14 +372,14 @@ def main():
     from emc.data.neighborhood import flip_neighbors, swap_neighbors, identity_neighbors, fixed_interval_neighbors
 
     # TODO: adjust scenario before running the policy manager
-    worm = Worm.ASCARIS.value
-    frequency = 1
+    worm = Worm.HOOKWORM.value
+    frequency = 2
     strategy = 'sac'
     regresModel = GradientBoosterDefault
 
     # Use the policy manager
     logger.info(f"-- {worm}: {strategy} with {frequency} --")
-    neighborhoods = [flip_out_neighbors]  # also swap_neighbors
+    neighborhoods = [fixed_interval_neighbors]  # also swap_neighbors
 
     loader = DataLoader(worm)
     all_scenarios = loader.load_scenarios()
@@ -421,14 +393,15 @@ def main():
     manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods, init_policy)
 
     # Register best policy and save all costs
-    best_policy, policy_costs = manager.manage()
-    json_costs = {str(policy.epi_time_points): cost for policy, cost in policy_costs.items()}
+    best_score, policy_scores = manager.manage()
+    json_costs = {str(policy.epi_time_points): score.as_dict() for policy, score in policy_scores.items()}
     path = Paths.data('policies') / f"{worm}{frequency}{strategy}.json"
     path.parent.mkdir(exist_ok=True, parents=True)
     with open(path, 'w') as file:
         json.dump(json_costs, file, allow_nan=True, indent=4)
 
-    logger.info(f"Optimal policy is {best_policy} with costs {policy_costs[best_policy]}")
+    policy, val = best_score.policy, float(best_score)
+    logger.info(f"Optimal policy is {policy} with score {val}")
 
 
 if __name__ == '__main__':
