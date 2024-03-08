@@ -236,8 +236,8 @@ class PolicyManager:
                 if epi_signal >= DRUG_EFFICACY_THRESHOLD:  # skip drug efficacy survey when signal is still fine
                     continue
 
-                #         # Otherwise, verify whether resistance is a problem by scheduling a drug efficacy the year after
-                #         drug_signal = simulation.predict(sub_policy)
+                # Otherwise, verify whether resistance is a problem by scheduling a drug efficacy the year after
+                drug_signal = simulation.verify(sub_policy)
 
                 # If no drug efficacy data is available, penalize the policy for not finding a signal sooner
                 if drug_signal is None:
@@ -400,9 +400,9 @@ def main():
     from emc.data.neighborhood import flip_neighbors, swap_neighbors, identity_neighbors, fixed_interval_neighbors
 
     # TODO: adjust scenario before running the policy manager
-    worm = Worm.HOOKWORM.value
+    worm = Worm.ASCARIS.value
     frequency = 1
-    strategy = 'community'
+    strategy = 'sac'
     regresModel = GradientBoosterDefault
 
     # Use the policy manager

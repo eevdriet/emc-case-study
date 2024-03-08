@@ -52,17 +52,29 @@ class Policy:
 
         return Policy(epi_surveys)
 
-    def calculate_cost(self, de_survey: pd.DataFrame) -> float:
+    def calculate_cost(self, de_survey: pd.DataFrame, allow_average: bool = True) -> float:
+        """
+        Calculate the cost of the policy for the given simulation data
+        :param de_survey: Data from a simulation
+        :param allow_average: Whether cost is allowed to be calculated based on average over all policy years
+        :return: Cost of the policy
+        """
+
         total_cost = 0
 
         # Calculate the cost of the drug efficacy surveys and add them to the total costs if relevant
-        drug_surveys_costs = [self.__calculate_drug_cost(de_survey, year) for year in self.drug_time_points]
+        drug_surveys_costs = [self.calculate_drug_cost(de_survey, year) for year in self.drug_time_points]
 
         drug_surveys = len(self.drug_time_points) != 0
         drug_data_complete = all(not isnan(cost) for cost in drug_surveys_costs)
 
-        if not drug_surveys or not drug_data_complete:
-            drug_surveys_costs = [self.__calculate_drug_cost(de_survey)]
+        # Treat no drug surveys as missing costs
+        if not drug_surveys:
+            drug_surveys_costs = [np.nan]
+
+        # Base the costs on the average over all policy years if allowed and current costs invalid
+        if allow_average and (not drug_surveys or not drug_data_complete):
+            drug_surveys_costs = [self.calculate_drug_cost(de_survey)]
 
         if drug_surveys and drug_data_complete:
             total_cost += sum(drug_surveys_costs)
@@ -73,17 +85,23 @@ class Policy:
 
         return total_cost
 
-    def __calculate_drug_cost(self, de_survey: pd.DataFrame, year: Optional[int] = None):
+    def calculate_drug_cost(self, de_survey: pd.DataFrame, year: Optional[int] = None) -> float:
         """
         Calculate the cost of scheduling a drug efficacy survey in the given year
         :param de_survey: Data to base costs on
         :param year: Year to schedule if any, otherwise take an average over all years
         :return: Cost of scheduling the survey
         """
-        costs = self.__consumable(de_survey, year) + self.__personnel(de_survey, year) + self.__transportation(
-            de_survey, year)
+        # Compute average if no specific year is given
+        if year is None:
+            return de_survey['cost'].mean(skipna=False)
 
-        return costs
+        # Otherwise verify the year is valid and get its cost
+        series = de_survey.loc[de_survey['time'] == year, 'cost']
+        if series.empty:
+            return np.nan
+
+        return series.iloc[0]
 
     def __hash__(self):
         return hash(self.epi_surveys)
@@ -159,84 +177,6 @@ class Policy:
 
     def copy(self):
         return Policy(self.epi_surveys)
-
-    @classmethod
-    def __consumable(cls, de_survey: pd.DataFrame, year: Optional[int] = None):
-        """
-        Calculate the consumable costs
-        :param de_survey: Survey data to base costs on
-        :param year: Year to schedule if any, otherwise take an average over all years
-        :return: Consumable costs
-        """
-        # Get data
-        total_useful_tests = first_or_mean(de_survey, 'total_useful_tests', year)
-        skipped_NaN_tests = first_or_mean(de_survey, 'skipped_NaN_tests', year)
-
-        # TODO: handle missing observations before calculating costs to avoid this error prevention below
-        if isnan(total_useful_tests) or isnan(skipped_NaN_tests):
-            return np.nan
-
-        # Calculate costs
-        N_baseline = total_useful_tests + skipped_NaN_tests
-        N_follow_up = total_useful_tests
-        baseline_costs = N_baseline * (Costs.EQUIPMENT + Costs.FIXED_COST + Costs.KATO_KATZ.get('single_sample'))
-        follow_up_costs = N_follow_up * (
-                Costs.EQUIPMENT + Costs.FIXED_COST + 2 * Costs.KATO_KATZ.get('duplicate_sample'))
-        return baseline_costs + follow_up_costs
-
-    def __personnel(self, de_survey: pd.DataFrame, year: Optional[int] = None):
-        """
-        Calculate the personnel costs of a drug efficacy survey
-        :param de_survey: Survey data to base costs on
-        :param year: Year to schedule if any, otherwise take an average over all years
-        :return: Personnel costs
-        """
-        return self.__days(de_survey, year) * 4 * 22.50
-
-    def __transportation(self, de_survey: pd.DataFrame, year: Optional[int] = None) -> int:
-        """
-        Calculate the transportation costs of a drug efficacy survey
-        :param de_survey: Survey data to base costs on
-        :param year: Year to schedule if any, otherwise take an average over all years
-        :return: Transportation costs
-        """
-        return self.__days(de_survey, year) * 90
-
-    @classmethod
-    def __days(cls, de_survey: pd.DataFrame, year: Optional[int] = None) -> int:
-        """
-        Calculate the number of days required to take a drug efficacy survey
-        :param de_survey: Survey data to base the calculation on
-        :param year: Year to schedule if any, otherwise take an average over all years
-        :return: Survey days
-        """
-        # Get data
-        total_useful_tests = first_or_mean(de_survey, 'total_useful_tests', year)
-        skipped_NaN_tests = first_or_mean(de_survey, 'skipped_NaN_tests', year)
-        true_a_pre = first_or_mean(de_survey, 'true_a_pre', year)
-        true_a_post = first_or_mean(de_survey, 'true_a_post', year)
-
-        # TODO: handle missing observations before calculating costs to avoid this error prevention below
-        if any(isnan(var) for var in [total_useful_tests, skipped_NaN_tests, true_a_post, true_a_pre]):
-            return np.nan
-
-        # Set parameters
-        workers = 4  # Under assumption of single mobile field team: 1 nurse, three technicians
-        timeAvailable = workers * 4 * 60 * 60  # In seconds
-
-        # Calculate costs
-        N_baseline = total_useful_tests + skipped_NaN_tests
-        N_follow_up = total_useful_tests
-        c_pre = true_a_pre  # TODO: Use average egg observations per time stamp AND include duplicate KK
-        c_post = true_a_post  # TODO: This is true number of eggs in individual, aliquots is on observed
-
-        count_pre = Time_Costs.countKK(c_pre)
-        count_post = Time_Costs.countKK(2 * c_post)
-        time_pre = N_baseline * (Time_Costs.KATO_KATZ['demography'] + Time_Costs.KATO_KATZ.get('single_prep') +
-                                 Time_Costs.KATO_KATZ.get('single_record')) + count_pre
-        time_post = N_follow_up * (Time_Costs.KATO_KATZ.get('demography') + Time_Costs.KATO_KATZ.get('duplicate_prep') +
-                                   Time_Costs.KATO_KATZ.get('duplicate_record')) + count_post
-        return math.ceil((time_pre + time_post) / timeAvailable)
 
 
 if __name__ == '__main__':

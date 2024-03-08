@@ -32,6 +32,10 @@ def first_or_mean(df: pd.DataFrame, col: str, year: Optional[Any]) -> Any:
         return df[col].mean(skipna=True)
 
     if 'time' in df.columns:
+        series = df.loc[df['time'] == year, col]
+        if series.empty:
+            return np.nan
+
         return df.loc[df['time'] == year, col].iloc[0]
 
     logger.warning(f"Column 'time' not found when getting first/mean")
