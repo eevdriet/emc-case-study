@@ -12,14 +12,14 @@ class Score:
     Aggregates all objectives that can be used to score a policy on its quality
     """
 
-    def __init__(self, policy: Policy, n_simulations: int, n_wrong_classifications: int, latenesses: list[int],
+    def __init__(self, policy: Policy, n_simulations: int, n_wrong_classifications: int, responses: list[int],
                  sub_policy_costs: dict[Policy, dict[tuple[int, int], float]]):
         # Raw data
         self.policy = policy
         self.n_simulations = n_simulations
         self.n_wrong_classifications = n_wrong_classifications
 
-        self.latenesses = latenesses
+        self.responses = responses
         self.sub_policy_cost = sub_policy_costs
 
         # Statistics
@@ -27,22 +27,22 @@ class Score:
                                        self.sub_policy_cost[sub_policy].values() if not isnan(cost)]
         self.nan_simulations = self.n_simulations - len(self.total_sub_policy_costs)
 
-        self.avg_lateness = sum(self.latenesses) / len(self.latenesses)
+        self.avg_response = sum(self.responses) / len(self.responses)
 
         self.accuracy = 1 - (self.n_wrong_classifications / self.n_simulations)
 
         # Costs
-        self.lateness_costs = self.avg_lateness * RESISTANCE_NOT_FOUND_COSTS
+        self.responsiveness_costs = self.avg_response * RESISTANCE_NOT_FOUND_COSTS
         self.accuracy_costs = (self.accuracy < 1 - MAX_MISCLASSIFICATION_FRACTION) * ACCURACY_VIOLATED_COSTS
 
-    def to_json(self):
+    def as_dict(self):
         return {
             'n_simulations': self.n_simulations,
             'n_wrong_classifications': self.n_wrong_classifications,
             'accuracy': self.accuracy,
-            'avg_lateness': self.avg_lateness,
+            'avg_lateness': self.avg_response,
             'financial_costs': self.financial_costs,
-            'lateness_costs': self.lateness_costs,
+            'lateness_costs': self.responsiveness_costs,
             'accuracy_costs': self.accuracy_costs,
             'total_costs': float(self)
         }
@@ -58,13 +58,17 @@ class Score:
         costs = {policy: {(0, 0): float('inf')}}
         latenesses = [0]
 
-        score = cls(policy=policy, n_simulations=1, n_wrong_classifications=0, latenesses=latenesses,
+        score = cls(policy=policy, n_simulations=1, n_wrong_classifications=0, responses=latenesses,
                     sub_policy_costs=costs)
 
         return score
 
     @property
     def financial_costs(self):
+        """
+        Financial costs of the policy based on its survey moments
+        :return: Financial costs of the score
+        """
         if len(self.total_sub_policy_costs):
             return sum(self.total_sub_policy_costs) / len(self.total_sub_policy_costs)
 
@@ -72,25 +76,40 @@ class Score:
 
     @property
     def penalty_costs(self):
-        return self.lateness_costs + self.accuracy_costs
+        """
+        Penalty costs of the policy based on its responsiveness and accuracy
+        :return: Penalty costs of the score
+        """
+        return self.responsiveness_costs + self.accuracy_costs
 
     @property
     def total_costs(self):
+        """
+        Total costs based on both the financial and penalty costs
+        :return: Total costs of the score
+        """
         return self.financial_costs + self.penalty_costs
 
     def __float__(self):
-        return np.float64(self.total_costs).item()
+        """
+        Actual score (value) that should be used to rank policies
+        :return: Score value of the policy
+        """
+        # Use helper function to get builtin float type instead of np.float
+        score = np.float64(self.total_costs).item()
+
+        return score
 
     def __lt__(self, other: "Score"):
         return float(self) < float(other)
 
     def __str__(self):
         return f"""{self.policy}
-- Total simulations (nan)  : {self.n_simulations} ({self.nan_simulations})
-- Total lateness (average) : {sum(self.latenesses)} ({self.avg_lateness})
-- Total wrong (accuracy)   : {self.n_wrong_classifications} ({self.accuracy})
-- Avg. financial costs     : {self.financial_costs}
-- Avg. penalty   costs     : {self.penalty_costs} (lateness {self.lateness_costs} + accuracy {self.accuracy_costs})
+- Total simulations (nan)   : {self.n_simulations} ({self.nan_simulations})
+- Total responses (average) : {sum(self.responses)} ({self.avg_response})
+- Total wrong (accuracy)    : {self.n_wrong_classifications} ({self.accuracy})
+- Avg. financial costs      : {self.financial_costs}
+- Avg. penalty   costs      : {self.penalty_costs} (response {self.responsiveness_costs} + accuracy {self.accuracy_costs})
 ---------------------------------------------------------
-Total score                : {float(self)}
+Total score                 : {float(self)}
 """

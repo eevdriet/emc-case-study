@@ -72,7 +72,6 @@ class PolicyManager:
         costs = {}
 
         best_score = Score.create_missing()
-        best_policy = None
         iteration = 0
 
         # Setup policy
@@ -86,7 +85,7 @@ class PolicyManager:
                 for it, neighbor in enumerate(neighbors, 1):
 
                     if neighbor in costs:
-                        logger.info(f"- Using previous costs       : {costs[neighbor]}")
+                        logger.info(f"- Using previous costs       : {float(costs[neighbor])}")
                         neighbor_scores[neighbor] = costs[neighbor]
                         continue
 
@@ -113,7 +112,7 @@ class PolicyManager:
                 iteration += 1
                 logger.info(f"No policy is improving, now on iteration {iteration + 1}/{self.__N_MAX_ITERS}\n")
 
-        return best_policy, self.policy_scores
+        return best_score, self.policy_scores
 
     def __build_regressors(self, policy: Policy) -> None:
         """
@@ -318,7 +317,7 @@ class PolicyManager:
         return Score(policy=policy,
                      n_simulations=len(self.test_simulations),
                      n_wrong_classifications=n_wrong_classifications,
-                     latenesses=latenesses,
+                     responses=latenesses,
                      sub_policy_costs=sub_policy_costs)
 
     def __split_data(self) -> SplitData:
@@ -372,14 +371,14 @@ def main():
     from emc.data.neighborhood import flip_neighbors, swap_neighbors, identity_neighbors, fixed_interval_neighbors
 
     # TODO: adjust scenario before running the policy manager
-    worm = Worm.ASCARIS.value
-    frequency = 1
+    worm = Worm.HOOKWORM.value
+    frequency = 2
     strategy = 'sac'
     regresModel = GradientBoosterDefault
 
     # Use the policy manager
     logger.info(f"-- {worm}: {strategy} with {frequency} --")
-    neighborhoods = [flip_out_neighbors]  # also swap_neighbors
+    neighborhoods = [fixed_interval_neighbors]  # also swap_neighbors
 
     loader = DataLoader(worm)
     all_scenarios = loader.load_scenarios()
@@ -393,14 +392,15 @@ def main():
     manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods, init_policy)
 
     # Register best policy and save all costs
-    best_policy, policy_scores = manager.manage()
-    json_costs = {str(policy.epi_time_points): score.to_json() for policy, score in policy_scores.items()}
+    best_score, policy_scores = manager.manage()
+    json_costs = {str(policy.epi_time_points): score.as_dict() for policy, score in policy_scores.items()}
     path = Paths.data('policies') / f"{worm}{frequency}{strategy}.json"
     path.parent.mkdir(exist_ok=True, parents=True)
     with open(path, 'w') as file:
         json.dump(json_costs, file, allow_nan=True, indent=4)
 
-    logger.info(f"Optimal policy is {best_policy} with costs {policy_scores[best_policy]}")
+    policy, val = best_score.policy, float(best_score)
+    logger.info(f"Optimal policy is {policy} with score {val}")
 
 
 if __name__ == '__main__':
