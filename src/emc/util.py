@@ -19,12 +19,11 @@ logger = setup_logger(__name__)
 def first_or_mean(df: pd.DataFrame, col: str, year: Optional[Any]) -> Any:
     """
     Find the first occurrence of a given value of the series or its mean if no value is given
-    :param df: Series to collect data from
+    :param df: Data frame to collect data from
+    :param col: Column to collect data for
     :param year: Value to find if relevant
     :return: Mean or first in the series
     """
-    logger = logging.getLogger(__name__)
-
     if col not in df.columns:
         logger.warning(f"Column '{col}' not found when getting first/mean")
         return np.nan
@@ -33,6 +32,10 @@ def first_or_mean(df: pd.DataFrame, col: str, year: Optional[Any]) -> Any:
         return df[col].mean(skipna=True)
 
     if 'time' in df.columns:
+        series = df.loc[df['time'] == year, col]
+        if series.empty:
+            return np.nan
+
         return df.loc[df['time'] == year, col].iloc[0]
 
     logger.warning(f"Column 'time' not found when getting first/mean")
@@ -101,13 +104,15 @@ class Paths:
         return cls.__safe_path(cls.__ROOT / 'data' / typ)
 
     @classmethod
-    def hyperparameter_opt(cls, filename: str) -> Path:
+    def hyperparameter_opt(cls, filename: str, plotdata: bool = False) -> Path:
         """
        Access the hyperparameter path of the project from anywhere
        :return: hyperparameter folder of the project
        """
-        path = cls.data('hyperparameter') / filename
-        return cls.__safe_path(path)
+        if plotdata:
+            return cls.__safe_path(cls.__ROOT / 'data' / 'hyperparameter' / 'plotdata' / filename)
+        else:
+            return cls.__safe_path(cls.__ROOT / 'data' / 'hyperparameter' / filename)
 
     @classmethod
     def worm_data(cls, worm: str, data_type: str, use_merged: bool = True) -> Path:
@@ -179,6 +184,7 @@ class Paths:
         :param worm: Name of the worm
         :param mda_freq: De-worming frequency
         :param mda_strategy: De-worming strategy
+        :param constructor: Constructor of the regressor to find the path for
         :param filename: Name of the file
         :return: Path to the model file
         """
@@ -209,7 +215,7 @@ class Writer:
     def __read_json_file(cls, path):
         """
         Read JSON file from the given filename
-        :param filename: Name of the JSON file
+        :param path: Path to the JSON file
         :return: Data loaded from the JSON file
         """
         path.parent.mkdir(parents=True, exist_ok=True)

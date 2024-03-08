@@ -35,7 +35,7 @@ class MCSimulation:
         return result
 
     def __simulate_count_ids(self, mu_i: float):
-        mu_ids = self.__simulate_mu_ids(mu_i) # mu_ids = self.__simulate_mu_ids(mu_i)
+        mu_ids = self.__simulate_mu_ids(mu_i)
         count = 0
         for i in range(self.__TOTAL_SIM):
             count += np.random.poisson(mu_ids)

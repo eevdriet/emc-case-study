@@ -32,13 +32,13 @@ COLUMNS = ['scenario', 'simulation', 'time']
 INT_COLUMNS = ['scenario', 'simulation']
 
 # Monitor age
-MA_COLUMNS = COLUMNS + ['n_host', 
+MA_COLUMNS = COLUMNS + ['n_host',
                         'n_host_eggpos',
-                        'exp_inf_level', 
+                        'exp_inf_level',
                         'inf_level',
-                        'a_epg_obs', 
+                        'a_epg_obs',
                         'a_drug_efficacy_true',
-                        'ERR', 
+                        'ERR',
                         'target']
 
 MA_INT_COLUMNS = INT_COLUMNS + ['time', 'n_host', 'n_host_eggpos']
@@ -62,3 +62,9 @@ RESISTANCE_NOT_FOUND_COSTS = 1_000
 ACCURACY_VIOLATED_COSTS = 1_000
 DRUG_EFFICACY_THRESHOLD = 0.88
 MAX_MISCLASSIFICATION_FRACTION = 1
+
+# Color scheme
+YELLOW = '#FFC107'
+MAGENTA = '#D81B60'
+BLUE = '#1E88E5'
+GREEN = '#004D40'

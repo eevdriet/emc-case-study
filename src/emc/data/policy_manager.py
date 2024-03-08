@@ -237,7 +237,7 @@ class PolicyManager:
                     continue
 
                 # Otherwise, verify whether resistance is a problem by scheduling a drug efficacy the year after
-                drug_signal = simulation.predict(sub_policy)
+                drug_signal = simulation.verify(sub_policy)
 
                 # If no drug efficacy data is available, penalize the policy for not finding a signal sooner
                 if drug_signal is None:

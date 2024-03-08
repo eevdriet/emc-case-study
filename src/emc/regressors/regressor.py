@@ -47,10 +47,11 @@ class Regressor(ABC):
         X_data = np.vstack(tuple(self.features_data.values()))
         y_data = np.array(tuple(self.targets_data.values()))
 
-        if self.regression_model == None:
+        if self.regression_model is None:
             self._train(X_data, y_data)
 
-    def _preprocess(self, data: pd.DataFrame) -> tuple[_X, _Y]:
+    @classmethod
+    def _preprocess(cls, data: pd.DataFrame) -> tuple[_X, _Y]:
         """
         Preprocess the training data
             Standardise all features
@@ -108,28 +109,28 @@ class Regressor(ABC):
 
         result = self.regression_model.predict(X_test)
         return result
-    
+
     def getModel(self):
         """
         Get the model used in the classifier.
         :return: The model object.
         """
         return self.regression_model
-        
+
     def setModel(self, model):
         """
         Set the model for the classifier.
         :param model: The model to be set.
         """
         self.regression_model = model
-        
+
     def getPreprocessing(self):
         """
         Retrieve the preprocessing data including features and targets for training and testing.
         :return: A tuple containing features and targets for training and testing.
         """
         return (self.features_data, self.targets_data, self.features_test, self.targets_test)
-        
+
     def setPreprocessing(self, features_data, targets_data, features_test, targets_test) -> None:
         """
         Set the preprocessing data for the classifier.
@@ -157,13 +158,13 @@ class Regressor(ABC):
         newRegressor = constructor(policy, train, test)
         newRegressor.setModel(model)
         return newRegressor
-    
+
     def getParameters(self):
         if self.regression_model == None:
             return None
         else:
             return self.regression_model.get_params()
-        
+
     def getStats(self):
         """
         Calculate and return the statistics including accuracy, precision, recall, and F1 score for the model.
@@ -190,6 +191,6 @@ class Regressor(ABC):
         }
 
         return results
-    
+
     def getFeatureWeights(self):
         return self.regression_model.feature_importances_

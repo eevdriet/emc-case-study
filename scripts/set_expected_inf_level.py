@@ -43,7 +43,7 @@ def set_expected_infection_level() -> None:
             mda_freq = data['mda_freq']
             mda_strategy = data['mda_strategy']
 
-            path = Paths.levels(worm, mda_freq, mda_strategy)
+            path = Paths.levels(worm, bucket_size=bucket_size, mda_freq=mda_freq, mda_strategy=mda_strategy)
             assert path.exists(), "Make sure to run the `build_levels` script in LevelBuilder"
 
             with open(path, 'r') as file:
