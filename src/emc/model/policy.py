@@ -63,7 +63,7 @@ class Policy:
         total_cost = 0
 
         # Calculate the cost of the drug efficacy surveys and add them to the total costs if relevant
-        drug_surveys_costs = [self.__calculate_drug_cost(de_survey, year) for year in self.drug_time_points]
+        drug_surveys_costs = [self.calculate_drug_cost(de_survey, year) for year in self.drug_time_points]
 
         drug_surveys = len(self.drug_time_points) != 0
         drug_data_complete = all(not isnan(cost) for cost in drug_surveys_costs)
@@ -74,7 +74,7 @@ class Policy:
 
         # Base the costs on the average over all policy years if allowed and current costs invalid
         if allow_average and (not drug_surveys or not drug_data_complete):
-            drug_surveys_costs = [self.__calculate_drug_cost(de_survey)]
+            drug_surveys_costs = [self.calculate_drug_cost(de_survey)]
 
         if drug_surveys and drug_data_complete:
             total_cost += sum(drug_surveys_costs)
