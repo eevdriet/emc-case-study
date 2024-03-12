@@ -58,17 +58,20 @@ class Score:
         }
 
     def as_dict(self):
-        score_str = self.__OBJECTIVE.value
+        score_str = f"score_{self.__OBJECTIVE.value}"
+
+        def inf_str(val: float) -> str | float:
+            return 'inf' if val == float('inf') else val
 
         return {
             'n_simulations': self.n_simulations,
             'n_wrong_classifications': self.n_wrong_classifications,
             'accuracy': self.accuracy,
             'avg_response': self.avg_response,
-            'financial_costs': self.financial_costs,
-            'responsiveness_costs': self.responsiveness_costs,
-            'accuracy_costs': self.accuracy_costs,
-            score_str: float(self)
+            'financial_costs': inf_str(self.financial_costs),
+            'responsiveness_costs': inf_str(self.responsiveness_costs),
+            'accuracy_costs': inf_str(self.accuracy_costs),
+            score_str: inf_str(float(self))
         }
 
     @classmethod
@@ -105,7 +108,7 @@ class Score:
         Financial costs of the policy based on its survey moments
         :return: Financial costs of the score
         """
-        if len(self.total_sub_policy_costs) > 0:
+        if len(self.total_sub_policy_costs) <= 0:
             return float('inf')
 
         return sum(self.total_sub_policy_costs) / len(self.total_sub_policy_costs)

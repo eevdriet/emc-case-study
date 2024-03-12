@@ -4,6 +4,7 @@ import random
 from collections import defaultdict
 from math import isnan
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -466,7 +467,7 @@ def main():
     )
 
     # Set the score objective
-    Score.set_objective(Objective.RESPONSIVENESS, multiplier=2, n_max_surveys=25)
+    Score.set_objective(Objective.RESPONSIVENESS, multiplier=2, n_max_surveys=5)
 
     # Register best policy and save all costs
     best_score, policy_scores = manager.manage()
@@ -476,6 +477,7 @@ def main():
     }
     path = Paths.data("policies") / f"{worm}{frequency}{strategy}.json"
     path.parent.mkdir(exist_ok=True, parents=True)
+
     with open(path, "w") as file:
         json.dump(json_costs, file, allow_nan=True, indent=4)
 
