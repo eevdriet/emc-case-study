@@ -417,8 +417,7 @@ def main():
         if s.mda_freq == frequency and s.mda_strategy == strategy
     ]
 
-    # init_policy = Policy.from_every_n_years(1)
-    init_policy = Policy.from_timepoints([0, 2, 3, 4, 5, 8, 13])
+    init_policy = Policy.from_every_n_years(5)
     manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods, init_policy)
 
     # Register best policy and save all costs

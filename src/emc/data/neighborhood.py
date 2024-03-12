@@ -41,8 +41,7 @@ def flip_out_neighbors(policy: Policy) -> Neighbor:
 
 
 def identity_neighbors(policy: Policy) -> Neighbor:
-    for _ in range(1, N_YEARS - 1):
-        yield policy.copy()
+    yield policy.copy()
 
 
 def fixed_interval_neighbors(policy: Policy) -> Neighbor:
