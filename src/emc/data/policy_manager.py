@@ -20,7 +20,8 @@ from emc.model.scenario import Scenario
 from emc.model.score import Score, Objective
 from emc.model.simulation import Simulation
 from emc.regressors import *
-from emc.util import Pair, Paths, Writer, normalised
+from emc.data.neighborhood import Neighborhood
+from emc.util import normalised, Pair, Writer
 
 
 class PolicyManager:
@@ -32,7 +33,7 @@ class PolicyManager:
     Manages the classification of different policies and their sub-policies
     """
 
-    __N_MAX_ITERS: int = 1
+    __N_MAX_ITERS: int = 10
     __TRAIN_TEST_SPLIT_SIZE: float = 0.2
     __NORMALISED_COLS = {"n_host", "n_host_eggpos", "a_epg_obs"}
 
@@ -83,52 +84,77 @@ class PolicyManager:
 
         best_score = Score.create_missing()
         iteration = 0
+        total_iteration = 0
 
         # Setup policy
         curr_policy = self.init_policy
+        curr_score = float('inf')
+
+        ils_best_policy = self.init_policy
+        ils_best_score = float('inf')
 
         while iteration < self.__N_MAX_ITERS:
-            neighbor_scores = {}
+            logger.info(f"ILS Iteration {iteration}/{self.__N_MAX_ITERS} (total: {total_iteration}) \n")
+            total_iteration += 1
 
-            for neighborhood in self.neighborhoods:
-                neighbors: list[Policy] = list(neighborhood(curr_policy))
+            while True:
+                logger.info(f"Greedy Policy Improvement")
 
-                for it, neighbor in enumerate(neighbors, 1):
-                    if neighbor in scores:
-                        score = scores[neighbor]
-                        logger.info(
-                            f"{score.policy}\n- Using previous score : {float(scores[neighbor])}"
-                        )
+                neighbor_scores = {}
+
+                for neighborhood in self.neighborhoods:
+                    neighbors: list[Policy] = list(neighborhood(curr_policy))
+
+                    for it, neighbor in enumerate(neighbors, 1):
+                        if neighbor in scores:
+                            score = scores[neighbor]
+                            logger.debug(f"{score.policy}\n- Using previous score : {float(scores[neighbor])}")
+                            neighbor_scores[neighbor] = score
+                            continue
+
+                        self.__build_regressors(neighbor)
+
+                        # Determine the score and make sure no invalid data is present
+                        score = self.__calculate_score(neighbor)
+                        logger.info(score)
                         neighbor_scores[neighbor] = score
-                        continue
+                        scores[neighbor] = score
 
-                    self.__build_regressors(neighbor)
+                # Register all policy score
+                self.policy_scores = {**self.policy_scores, **neighbor_scores}
 
-                    # Determine the score and make sure no invalid data is present
-                    score = self.__calculate_score(neighbor)
-                    logger.info(score)
-                    neighbor_scores[neighbor] = score
-                    scores[neighbor] = score
+                # Update the best policy if an improvement was found
+                curr_policy, curr_score = min(neighbor_scores.items(), key=lambda pair: pair[1])
+                if curr_score < best_score:
+                    logger.debug(f"Greedy optimisation: {curr_policy} is improving! Score {float(curr_score)}\n")
+                    best_score = curr_score
+                    best_policy = curr_policy.copy()
+                else:
+                    logger.debug(f"Greedy optimisation: No policy improvement found, stopping greedy")
+                    break
 
-            # Register all policy score
-            self.policy_scores = {**self.policy_scores, **neighbor_scores}
+            if (best_score < ils_best_score):
+                ils_best_score = best_score
+                ils_best_policy = best_policy
 
-            # Update the best policy if an improvement was found
-            curr_policy, curr_score = min(
-                neighbor_scores.items(), key=lambda pair: pair[1]
-            )
-            if curr_score < best_score:
-                logger.info(f"{curr_policy} is improving! Score {float(curr_score)}\n")
-                best_score = curr_score
-                best_policy = curr_policy.copy()
                 iteration = 0
-            # Otherwise continue with a random neighbor
+
+                logger.info(f"Improvement found {iteration}/{self.__N_MAX_ITERS} (total: {total_iteration})")
+                logger.info(f"Current best policy: {ils_best_policy.epi_time_points}, (score: {float(ils_best_score)})")
+                curr_policy = ils_best_policy.perturbe()
+                logger.info(f"New perturbed policy: {curr_policy.epi_time_points}")
+
             else:
                 iteration += 1
-                logger.info(
-                    f"No policy is improving, now on iteration {iteration + 1}/{self.__N_MAX_ITERS}\n"
-                )
 
+                logger.info(
+                    f"No improvement found in perturbed policy {iteration}/{self.__N_MAX_ITERS} (total: {total_iteration})")
+                logger.info(f"Current best policy: {ils_best_policy.epi_time_points}, (score: {float(ils_best_score)})")
+                curr_policy = ils_best_policy.perturbe()
+                logger.info(f"New perturbed policy: {curr_policy.epi_time_points}")
+
+        logger.info("\n\nOptimal policy found:")
+        logger.info(best_score)
         return best_score, self.policy_scores
 
     def __build_regressors(self, policy: Policy) -> None:
@@ -435,12 +461,8 @@ class PolicyManager:
 
 def main():
     from emc.data.data_loader import DataLoader
-    from emc.data.neighborhood import (
-        fixed_interval_neighbors,
-        flip_neighbors,
-        identity_neighbors,
-        swap_neighbors,
-    )
+    from emc.data.neighborhood import flip_neighbors, swap_neighbors, identity_neighbors, fixed_interval_neighbors, \
+        flip_out_neighbors
 
     # TODO: adjust scenario before running the policy manager
     worm = Worm.HOOKWORM.value
@@ -450,7 +472,7 @@ def main():
 
     # Use the policy manager
     logger.info(f"-- {worm}: {strategy} with {frequency} --")
-    neighborhoods = [identity_neighbors]  # also swap_neighbors
+    neighborhoods = [fixed_interval_neighbors]  # also swap_neighbors
 
     loader = DataLoader(worm)
     all_scenarios = loader.load_scenarios()
