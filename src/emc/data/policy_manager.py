@@ -1,26 +1,25 @@
 import json
+import logging
+import random
+from collections import defaultdict
+from math import isnan
 from pathlib import Path
 
 import pandas as pd
-import random
-from collections import defaultdict
-from emc.util import Paths
+
 from emc.log import setup_logger
-from math import isnan
-import logging
+from emc.util import Paths
 
 logger = setup_logger(__name__)
 
+from emc.data.constants import *
+from emc.data.neighborhood import Neighborhood, flip_out_neighbors
 from emc.model.policy import Policy
 from emc.model.scenario import Scenario
+from emc.model.score import Score, Objective
 from emc.model.simulation import Simulation
-from emc.data.constants import *
-from emc.model.score import Score
-from emc.util import Writer, Paths
-
 from emc.regressors import *
-from emc.data.neighborhood import Neighborhood, flip_out_neighbors
-from emc.util import normalised, Pair
+from emc.util import Pair, Paths, Writer, normalised
 
 
 class PolicyManager:
@@ -34,17 +33,27 @@ class PolicyManager:
 
     __N_MAX_ITERS: int = 1
     __TRAIN_TEST_SPLIT_SIZE: float = 0.2
-    __NORMALISED_COLS = {'n_host', 'n_host_eggpos', 'a_epg_obs'}
+    __NORMALISED_COLS = {"n_host", "n_host_eggpos", "a_epg_obs"}
 
-    def __init__(self, scenarios: list[Scenario], strategy: str, frequency: int, worm: str, regression_model: regressor,
-                 neighborhoods: list[Neighborhood], init_policy: Policy):
+    def __init__(
+            self,
+            scenarios: list[Scenario],
+            strategy: str,
+            frequency: int,
+            worm: str,
+            regression_model: regressor,
+            neighborhoods: list[Neighborhood],
+            init_policy: Policy,
+    ):
         self.logger = logging.getLogger(__name__)
 
         # Setup data fields
         self.scenarios: list[Scenario] = scenarios
         self.policy_classifiers = {}
         self.policy_scores: dict[Policy, float] = {}
-        self.sub_policy_simulations: dict[Policy, set[tuple[int, int]]] = defaultdict(set)
+        self.sub_policy_simulations: dict[Policy, set[tuple[int, int]]] = defaultdict(
+            set
+        )
 
         # Split the data into train/validation data for the classifiers
         simulations, dfs = self.__split_data()
@@ -86,7 +95,9 @@ class PolicyManager:
                 for it, neighbor in enumerate(neighbors, 1):
                     if neighbor in scores:
                         score = scores[neighbor]
-                        logger.info(f"{score.policy}\n- Using previous score : {float(scores[neighbor])}")
+                        logger.info(
+                            f"{score.policy}\n- Using previous score : {float(scores[neighbor])}"
+                        )
                         neighbor_scores[neighbor] = score
                         continue
 
@@ -102,7 +113,9 @@ class PolicyManager:
             self.policy_scores = {**self.policy_scores, **neighbor_scores}
 
             # Update the best policy if an improvement was found
-            curr_policy, curr_score = min(neighbor_scores.items(), key=lambda pair: pair[1])
+            curr_policy, curr_score = min(
+                neighbor_scores.items(), key=lambda pair: pair[1]
+            )
             if curr_score < best_score:
                 logger.info(f"{curr_policy} is improving! Score {float(curr_score)}\n")
                 best_score = curr_score
@@ -111,14 +124,16 @@ class PolicyManager:
             # Otherwise continue with a random neighbor
             else:
                 iteration += 1
-                logger.info(f"No policy is improving, now on iteration {iteration + 1}/{self.__N_MAX_ITERS}\n")
+                logger.info(
+                    f"No policy is improving, now on iteration {iteration + 1}/{self.__N_MAX_ITERS}\n"
+                )
 
         return best_score, self.policy_scores
 
     def __build_regressors(self, policy: Policy) -> None:
         """
         Build and train regressors for a given policy and its sub-policies.
-        
+
         This function iterates over sub-policies of a given policy, checks if a regressor has already been trained,
         and if not, it proceeds to train a new one. It handles the creation and training of regressors,
         managing of models and preprocessing data, and updating hyperparameters as needed.
@@ -135,15 +150,26 @@ class PolicyManager:
             test = self.__filter_data(self.test_df, sub_policy)
 
             # Define paths for saving and loading the model and preprocessing data.
-            model_path = Paths.models(self.worm, self.frequency, self.strategy, self.constructor.__name__,
-                                      str(sub_policy.epi_time_points) + ".pkl")
-            prepro_path = Paths.preprocessing(self.worm, self.frequency, self.strategy,
-                                              str(sub_policy.epi_time_points))
+            model_path = Paths.models(
+                self.worm,
+                self.frequency,
+                self.strategy,
+                self.constructor.__name__,
+                str(sub_policy.epi_time_points) + ".pkl",
+            )
+            prepro_path = Paths.preprocessing(
+                self.worm,
+                self.frequency,
+                self.strategy,
+                str(sub_policy.epi_time_points),
+            )
             model = Writer.loadPickle(model_path)
 
             if model is None:
                 # If no existing model is found, create a new model and preprocessing data.
-                logger.debug(f'Creating new model for: Policy({sub_policy.epi_time_points})')
+                logger.debug(
+                    f"Creating new model for: Policy({sub_policy.epi_time_points})"
+                )
 
                 features_data = Writer.loadPickle(prepro_path / "features_data.pkl")
                 targets_data = Writer.loadPickle(prepro_path / "targets_data.pkl")
@@ -153,14 +179,26 @@ class PolicyManager:
                 # Check for existing hyperparameters and initialize the regressor.
                 regressor = self.constructor(sub_policy, train, test)
 
-                if features_data is not None or targets_data is not None or features_test is not None or targets_test is not None:
+                if (
+                        features_data is not None
+                        or targets_data is not None
+                        or features_test is not None
+                        or targets_test is not None
+                ):
                     logger.debug("Using already calculated preprocessing")
-                    regressor.setPreprocessing(features_data, targets_data, features_test, targets_test)
+                    regressor.setPreprocessing(
+                        features_data, targets_data, features_test, targets_test
+                    )
 
                 regressor.initialize_and_train_model()
 
                 # Save preprocessing data.
-                (features_data, targets_data, features_test, targets_test) = regressor.getPreprocessing()
+                (
+                    features_data,
+                    targets_data,
+                    features_test,
+                    targets_test,
+                ) = regressor.getPreprocessing()
                 Writer.savePickle(prepro_path / "features_data.pkl", features_data)
                 Writer.savePickle(prepro_path / "targets_data.pkl", targets_data)
                 Writer.savePickle(prepro_path / "features_test.pkl", features_test)
@@ -168,8 +206,12 @@ class PolicyManager:
                 Writer.savePickle(model_path, regressor.getModel())
             else:
                 # Use the existing model if found.
-                logger.debug(f'Using created model for: Policy({sub_policy.epi_time_points})')
-                regressor = self.constructor.createInstance(self.constructor, model, sub_policy, train, test)
+                logger.debug(
+                    f"Using created model for: Policy({sub_policy.epi_time_points})"
+                )
+                regressor = self.constructor.createInstance(
+                    self.constructor, model, sub_policy, train, test
+                )
 
                 # Load preprocessing data.
                 features_data = Writer.loadPickle(prepro_path / "features_data.pkl")
@@ -178,13 +220,25 @@ class PolicyManager:
                 targets_test = Writer.loadPickle(prepro_path / "targets_test.pkl")
 
                 # Use existing preprocessing data if available, otherwise, calculate new preprocessing data.
-                if features_data is not None or targets_data is not None or features_test is not None or targets_test is not None:
+                if (
+                        features_data is not None
+                        or targets_data is not None
+                        or features_test is not None
+                        or targets_test is not None
+                ):
                     logger.debug("Using already calculated preprocessing")
-                    regressor.setPreprocessing(features_data, targets_data, features_test, targets_test)
+                    regressor.setPreprocessing(
+                        features_data, targets_data, features_test, targets_test
+                    )
                 else:
                     logger.debug("Calculating new preprocessing")
                     regressor.initialize_and_train_model()
-                    (features_data, targets_data, features_test, targets_test) = regressor.getPreprocessing()
+                    (
+                        features_data,
+                        targets_data,
+                        features_test,
+                        targets_test,
+                    ) = regressor.getPreprocessing()
                     Writer.savePickle(prepro_path / "features_data.pkl", features_data)
                     Writer.savePickle(prepro_path / "targets_data.pkl", targets_data)
                     Writer.savePickle(prepro_path / "features_test.pkl", features_test)
@@ -209,7 +263,7 @@ class PolicyManager:
         if len(sub_policies) == 0:
             return Score.create_missing()
 
-        latenesses = []
+        responses = []
         n_wrong_classifications = 0
 
         for iter, simulation in enumerate(self.test_simulations):
@@ -224,16 +278,20 @@ class PolicyManager:
                 # Continue with epidemiological surveys as long as resistance does not seem to be a problem yet
                 epi_signal = classifier.predict(simulation)
 
-                if epi_signal is None:  # cannot use simulations that have incomplete data
+                # Cannot use simulations that have incomplete data
+                if epi_signal is None:
                     costs = simulation.calculate_cost(sub_policy)
                     # costs += RESISTANCE_NOT_FOUND_COSTS
                     # policy_simulation_costs[sub_policy].append(costs)
-                    logger.debug(f"Simulation {key} -> {sub_policy} with costs {costs} [No epi data]")
+                    logger.debug(
+                        f"Simulation {key} -> {sub_policy} with costs {costs} [No epi data]"
+                    )
 
                     sub_policy_costs[sub_policy][key] = costs
                     break
 
-                if epi_signal >= DRUG_EFFICACY_THRESHOLD:  # skip drug efficacy survey when signal is still fine
+                # Skip drug efficacy survey when signal is still fine
+                if epi_signal >= DRUG_EFFICACY_THRESHOLD:
                     continue
 
                 # Otherwise, verify whether resistance is a problem by scheduling a drug efficacy the year after
@@ -245,7 +303,8 @@ class PolicyManager:
                     # costs += RESISTANCE_NOT_FOUND_COSTS
                     # policy_simulation_costs[sub_policy].append(costs)
                     logger.debug(
-                        f"Simulation {key} -> {sub_policy} with costs {costs} [Epi < {DRUG_EFFICACY_THRESHOLD}, no drug data]")
+                        f"Simulation {key} -> {sub_policy} with costs {costs} [Epi < {DRUG_EFFICACY_THRESHOLD}, no drug data]"
+                    )
 
                     sub_policy_costs[sub_policy][key] = costs
                     break
@@ -255,7 +314,8 @@ class PolicyManager:
                     drug_policy = sub_policy.with_drug_survey()
                     costs = simulation.calculate_cost(drug_policy)
                     logger.debug(
-                        f"Simulation {key} -> {drug_policy} with costs {costs} [Epi < {DRUG_EFFICACY_THRESHOLD}, drug < 0.85]")
+                        f"Simulation {key} -> {drug_policy} with costs {costs} [Epi < {DRUG_EFFICACY_THRESHOLD}, drug < 0.85]"
+                    )
                     # policy_simulation_costs[drug_policy].append(costs)
                     sub_policy_costs[sub_policy][key] = costs
                     signal_year = drug_policy.last_year + 1
@@ -265,16 +325,17 @@ class PolicyManager:
             else:
                 costs = simulation.calculate_cost(policy)
                 logger.debug(
-                    f"Simulation {key} -> {policy} with costs {costs} [Epi>= {DRUG_EFFICACY_THRESHOLD}, drug >= 0.85]")
+                    f"Simulation {key} -> {policy} with costs {costs} [Epi>= {DRUG_EFFICACY_THRESHOLD}, drug >= 0.85]"
+                )
                 sub_policy_costs[policy][key] = costs
                 self.sub_policy_simulations[policy].add(key)
 
             # Only penalise miss classifications for resistance modes different from 'none' when needed
-            if simulation.scenario.res_mode != 'none':
+            if simulation.scenario.res_mode != "none":
                 # Find the first year for which the ERR value is not nan
                 first_year = None
-                ERR = simulation.drug_efficacy_s['ERR'].reset_index(drop=True)
-                target = simulation.monitor_age['target'].reset_index(drop=True)
+                ERR = simulation.drug_efficacy_s["ERR"].reset_index(drop=True)
+                target = simulation.monitor_age["target"].reset_index(drop=True)
                 for time, (epi_signal, drug_signal) in enumerate(zip(target, ERR)):
                     if isnan(epi_signal) or isnan(drug_signal):
                         break
@@ -288,19 +349,21 @@ class PolicyManager:
                 # Determine lateness of the policy
                 # Note that the absolute value is needed, regressor can find a signal before it occurs in the monitor_age data
                 if first_year is None:
-                    lateness = 0
+                    responsiveness = 0
                 else:
-                    lateness = (20 if signal_year is None else signal_year) - first_year
-                    lateness = abs(lateness)
+                    responsiveness = (20 if signal_year is None else signal_year) - first_year
+                    responsiveness = abs(responsiveness)
 
-                logger.debug(f"Simulation {key} has lateness {lateness}")
-                latenesses.append(lateness)
+                logger.debug(f"Simulation {key} has responsiveness {responsiveness}")
+                responses.append(responsiveness)
 
                 # Verify whether the simulation was wrongly classified
                 if signal_year is None:
                     # Find the last year for which the true drug_efficacy/ERR values are below
                     last_year = None
-                    for time, (epi_signal, drug_signal) in enumerate(zip(target[::-1], ERR[::-1])):
+                    for time, (epi_signal, drug_signal) in enumerate(
+                            zip(target[::-1], ERR[::-1])
+                    ):
                         if isnan(epi_signal) or isnan(drug_signal):
                             continue
 
@@ -315,11 +378,13 @@ class PolicyManager:
                         n_wrong_classifications += 1
 
         # Calculate final costs and display
-        return Score(policy=policy,
-                     n_simulations=len(self.test_simulations),
-                     n_wrong_classifications=n_wrong_classifications,
-                     responses=latenesses,
-                     sub_policy_costs=sub_policy_costs)
+        return Score(
+            policy=policy,
+            n_simulations=len(self.test_simulations),
+            n_wrong_classifications=n_wrong_classifications,
+            responses=responses,
+            sub_policy_costs=sub_policy_costs,
+        )
 
     def __split_data(self) -> SplitData:
         """
@@ -364,17 +429,22 @@ class PolicyManager:
         """
         # Select only time points that occur in the policy
         time_points = policy.epi_time_points
-        return df[df['time'].isin(time_points)]
+        return df[df["time"].isin(time_points)]
 
 
 def main():
     from emc.data.data_loader import DataLoader
-    from emc.data.neighborhood import flip_neighbors, swap_neighbors, identity_neighbors, fixed_interval_neighbors
+    from emc.data.neighborhood import (
+        fixed_interval_neighbors,
+        flip_neighbors,
+        identity_neighbors,
+        swap_neighbors,
+    )
 
     # TODO: adjust scenario before running the policy manager
     worm = Worm.HOOKWORM.value
     frequency = 2
-    strategy = 'sac'
+    strategy = "sac"
     regresModel = GradientBoosterDefault
 
     # Use the policy manager
@@ -385,24 +455,33 @@ def main():
     all_scenarios = loader.load_scenarios()
 
     scenarios = [
-        s for s in all_scenarios
+        s
+        for s in all_scenarios
         if s.mda_freq == frequency and s.mda_strategy == strategy
     ]
 
     init_policy = Policy.from_every_n_years(1)
-    manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods, init_policy)
+    manager = PolicyManager(
+        scenarios, strategy, frequency, worm, regresModel, neighborhoods, init_policy
+    )
+
+    # Set the score objective
+    Score.set_objective(Objective.RESPONSIVENESS, multiplier=2, n_max_surveys=25)
 
     # Register best policy and save all costs
     best_score, policy_scores = manager.manage()
-    json_costs = {str(policy.epi_time_points): score.as_dict() for policy, score in policy_scores.items()}
-    path = Paths.data('policies') / f"{worm}{frequency}{strategy}.json"
+    json_costs = {
+        str(policy.epi_time_points): score.as_dict()
+        for policy, score in policy_scores.items()
+    }
+    path = Paths.data("policies") / f"{worm}{frequency}{strategy}.json"
     path.parent.mkdir(exist_ok=True, parents=True)
-    with open(path, 'w') as file:
+    with open(path, "w") as file:
         json.dump(json_costs, file, allow_nan=True, indent=4)
 
     policy, val = best_score.policy, float(best_score)
     logger.info(f"Optimal policy is {policy} with score {val}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
