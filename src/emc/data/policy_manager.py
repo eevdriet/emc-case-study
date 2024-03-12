@@ -450,7 +450,7 @@ def main():
 
     # Use the policy manager
     logger.info(f"-- {worm}: {strategy} with {frequency} --")
-    neighborhoods = [fixed_interval_neighbors]  # also swap_neighbors
+    neighborhoods = [identity_neighbors]  # also swap_neighbors
 
     loader = DataLoader(worm)
     all_scenarios = loader.load_scenarios()
