@@ -12,12 +12,13 @@ class Score:
     Aggregates all objectives that can be used to score a policy on its quality
     """
 
-    def __init__(self, policy: Policy, n_simulations: int, n_wrong_classifications: int, responses: list[int],
+    def __init__(self, policy: Policy, n_simulations: int, n_false_positives: int, n_false_negatives: int, responses: list[int],
                  sub_policy_costs: dict[Policy, dict[tuple[int, int], float]]):
         # Raw data
         self.policy = policy
         self.n_simulations = n_simulations
-        self.n_wrong_classifications = n_wrong_classifications
+        self.n_false_positives = n_false_positives
+        self.n_false_negatives = n_false_negatives
 
         self.responses = responses
         self.sub_policy_cost = sub_policy_costs
@@ -29,7 +30,7 @@ class Score:
 
         self.avg_response = sum(self.responses) / len(self.responses)
 
-        self.accuracy = 1 - (self.n_wrong_classifications / self.n_simulations)
+        self.accuracy = 1 - ((self.n_false_positives + self.n_false_negatives) / self.n_simulations)
 
         # Costs
         self.responsiveness_costs = self.avg_response * RESISTANCE_NOT_FOUND_COSTS
@@ -38,7 +39,8 @@ class Score:
     def as_dict(self):
         return {
             'n_simulations': self.n_simulations,
-            'n_wrong_classifications': self.n_wrong_classifications,
+            'n_false_positives': self.n_false_positives,
+            'n_false_negatives': self.n_false_negatives,
             'accuracy': self.accuracy,
             'avg_lateness': self.avg_response,
             'financial_costs': self.financial_costs,
@@ -58,7 +60,7 @@ class Score:
         costs = {policy: {(0, 0): float('inf')}}
         latenesses = [0]
 
-        score = cls(policy=policy, n_simulations=1, n_wrong_classifications=0, responses=latenesses,
+        score = cls(policy=policy, n_simulations=1, n_false_positives=0, n_false_negatives=0, responses=latenesses,
                     sub_policy_costs=costs)
 
         return score
@@ -105,11 +107,11 @@ class Score:
 
     def __str__(self):
         return f"""{self.policy}
-- Total simulations (nan)   : {self.n_simulations} ({self.nan_simulations})
-- Total responses (average) : {sum(self.responses)} ({self.avg_response})
-- Total wrong (accuracy)    : {self.n_wrong_classifications} ({self.accuracy})
-- Avg. financial costs      : {self.financial_costs}
-- Avg. penalty   costs      : {self.penalty_costs} (response {self.responsiveness_costs} + accuracy {self.accuracy_costs})
+- Total simulations (nan)        : {self.n_simulations} ({self.nan_simulations})
+- Total responses (average)      : {sum(self.responses)} ({self.avg_response})
+- Total wrong (accuracy, FP, FN) : {self.n_false_negatives + self.n_false_positives} ({self.accuracy}, {self.n_false_positives}, {self.n_false_negatives})
+- Avg. financial costs           : {self.financial_costs}
+- Avg. penalty   costs           : {self.penalty_costs} (response {self.responsiveness_costs} + accuracy {self.accuracy_costs})
 ---------------------------------------------------------
-Total score                 : {float(self)}
+Total score                      : {float(self)}
 """

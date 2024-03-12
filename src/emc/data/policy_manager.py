@@ -238,7 +238,8 @@ class PolicyManager:
             return Score.create_missing()
 
         latenesses = []
-        n_wrong_classifications = 0
+        n_false_positives = 0
+        n_false_negatives = 0
 
         for iter, simulation in enumerate(self.test_simulations):
             key = (simulation.scenario.id, simulation.id)
@@ -325,27 +326,32 @@ class PolicyManager:
                 latenesses.append(lateness)
 
                 # Verify whether the simulation was wrongly classified
-                if signal_year is None:
-                    # Find the last year for which the true drug_efficacy/ERR values are below
-                    last_year = None
-                    for time, (epi_signal, drug_signal) in enumerate(zip(target[::-1], ERR[::-1])):
-                        if isnan(epi_signal) or isnan(drug_signal):
-                            continue
+                
+                # Find the last year for which the true drug_efficacy/ERR values are below
+                last_year = None
+                
+                for time, (epi_signal, drug_signal) in enumerate(zip(target[::-1], ERR[::-1])):
+                    if isnan(epi_signal) or isnan(drug_signal):
+                        continue
 
-                        if epi_signal >= DRUG_EFFICACY_THRESHOLD or drug_signal >= 0.85:
-                            continue
+                    if epi_signal >= DRUG_EFFICACY_THRESHOLD or drug_signal >= 0.85:
+                        continue
 
-                        last_year = time
-                        break
+                    last_year = time
+                    break
 
-                    if last_year is not None:
-                        logger.debug(f"Simulation {key} was wrongly classified")
-                        n_wrong_classifications += 1
+                if last_year is not None and signal_year is None:
+                    logger.debug(f"Simulation {key} was wrongly classified as False Negative")
+                    n_false_negatives += 1
+                elif last_year is None and signal_year is not None:
+                    logger.debug(f"Simulation {key} was wrongly classified as False Positive")
+                    n_false_positives += 1
 
         # Calculate final costs and display
         return Score(policy=policy,
                      n_simulations=len(self.test_simulations),
-                     n_wrong_classifications=n_wrong_classifications,
+                     n_false_positives=n_false_positives,
+                     n_false_negatives=n_false_negatives,
                      responses=latenesses,
                      sub_policy_costs=sub_policy_costs)
 
@@ -407,7 +413,7 @@ def main():
 
     # Use the policy manager
     logger.info(f"-- {worm}: {strategy} with {frequency} --")
-    neighborhoods = [flip_out_neighbors]  # also swap_neighbors
+    neighborhoods = [fixed_interval_neighbors]  # also swap_neighbors
 
     loader = DataLoader(worm)
     all_scenarios = loader.load_scenarios()
