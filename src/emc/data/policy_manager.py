@@ -409,13 +409,13 @@ def main():
 
     # TODO: adjust scenario before running the policy manager
     worm = Worm.HOOKWORM.value
-    frequency = 2
+    frequency = 1
     strategy = 'sac'
     regresModel = GradientBoosterOptuna
 
     # Use the policy manager
     logger.info(f"-- {worm}: {strategy} with {frequency} --")
-    neighborhoods = [flip_out_neighbors]  # also swap_neighbors
+    neighborhoods = [identity_neighbors]  # also swap_neighbors
 
     loader = DataLoader(worm)
     all_scenarios = loader.load_scenarios()
