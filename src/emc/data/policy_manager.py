@@ -411,7 +411,7 @@ def main():
     worm = Worm.HOOKWORM.value
     frequency = 2
     strategy = 'sac'
-    regresModel = GradientBoosterDefault
+    regresModel = GradientBoosterOptuna
 
     # Use the policy manager
     logger.info(f"-- {worm}: {strategy} with {frequency} --")

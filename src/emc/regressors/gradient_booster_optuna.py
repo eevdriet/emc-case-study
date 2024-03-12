@@ -46,7 +46,7 @@ class GradientBoosterOptuna(Regressor):
 
         study = optuna.create_study(direction='maximize')
         logger.debug("Optimization process started...")
-        study.optimize(objective, n_trials=100, timeout=600)
+        study.optimize(objective, n_trials=5, timeout=600)
         logger.debug("Optimization process completed.")
 
         best_hyperparams = study.best_trial.params
