@@ -379,7 +379,7 @@ def main():
 
     # Use the policy manager
     logger.info(f"-- {worm}: {strategy} with {frequency} --")
-    neighborhoods = [fixed_interval_neighbors]  # also swap_neighbors
+    neighborhoods = [identity_neighbors]  # also swap_neighbors
 
     loader = DataLoader(worm)
     all_scenarios = loader.load_scenarios()
@@ -389,7 +389,7 @@ def main():
         if s.mda_freq == frequency and s.mda_strategy == strategy
     ]
 
-    init_policy = Policy.from_every_n_years(1)
+    init_policy = Policy.from_every_n_years(5)
     manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods, init_policy)
 
     # Register best policy and save all costs
