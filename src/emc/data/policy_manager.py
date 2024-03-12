@@ -129,7 +129,7 @@ class PolicyManager:
                 iteration = 0
 
                 logger.info(f"Improvement found {iteration}/{self.__N_MAX_ITERS} (total: {total_iteration})")
-                logger.info(f"Current best policy: {ils_best_policy.epi_time_points}, (cost: {ils_best_score})")
+                logger.info(f"Current best policy: {ils_best_policy.epi_time_points}, (score: {float(ils_best_score)})")
                 curr_policy = ils_best_policy.perturbe()
                 logger.info(f"New perturbed policy: {curr_policy.epi_time_points}")
 
@@ -137,10 +137,12 @@ class PolicyManager:
                 iteration += 1
 
                 logger.info(f"No improvement found in perturbed policy {iteration}/{self.__N_MAX_ITERS} (total: {total_iteration})")
-                logger.info(f"Current best policy: {ils_best_policy.epi_time_points}, (cost: {ils_best_score})")
+                logger.info(f"Current best policy: {ils_best_policy.epi_time_points}, (score: {float(ils_best_score)})")
                 curr_policy = ils_best_policy.perturbe()
                 logger.info(f"New perturbed policy: {curr_policy.epi_time_points}")
 
+        logger.info(f"\n\nOptimal policy found:")
+        logger.info(best_score)
         return best_score, self.policy_scores
 
     def __build_regressors(self, policy: Policy) -> None:
@@ -329,7 +331,7 @@ class PolicyManager:
                 
                 # Find the last year for which the true drug_efficacy/ERR values are below
                 last_year = None
-                
+
                 for time, (epi_signal, drug_signal) in enumerate(zip(target[::-1], ERR[::-1])):
                     if isnan(epi_signal) or isnan(drug_signal):
                         continue
@@ -413,7 +415,7 @@ def main():
 
     # Use the policy manager
     logger.info(f"-- {worm}: {strategy} with {frequency} --")
-    neighborhoods = [fixed_interval_neighbors]  # also swap_neighbors
+    neighborhoods = [flip_out_neighbors]  # also swap_neighbors
 
     loader = DataLoader(worm)
     all_scenarios = loader.load_scenarios()
@@ -423,7 +425,7 @@ def main():
         if s.mda_freq == frequency and s.mda_strategy == strategy
     ]
 
-    init_policy = Policy.from_every_n_years(5)
+    init_policy = Policy.from_every_n_years(1)
     manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods, init_policy)
 
     # Register best policy and save all costs
