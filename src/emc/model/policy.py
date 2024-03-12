@@ -1,5 +1,6 @@
 import math
 from math import isnan
+import random
 
 import pandas as pd
 import numpy as np
@@ -10,6 +11,7 @@ from emc.model.time_costs import Time_Costs
 from emc.data.constants import *
 from emc.util import first_or_mean
 
+random.seed(SEED)
 
 class Policy:
     """
@@ -28,6 +30,15 @@ class Policy:
         # Initially schedule no drug efficacy surveys
         self.drug_surveys = (False,) * N_YEARS
 
+    def __eq__(self, other: "Policy") -> bool:
+        """
+        Check if two policies are equal based on their epi_surveys attribute only.
+        """
+        if not isinstance(other, Policy):
+            return False
+
+        return self.epi_surveys == other.epi_surveys
+    
     @classmethod
     def from_timepoints(cls, time_points: list[int]) -> "Policy":
         assert min(time_points) >= 0, "Minimum time should be 0"
@@ -51,6 +62,26 @@ class Policy:
         epi_surveys = epi_surveys[:-1] + (False,)
 
         return Policy(epi_surveys)
+    
+    def perturbe(self) -> "Policy":
+        def generate_biased_tuple(original_tuple):
+
+            biased_tuple = []
+            for item in original_tuple:
+                if item:
+                    probability_true = BIAS
+                else:
+                    probability_true = (1 - BIAS)
+                biased_tuple.append(random.random() < probability_true)
+            return biased_tuple
+
+        new_epi_surveys = self.epi_surveys
+        while self.epi_surveys == tuple(new_epi_surveys):
+            new_epi_surveys = generate_biased_tuple(self.epi_surveys)
+            new_epi_surveys = new_epi_surveys[:-1] + [False,]
+            new_epi_surveys[0] = True
+
+        return Policy(new_epi_surveys)
 
     def calculate_cost(self, de_survey: pd.DataFrame, allow_average: bool = True) -> float:
         """
@@ -181,4 +212,6 @@ class Policy:
 
 if __name__ == '__main__':
     policy = Policy.from_every_n_years(5)
+    print(policy)
+    policy.perturbe()
     print(policy)
