@@ -80,6 +80,7 @@ class PolicyManager:
         curr_score = float('inf')
 
         ils_best_policy = self.init_policy
+        best_policy= self.init_policy
         ils_best_score = float('inf')
 
         while iteration < self.__N_MAX_ITERS:
