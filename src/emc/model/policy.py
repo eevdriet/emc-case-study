@@ -64,24 +64,44 @@ class Policy:
         return Policy(epi_surveys)
     
     def perturbe(self) -> "Policy":
-        def generate_biased_tuple(original_tuple):
+        input_list = list(self.epi_surveys)
+        true_count = input_list.count(True)
 
-            biased_tuple = []
-            for item in original_tuple:
-                if item:
-                    probability_true = BIAS
-                else:
-                    probability_true = (1 - BIAS)
-                biased_tuple.append(random.random() < probability_true)
-            return biased_tuple
+        # Increase the number of True values by one
+        new_true_count = true_count + 1
+        if new_true_count >= len(input_list):
+            raise ValueError("Cannot increase the number of True values without violating the constraints.")
 
-        new_epi_surveys = self.epi_surveys
-        while self.epi_surveys == tuple(new_epi_surveys):
-            new_epi_surveys = generate_biased_tuple(self.epi_surveys)
-            new_epi_surveys = new_epi_surveys[:-1] + [False,]
-            new_epi_surveys[0] = True
+        def is_true_within_one(index, list_to_check):
+            if index > 0 and list_to_check[index - 1]:
+                return True
+            if index < len(list_to_check) - 1 and list_to_check[index + 1]:
+                return True
+            return False
+        
+        # Function to find all possible positions for a new True value
+        def find_possible_positions(list_to_check):
+            possible_positions = []
+            for i in range(1, len(list_to_check) - 1):  # Exclude the first and last elements
+                if not list_to_check[i] and is_true_within_one(i, list_to_check):
+                    possible_positions.append(i)
+            return possible_positions
+        
+        # Set all elements to False initially, except the first one
+        new_epi_surveys = [False] * len(input_list)
+        new_epi_surveys[0] = True
+        new_epi_surveys[-1] = False  # Ensure the last element remains False
 
-        return Policy(new_epi_surveys)
+        # Place new True values in the result list
+        for _ in range(new_true_count - 1):  # Subtract 1 as the first True is already placed
+            possible_positions = find_possible_positions(input_list)
+            if not possible_positions:
+                raise ValueError("No valid positions to place an additional True value.")
+            index = random.choice(possible_positions)
+            new_epi_surveys[index] = True
+            input_list[index] = True  # Update input_list to reflect the new True value
+
+        return Policy(tuple(new_epi_surveys))
 
     def calculate_cost(self, de_survey: pd.DataFrame, allow_average: bool = True) -> float:
         """
