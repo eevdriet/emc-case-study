@@ -443,7 +443,7 @@ def main():
         json.dump(json_costs, file, allow_nan=True, indent=4)
 
     policy, val = best_score.policy, float(best_score)
-    logger.info(f"Optimal policy is {policy} with score {val}")
+    logger.info(f"Optimal policy is {policy} with score {val} evaluated with {score_type.value}")
 
 
 if __name__ == '__main__':
