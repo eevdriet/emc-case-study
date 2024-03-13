@@ -45,7 +45,8 @@ def identity_neighbors(policy: Policy) -> Neighbor:
 
 
 def fixed_interval_neighbors(policy: Policy) -> Neighbor:
-    yield Policy.from_every_n_years(interval)
+    for year in range(1, N_YEARS - 1):
+        yield Policy.from_every_n_years(year)
 
 
 if __name__ == '__main__':
