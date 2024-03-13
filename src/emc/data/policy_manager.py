@@ -420,7 +420,7 @@ def main():
     score_type = ScoreType.TOTAL_COSTS
 
     # Use the policy manager
-    logger.info(f"-- {worm}: {strategy} with {frequency} --")
+    logger.info(f"-- {worm}: {strategy} with {frequency} evaluated on {score_type.value} --")
     neighborhoods = [flip_out_neighbors]  # also swap_neighbors
 
     loader = DataLoader(worm)
