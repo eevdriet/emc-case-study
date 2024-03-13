@@ -252,6 +252,26 @@ class Writer:
         cls.__write_json_file(path, data)
 
     @classmethod
+    def export_json_file(cls, path: Path, dictionary: dict):
+        """
+        Export json dictionairy to file
+        """
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(path, 'w') as json_file:
+            json.dump(dictionary, json_file)
+
+    @classmethod
+    def export_text_file(cls, path: Path, text: str):
+        """
+        Export text to file
+        """
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(path, 'w') as text_file:
+            text_file.write(text)
+
+    @classmethod
     def get_value_from_json(cls, path, key):
         """
         Try to get a value from a

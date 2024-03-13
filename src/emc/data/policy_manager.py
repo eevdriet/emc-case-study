@@ -412,38 +412,47 @@ def main():
     from emc.data.data_loader import DataLoader
     from emc.data.neighborhood import flip_neighbors, swap_neighbors, identity_neighbors, fixed_interval_neighbors, flip_out_neighbors
 
-    # TODO: adjust scenario before running the policy manager
-    worm = Worm.HOOKWORM.value
-    frequency = 1
-    strategy = 'community'
+    worms = [Worm.HOOKWORM.value, Worm.ASCARIS.value]
+    frequencies = [1, 2]
+    strategies = ['community', 'sac']
     regresModel = GradientBoosterOptuna
-    score_type = ScoreType.TOTAL_COSTS
+    score_types = [ScoreType.TOTAL_COSTS, ScoreType.FINANCIAL_COSTS, ScoreType.RESPONSIVENESS]
 
-    # Use the policy manager
-    logger.info(f"-- {worm}: {strategy} with {frequency} evaluated on {score_type.value} --")
-    neighborhoods = [flip_out_neighbors]  # also swap_neighbors
+    for worm in worms:
+        for frequency in frequencies:
+            for strategy in strategies:
+                for score_type in score_types:
+                    # Use the policy manager
+                    logger.info(f"-- {worm}: {strategy} with {frequency} evaluated on {score_type.value} --")
+                    neighborhoods = [flip_out_neighbors]  # also swap_neighbors
 
-    loader = DataLoader(worm)
-    all_scenarios = loader.load_scenarios()
+                    loader = DataLoader(worm)
+                    all_scenarios = loader.load_scenarios()
 
-    scenarios = [
-        s for s in all_scenarios
-        if s.mda_freq == frequency and s.mda_strategy == strategy
-    ]
+                    scenarios = [
+                        s for s in all_scenarios
+                        if s.mda_freq == frequency and s.mda_strategy == strategy
+                    ]
+                    
+                    if score_type == ScoreType.RESPONSIVENESS:
+                        init_policy = Policy.from_every_n_years(5)
+                    else:
+                        init_policy = Policy.from_every_n_years(1)
 
-    init_policy = Policy.from_every_n_years(1)
-    manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods, init_policy, score_type)
+                    manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods, init_policy, score_type)
 
-    # Register best policy and save all costs
-    best_score, policy_scores = manager.manage()
-    json_costs = {str(policy.epi_time_points): score.as_dict() for policy, score in policy_scores.items()}
-    path = Paths.data('policies') / f"{worm}{frequency}{strategy}.json"
-    path.parent.mkdir(exist_ok=True, parents=True)
-    with open(path, 'w') as file:
-        json.dump(json_costs, file, allow_nan=True, indent=4)
+                    # Register best policy and save all costs
+                    best_score, policy_scores = manager.manage()
 
-    policy, val = best_score.policy, float(best_score)
-    logger.info(f"Optimal policy is {policy} with score {val} evaluated with {score_type.value}")
+                    json_costs = {str(policy.epi_time_points): score.as_dict() for policy, score in policy_scores.items()}
+                    path = Paths.data('policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}.json"
+                    Writer.export_json_file(path, json_costs)
+
+                    path = Paths.data('policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}.txt"
+                    Writer.export_text_file(path, str(best_score))
+
+                    policy, val = best_score.policy, float(best_score)
+                    logger.info(f"Optimal policy is {policy} with score {val} evaluated with {score_type.value}")
 
 
 if __name__ == '__main__':
