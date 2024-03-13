@@ -108,7 +108,7 @@ class Score:
     def __str__(self):
         return f"""{self.policy}
 - Total simulations (nan)        : {self.n_simulations} ({self.nan_simulations})
-- Total responses (average)      : {sum(self.responses)} ({self.avg_response})
+- Total responsiveness (average)      : {sum(self.responses)} ({self.avg_response})
 - Total wrong (accuracy, FP, FN) : {self.n_false_negatives + self.n_false_positives} ({self.accuracy}, {self.n_false_positives}, {self.n_false_negatives})
 - Avg. financial costs           : {self.financial_costs}
 - Avg. penalty   costs           : {self.penalty_costs} (response {self.responsiveness_costs} + accuracy {self.accuracy_costs})
