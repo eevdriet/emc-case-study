@@ -15,7 +15,7 @@ from emc.model.policy import Policy
 from emc.model.scenario import Scenario
 from emc.model.simulation import Simulation
 from emc.data.constants import *
-from emc.model.score import Score
+from emc.model.score import Score, ScoreType
 from emc.util import Writer, Paths
 
 from emc.regressors import *
@@ -37,7 +37,7 @@ class PolicyManager:
     __NORMALISED_COLS = {'n_host', 'n_host_eggpos', 'a_epg_obs'}
 
     def __init__(self, scenarios: list[Scenario], strategy: str, frequency: int, worm: str, regression_model: regressor,
-                 neighborhoods: list[Neighborhood], init_policy: Policy):
+                 neighborhoods: list[Neighborhood], init_policy: Policy, score_type=ScoreType.TOTAL_COSTS):
         self.logger = logging.getLogger(__name__)
 
         # Setup data fields
@@ -62,6 +62,9 @@ class PolicyManager:
 
         # Setup first policy
         self.init_policy = init_policy
+
+        # What kind of scoring method
+        self.score_type = score_type
 
     def manage(self):
         # TODO: figure out whether to use a better search scheme for new policies
@@ -356,7 +359,8 @@ class PolicyManager:
                      n_false_positives=n_false_positives,
                      n_false_negatives=n_false_negatives,
                      responses=latenesses,
-                     sub_policy_costs=sub_policy_costs)
+                     sub_policy_costs=sub_policy_costs,
+                     score_type=self.score_type)
 
     def __split_data(self) -> SplitData:
         """

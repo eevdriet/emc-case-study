@@ -6,6 +6,10 @@ import numpy as np
 
 logger = setup_logger(__name__)
 
+class ScoreType(Enum):
+    TOTAL_COSTS = 'total_costs'
+    FINANCIAL_COSTS = 'financial_costs'
+    RESPONSIVENESS = 'responsiveness'
 
 class Score:
     """
@@ -13,7 +17,7 @@ class Score:
     """
 
     def __init__(self, policy: Policy, n_simulations: int, n_false_positives: int, n_false_negatives: int, responses: list[int],
-                 sub_policy_costs: dict[Policy, dict[tuple[int, int], float]]):
+                 sub_policy_costs: dict[Policy, dict[tuple[int, int], float]], score_type=ScoreType.TOTAL_COSTS):
         # Raw data
         self.policy = policy
         self.n_simulations = n_simulations
@@ -35,6 +39,8 @@ class Score:
         # Costs
         self.responsiveness_costs = self.avg_response * RESISTANCE_NOT_FOUND_COSTS
         self.accuracy_costs = (self.accuracy < 1 - MAX_MISCLASSIFICATION_FRACTION) * ACCURACY_VIOLATED_COSTS
+
+        self.score_type = score_type
 
     def as_dict(self):
         return {
@@ -58,7 +64,7 @@ class Score:
         times = (True,) + (False,) * (N_YEARS - 1)
         policy = Policy(times)
         costs = {policy: {(0, 0): float('inf')}}
-        latenesses = [0]
+        latenesses = [float('inf')]
 
         score = cls(policy=policy, n_simulations=1, n_false_positives=0, n_false_negatives=0, responses=latenesses,
                     sub_policy_costs=costs)
@@ -93,14 +99,39 @@ class Score:
         return self.financial_costs + self.penalty_costs
 
     def __float__(self):
-        """
-        Actual score (value) that should be used to rank policies
-        :return: Score value of the policy
-        """
-        # Use helper function to get builtin float type instead of np.float
-        score = np.float64(self.total_costs).item()
+        if self.score_type == ScoreType.TOTAL_COSTS:
+            return self._calculate_total_costs_score()
+        elif self.score_type == ScoreType.FINANCIAL_COSTS:
+            return self._calculate_financial_costs_score()
+        elif self.score_type == ScoreType.RESPONSIVENESS:
+            return self._calculate_responsiveness_score()
+        else:
+            raise ValueError("Invalid score calculation method")
+        
+    def _calculate_total_costs_score(self):
+        if self.accuracy < 0.85:
+            return float('inf')
+    
+        score = self.total_costs
+        return np.float64(score).item()
+    
+    def _calculate_financial_costs_score(self):
+        if self.accuracy < 0.85:
+            return float('inf')
+        
+        score = self.financial_costs
+        return np.float64(score).item()
 
-        return score
+    def _calculate_responsiveness_score(self):
+        if self.accuracy < 0.85:
+            return float('inf')
+        if len(self.policy.epi_time_points) > 5:
+            return float('inf')
+    
+        responses = [response ** 1.5 for response in self.responses]
+        
+        score = sum(responses) / len(responses)
+        return np.float64(score).item()
 
     def __lt__(self, other: "Score"):
         return float(self) < float(other)
