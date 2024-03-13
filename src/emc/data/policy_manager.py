@@ -417,6 +417,7 @@ def main():
     frequency = 1
     strategy = 'community'
     regresModel = GradientBoosterOptuna
+    score_type = ScoreType.TOTAL_COSTS
 
     # Use the policy manager
     logger.info(f"-- {worm}: {strategy} with {frequency} --")
@@ -431,7 +432,7 @@ def main():
     ]
 
     init_policy = Policy.from_every_n_years(1)
-    manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods, init_policy)
+    manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods, init_policy, score_type)
 
     # Register best policy and save all costs
     best_score, policy_scores = manager.manage()
