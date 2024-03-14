@@ -116,8 +116,6 @@ class PolicyManager:
                         neighbor_scores[neighbor] = score
                         scores[neighbor] = score
 
-                        if self.early_stop: break
-
                 # Register all policy score
                 self.policy_scores = {**self.policy_scores, **neighbor_scores}
 
