@@ -442,7 +442,7 @@ def main():
                     ]
                     
                     if score_type == ScoreType.RESPONSIVENESS:
-                        init_policy = Policy.from_every_n_years(5)
+                        init_policy = Policy.from_every_n_years(4)
                     else:
                         init_policy = Policy.from_every_n_years(1)
 

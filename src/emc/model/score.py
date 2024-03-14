@@ -109,21 +109,21 @@ class Score:
             raise ValueError("Invalid score calculation method")
         
     def _calculate_total_costs_score(self):
-        if self.accuracy < 0.85:
+        if self.accuracy < 0.80:
             return float('inf')
     
         score = self.total_costs
         return np.float64(score).item()
     
     def _calculate_financial_costs_score(self):
-        if self.accuracy < 0.85:
+        if self.accuracy < 0.80:
             return float('inf')
         
         score = self.financial_costs
         return np.float64(score).item()
 
     def _calculate_responsiveness_score(self):
-        if self.accuracy < 0.85:
+        if self.accuracy < 0.80:
             return float('inf')
         if len(self.policy.epi_time_points) > 5:
             return float('inf')
