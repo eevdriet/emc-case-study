@@ -70,7 +70,7 @@ class Policy:
         # Increase the number of True values by one
         new_true_count = true_count + 1
         if new_true_count >= len(input_list):
-            raise ValueError("Cannot increase the number of True values without violating the constraints.")
+            return Policy(self.epi_surveys)
 
         def is_true_within_one(index, list_to_check):
             if index > 0 and list_to_check[index - 1]:
@@ -96,7 +96,7 @@ class Policy:
         for _ in range(new_true_count - 1):  # Subtract 1 as the first True is already placed
             possible_positions = find_possible_positions(input_list)
             if not possible_positions:
-                raise ValueError("No valid positions to place an additional True value.")
+                return Policy(self.epi_surveys)
             index = random.choice(possible_positions)
             new_epi_surveys[index] = True
             input_list[index] = True  # Update input_list to reflect the new True value
