@@ -32,15 +32,11 @@ class MCSimulation:
         for idx in range(len(result)):
             logger.info(f"i: {idx}")
 
-            if result.at[idx, 'pre'] != 0 and not np.isnan(result.at[idx, 'pre']):
+            if not np.isnan(result.at[idx, 'pre']):
                 result.at[idx, 'sim'] = self.__simulate_count_ids(result.at[idx, 'pre'])
-            else:
-                result.at[idx, 'pre_sim'] = 0
 
-            if result.at[idx, 'post'] != 0 and not np.isnan(result.at[idx, 'post']):
+            if not np.isnan(result.at[idx, 'post']):
                 result.at[idx, 'post_sim'] = self.__simulate_count_ids(result.at[idx, 'post'])
-            else:
-                result.at[idx, 'post_sim'] = 0
         return result
 
     def __simulate_count_ids(self, mu_i: float):
