@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 from math import isnan
-from collections import Counter
 import math
 
 from emc.util import Paths
@@ -13,189 +12,127 @@ from emc.model.time_costs import Time_Costs
 logger = setup_logger(__name__)
 
 
-class CostCalculator:
-    ...
+def set_costs() -> None:
+    """
+    Computes the expected infected level for all simulations
+    :return: Nothing, just updates the given CSV with an `exp_inf_level` column
+    This column is based on
+    - At a given time step (time), what is the expected infected level
+    given the infection level at the PREVIOUS step (prev)
+    - The expected infected level is based on the levels from the relevant scenario with 5% buckets
+    """
+    for worm in Worm:
+        worm = worm.value
 
-    def __init__(self, save: True):
-        """
-        Constructor
-        :param save: Whether to save the costs in the modified data frame back to memory
-        """
-        self.save = save
-        self.days = Counter()
-        self.days2 = Counter()
+        # Load monitor age data
+        path = Paths.worm_data(worm, 'drug_efficacy')
+        df = pd.read_csv(path)
 
-    def calculate_drug_cost(self, df: pd.DataFrame):
-        """
-        Calculate the cost of scheduling a drug efficacy survey in the given year
-        :param de_survey: Data to base costs on
-        :param year: Year to schedule if any, otherwise take an average over all years
-        :return: Cost of scheduling the survey
-        """
-        # Logging
-        scenario = df['scenario']
-        simulation = df['simulation']
-        logger.info(f"{scenario.iloc[0]} {simulation.iloc[0]}")
+        # Assert required columns are present
+        req_cols = ["total_useful_tests", "skipped_NaN_tests", "true_a_pre", "true_a_post"]
+        assert all(col in df.columns for col in req_cols), "Make sure to merge the drug efficacy data"
 
-        # Parameters
-        name = 'drug_efficacy.time'
-        for time in df[name].unique():
-            pre = df.loc[df[name] == time, 'drug_efficacy.pre']
-            post = df.loc[df[name] == time, 'drug_efficacy.post']
+        # Add cost column based on the other columns
+        df['cost'] = df.apply(calculate_drug_cost, axis=1)
 
-            total_useful_tests = len(pre)
-            skipped_NaN_tests = post.isna().sum()
-            true_a_pre = pre.mean(skipna=True)
-            true_a_post = post.mean(skipna=True)
+        # Write new dataframe
+        df.to_csv(path, index=False)
 
-            # Calculate using averages
-            costs = 0
-            costs += self.__consumable(pre, post)
 
-            days = self.__days_average(pre, post)
-            self.days[days] += 1
-            costs += self.__personnel(days)
-            costs += self.__transportation(days)
+def calculate_drug_cost(row: pd.Series) -> float:
+    """
+    Calculate the cost of scheduling a drug efficacy survey in the given year
+    :param de_survey: Data to base costs on
+    :param year: Year to schedule if any, otherwise take an average over all years
+    :return: Cost of scheduling the survey
+    """
+    # Logging
+    scenario = row['scenario']
+    simulation = row['simulation']
+    logger.info(f"{scenario} {simulation}")
 
-            # Calculate using hosts
-            costs2 = 0
-            costs2 += self.__consumable(pre, post)
+    # Parameters
+    total_useful_tests = row['total_useful_tests']
+    skipped_NaN_tests = row['skipped_NaN_tests']
+    true_a_pre = row['true_a_pre']
+    true_a_post = row['true_a_post']
 
-            days2 = self.__days_per_host(pre, post)
-            self.days2[days2] += 1
-            costs2 += self.__personnel(days2)
-            costs2 += self.__transportation(days2)
+    if any(isnan(var) for var in (total_useful_tests, skipped_NaN_tests, true_a_pre, true_a_post)):
+        return np.nan
 
-            # logger.info(f"Year {time}: {costs} ({days}) <-> {costs2} ({days2})")
+    costs = 0
+    costs += __consumable(total_useful_tests, skipped_NaN_tests)
 
-    @classmethod
-    def __consumable(cls, pre: pd.Series, post: pd.Series) -> float:
-        """
-        Calculate the consumable costs
-        :param pre: Survey data to base costs on
-        :param year: Year to schedule if any, otherwise take an average over all years
-        :return: Consumable costs
-        """
-        # TODO: handle missing observations before calculating costs to avoid this error prevention below
-        total_useful_tests = len(pre)
-        skipped_NaN_tests = post.isna().sum()
+    days = __days(total_useful_tests, skipped_NaN_tests, true_a_pre, true_a_post)
+    costs += __personnel(days)
+    costs += __transportation(days)
 
-        # Calculate costs
-        N_baseline = total_useful_tests + skipped_NaN_tests
-        N_follow_up = total_useful_tests
-        baseline_costs = N_baseline * (Costs.EQUIPMENT + Costs.FIXED_COST + Costs.KATO_KATZ.get('single_sample'))
-        follow_up_costs = N_follow_up * (
-                Costs.EQUIPMENT + Costs.FIXED_COST + 2 * Costs.KATO_KATZ.get('duplicate_sample'))
-        return baseline_costs + follow_up_costs
+    return costs
 
-    @classmethod
-    def __personnel(cls, days: int) -> float:
-        """
-        Calculate the personnel costs of a drug efficacy survey
-        :param de_survey: Survey data to base costs on
-        :param year: Year to schedule if any, otherwise take an average over all years
-        :return: Personnel costs
-        """
-        return 4 * 22.5 * days
 
-    @classmethod
-    def __transportation(cls, days: int) -> int:
-        """
-        Calculate the transportation costs of a drug efficacy survey
-        :param de_survey: Survey data to base costs on
-        :param year: Year to schedule if any, otherwise take an average over all years
-        :return: Transportation costs
-        """
-        return 90 * days
+def __consumable(total_useful_tests: int, skipped_NaN_tests: int) -> float:
+    """
+    Calculate the consumable costs
+    :param de_survey: Survey data to base costs on
+    :param year: Year to schedule if any, otherwise take an average over all years
+    :return: Consumable costs
+    """
+    # TODO: handle missing observations before calculating costs to avoid this error prevention below
 
-    @classmethod
-    def __days_per_host(cls, pre: pd.Series, post: pd.Series) -> int:
-        """
-        Calculate the number of days required to take a drug efficacy survey
-        :param de_survey: Survey data to base the calculation on
-        :param year: Year to schedule if any, otherwise take an average over all years
-        :return: Survey days
-        """
-        # Calculate statistics
-        total_useful_tests = len(pre)
-        skipped_NaN_tests = post.isna().sum()
-        true_a_pre = pre.mean(skipna=True)
-        true_a_post = post.mean(skipna=True)
+    # Calculate costs
+    N_baseline = total_useful_tests + skipped_NaN_tests
+    N_follow_up = total_useful_tests
+    baseline_costs = N_baseline * (Costs.EQUIPMENT + Costs.FIXED_COST + Costs.KATO_KATZ.get('single_sample'))
+    follow_up_costs = N_follow_up * (
+            Costs.EQUIPMENT + Costs.FIXED_COST + 2 * Costs.KATO_KATZ.get('duplicate_sample'))
+    return baseline_costs + follow_up_costs
 
-        # Set parameters
-        workers = 4  # Under assumption of single mobile field team: 1 nurse, three technicians
-        timeAvailable = workers * 4 * 60 * 60  # In seconds
 
-        # Calculate costs
-        N_baseline = total_useful_tests + skipped_NaN_tests
-        N_follow_up = total_useful_tests
+def __personnel(days: int) -> float:
+    """
+    Calculate the personnel costs of a drug efficacy survey
+    :param de_survey: Survey data to base costs on
+    :param year: Year to schedule if any, otherwise take an average over all years
+    :return: Personnel costs
+    """
+    return 4 * 22.5 * days
 
-        def countKK(series: pd.Series):
-            """
-            Calculate the Kato Katz
-            :param series: Count data series to find the Kato Katz for
-            :return: Kato Katz costs
-            """
-            return sum(Time_Costs.countKK(count) for count in series.dropna())
 
-        count_pre = countKK(pre)
-        count_post = 2 * countKK(post)
+def __transportation(days: int) -> int:
+    """
+    Calculate the transportation costs of a drug efficacy survey
+    :param de_survey: Survey data to base costs on
+    :param year: Year to schedule if any, otherwise take an average over all years
+    :return: Transportation costs
+    """
+    return 90 * days
 
-        time_pre = N_baseline * (Time_Costs.KATO_KATZ['demography'] + Time_Costs.KATO_KATZ.get('single_prep') +
-                                 Time_Costs.KATO_KATZ.get('single_record')) + count_pre
-        time_post = N_follow_up * (Time_Costs.KATO_KATZ.get('demography') + Time_Costs.KATO_KATZ.get('duplicate_prep') +
-                                   Time_Costs.KATO_KATZ.get('duplicate_record')) + count_post
-        return math.ceil((time_pre + time_post) / timeAvailable)
 
-    @classmethod
-    def __days_average(cls, pre: pd.Series, post: pd.Series) -> int:
-        """
-        Calculate the number of days required to take a drug efficacy survey
-        :param de_survey: Survey data to base the calculation on
-        :param year: Year to schedule if any, otherwise take an average over all years
-        :return: Survey days
-        """
-        # Calculate statistics
-        total_useful_tests = len(pre)
-        skipped_NaN_tests = len(pre) - len(post)
-        true_a_pre = pre.mean(skipna=True)
-        true_a_post = post.mean(skipna=True)
+def __days(total_useful_tests: int, skipped_NaN_tests: int, true_a_pre: float, true_a_post: float) -> int:
+    """
+    Calculate the number of days required to take a drug efficacy survey
+    :param de_survey: Survey data to base the calculation on
+    :param year: Year to schedule if any, otherwise take an average over all years
+    :return: Survey days
+    """
+    # Set parameters
+    workers = 4  # Under assumption of single mobile field team: 1 nurse, three technicians
+    timeAvailable = workers * 4 * 60 * 60  # In seconds
 
-        if isnan(true_a_pre) or isnan(true_a_post):
-            return np.nan
+    # Calculate costs
+    N_baseline = total_useful_tests + skipped_NaN_tests
+    N_follow_up = total_useful_tests
+    c_pre = true_a_pre  # TODO: Use average egg observations per time stamp AND include duplicate KK
+    c_post = true_a_post  # TODO: This is true number of eggs in individual, aliquots is on observed
 
-        # Set parameters
-        workers = 4  # Under assumption of single mobile field team: 1 nurse, three technicians
-        timeAvailable = workers * 4 * 60 * 60  # In seconds
-
-        # Calculate costs
-        N_baseline = total_useful_tests + skipped_NaN_tests
-        N_follow_up = total_useful_tests
-
-        c_pre = true_a_pre  # TODO: Use average egg observations per time stamp AND include duplicate KK
-        c_post = true_a_post  # TODO: This is true number of eggs in individual, aliquots is on observed
-
-        count_pre = Time_Costs.countKK(c_pre)
-        count_post = Time_Costs.countKK(2 * c_post)
-        time_pre = N_baseline * (Time_Costs.KATO_KATZ['demography'] + Time_Costs.KATO_KATZ.get('single_prep') +
-                                 Time_Costs.KATO_KATZ.get('single_record')) + count_pre
-        time_post = N_follow_up * (Time_Costs.KATO_KATZ.get('demography') + Time_Costs.KATO_KATZ.get('duplicate_prep') +
-                                   Time_Costs.KATO_KATZ.get('duplicate_record')) + count_post
-        return math.ceil((time_pre + time_post) / timeAvailable)
+    count_pre = Time_Costs.countKK(c_pre)
+    count_post = 2 * Time_Costs.countKK(c_post)
+    time_pre = N_baseline * (Time_Costs.KATO_KATZ['demography'] + Time_Costs.KATO_KATZ.get('single_prep') +
+                             Time_Costs.KATO_KATZ.get('single_record')) + count_pre
+    time_post = N_follow_up * (Time_Costs.KATO_KATZ.get('demography') + Time_Costs.KATO_KATZ.get('duplicate_prep') +
+                               Time_Costs.KATO_KATZ.get('duplicate_record')) + count_post
+    return math.ceil((time_pre + time_post) / timeAvailable)
 
 
 if __name__ == '__main__':
-    calculator = CostCalculator(save=True)
-
-    for worm in [Worm.ASCARIS]:
-        worm = worm.value
-
-        for scenario in range(1, N_SCENARIOS + 1):
-            for simulation in range(1, N_SIMULATIONS + 1):
-                # Load monitor age data
-                path = Paths.data('csv') / f"{worm}_drug_efficacySC{scenario:02d}SIM{simulation:04d}.csv"
-                df = pd.read_csv(path)
-                calculator.calculate_drug_cost(df)
-
-        print(calculator.days)
-        print(calculator.days2)
+    set_costs()
