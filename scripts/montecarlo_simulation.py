@@ -44,52 +44,23 @@ class MCSimulation:
         return result
 
     def __simulate_count_ids(self, mu_i: float):
-        # TODO: Decide on using mu ids or not!!!
-        mu_ids = self.__simulate_mu_ids(mu_i)  # mu_ids = self.__simulate_mu_ids(mu_i)
-        count = 0
-
-        for i in range(self.__N_SIMULATIONS):
-            count += poisson.rvs(mu_ids)
-
-        avg_count = count / self.__N_SIMULATIONS
-
-        logger.info(f"count: {avg_count}")
-        return avg_count
-
-    def __simulate_mu_ids(self, mu_i: float):
-        mu_id = self.__simulate_mu_id(mu_i)
-        # mu_ids = 0
-        # for i in range(self.__TOTAL_SIM):
-        #     mu_ids += gamma.rvs(self.__SHAPE_SLIDE, scale = mu_id / self.__SHAPE_SLIDE) # self.__SHAPE_SLIDE / mu_id
-        # print("mu_ids: ")
-        # # print(mu_ids)
-        # print(mu_ids / self.__TOTAL_SIM)
-        # return mu_ids / self.__TOTAL_SIM
+        logger.info(f"\t- mu_i: {mu_i}")
+        mu_id = gamma.rvs(self.__SHAPE_DAY, scale=mu_i / self.__SHAPE_DAY)
+        logger.info(f"\t- mu_id: {mu_id}")
         mu_ids = gamma.rvs(self.__SHAPE_SLIDE, scale=mu_id / self.__SHAPE_SLIDE)
-        logger.info(f"mu_ids: {mu_ids}")
+        logger.info(f"\t- mu_ids: {mu_ids}")
+        count = poisson.rvs(mu_ids)
+        logger.info(f"\t- count: {count}")
 
-        return mu_ids
-
-    def __simulate_mu_id(self, mu_i: float):
-        # print("mu: ")
-        # print(mu_i)
-        # mu_id = 0
-        # for i in range(self.__TOTAL_SIM):
-        #     mu_id += gamma.rvs(self.__SHAPE_DAY, scale = mu_i / self.__SHAPE_DAY )#  (mu_i / self.__SHAPE_DAY)*(1/24)
-        # print("mu_id: ")
-        # print(mu_id / self.__TOTAL_SIM)
-        # return mu_id / self.__TOTAL_SIM
-
-        logger.info(f"mu: {mu_i}")
-        return gamma.rvs(self.__SHAPE_DAY, scale=mu_i / self.__SHAPE_DAY)
-
+        return count
 
 def main():
     # Import data
     worm = Worm.ASCARIS
-    path = Paths.worm_data(worm.value, 'drug_efficacy')
-
+    path = Paths.data() / 'result.feather'
+    print(sys.maxsize)
     logger.info("Start Monte Carlo simulation")
+    logger.info("Loading data...")
     df = pd.read_feather(path.with_suffix('.feather'))
     mc_simulation = MCSimulation(df, worm)
 

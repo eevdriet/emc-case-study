@@ -40,16 +40,16 @@ def merge_csv() -> None:
             df_combined = pd.concat(dfs)
 
             # Export per scenario (to speed up merging)
-            path = Paths.data('csv') / f'{worm}_drug_efficacy_{scenario}.csv'
-            df_combined.to_csv(path, index=False)
+            path = Paths.data('csv') / f'{worm}_drug_efficacy_{scenario}.feather'
+            df_combined.to_feather(path, index=False)
 
         # Merge dataframes of all scenarios together
         df_combined = pd.DataFrame()
 
         logger.info("Merging the CSVs for scenarios...")
         for scenario in range(N_SCENARIOS):
-            path = Paths.data('csv') / f'{worm}_drug_efficacy_{scenario}.csv'
-            df = pd.read_csv(path)
+            path = Paths.data('csv') / f'{worm}_drug_efficacy_{scenario}.feather'
+            df = pd.read_feather(path)
 
             # Merge and delete temporary scenario .csv file
             df_combined = pd.concat([df_combined, df])
@@ -61,7 +61,7 @@ def merge_csv() -> None:
         # Write the merged csv
         logger.info("Write merged CSV...")
         path = Paths.worm_data(worm, 'drug_efficacy')
-        df_combined.to_csv(path, index=False)
+        df_combined.to_feather(path.with_suffix('.feather'), index=False)
 
 
 if __name__ == '__main__':

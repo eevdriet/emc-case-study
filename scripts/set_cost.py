@@ -122,6 +122,14 @@ def __days(total_useful_tests: int, skipped_NaN_tests: int, true_a_pre: float, t
     # Calculate costs
     N_baseline = total_useful_tests + skipped_NaN_tests
     N_follow_up = total_useful_tests
+    counting_time = 0
+    for i in range(N_baseline):
+        c_pre = 680
+        counting_time += Time_Costs.countKK(c_pre)
+
+    for i in range(N_follow_up):
+        c_post = 400
+        counting_time +=
     c_pre = true_a_pre  # TODO: Use average egg observations per time stamp AND include duplicate KK
     c_post = true_a_post  # TODO: This is true number of eggs in individual, aliquots is on observed
 

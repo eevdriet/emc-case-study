@@ -36,7 +36,7 @@ extract_surveys <- function(df) {
       
       de_survey_df <- data.frame(scenario = scenario, simulation = simulation, drug_efficacy = de_survey)
       
-      file <- sprintf("../csv/%s_drug_efficacySC%02dSIM%04d.csv", name, scenario, simulation)
+      file <- sprintf("../data/csv/%s_drug_efficacySC%02dSIM%04d.csv", name, scenario, simulation)
       write.csv(de_survey_df, row.names = FALSE, file = file)
     }
     
