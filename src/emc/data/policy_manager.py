@@ -15,6 +15,7 @@ from emc.model.policy import Policy
 from emc.model.scenario import Scenario
 from emc.model.simulation import Simulation
 from emc.data.constants import *
+from emc.data.monte_carlo_simulation import MonteCarlo
 from emc.model.score import Score, ScoreType
 from emc.util import Writer, Paths
 
@@ -67,8 +68,9 @@ class PolicyManager:
         # What kind of scoring method
         self.score_type = score_type
 
-        # Whether to use Monte Carlo
+        # Set up Monte Carlo
         self.use_monte_carlo = use_monte_carlo
+        self.monte_carlo = MonteCarlo(self.worm)
 
     def manage(self):
         # TODO: figure out whether to use a better search scheme for new policies
@@ -278,7 +280,7 @@ class PolicyManager:
 
                 # Otherwise, verify whether resistance is a problem by scheduling a drug efficacy the year after
                 if self.use_monte_carlo:
-                    ...
+                    self.monte_carlo.run(simulation, sub_policy)
 
                 drug_signal = simulation.verify(sub_policy)
 
