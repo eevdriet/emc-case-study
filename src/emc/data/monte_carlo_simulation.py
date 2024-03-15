@@ -5,7 +5,7 @@ from scipy.stats import poisson
 import sys as sys
 
 from emc.data.constants import *
-# from emc.data.cost_calculator import CostCalculator
+from emc.data.cost_calculator import CostCalculator
 from emc.model.simulation import Simulation
 from emc.model.policy import Policy
 from emc.util import Paths
@@ -48,7 +48,7 @@ class MonteCarlo:
         df['ERR'] = 1 - post / pre
 
         # - Costs
-        df['cost'] = 4  # CostCalculator.update(simulation)
+        df['cost'] = CostCalculator.calculate_costs(host_df)
 
     def simulate(self, df: pd.DataFrame):
         """

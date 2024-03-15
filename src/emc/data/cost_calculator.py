@@ -25,23 +25,42 @@ class CostCalculator:
         self.days = Counter()
         self.days2 = Counter()
 
-    def set_cost_from_averages(self, df: pd.DataFrame):
+    @classmethod
+    def calculate_costs(cls, df: pd.DataFrame) -> float:
         """
         Set the cost of scheduling a drug efficacy over all given years
         :param df: Data to set costs for
         """
+        pre = df['pre']
+        post = df['pre']
 
-    def calculate_drug_cost(self, df: pd.DataFrame, df2: pd.DataFrame):
+        total_useful_tests = len(post) - post.isna().sum()
+        skipped_NaN_tests = post.isna().sum()
+        true_a_pre = pre.mean(skipna=True)
+        true_a_post = post.mean(skipna=True)
+
+        return float('inf')
+
+    def calculate_drug_cost(self, df: pd.DataFrame, use_averages: bool = True):
         """
         Calculate the cost of scheduling a drug efficacy survey in the given year
         :param de_survey: Data to base costs on
         :param year: Year to schedule if any, otherwise take an average over all years
         :return: Cost of scheduling the survey
         """
+        if use_averages:
+            df['cost'] = df.apply(self.__calculate_drug_cost, axis=1)
         # Logging
         scenario = df['scenario'].iloc[0]
         simulation = df['simulation'].iloc[0]
         # logger.info(f"{scenario} {simulation}")
+
+        for scenario in range(1, N_SCENARIOS + 1):
+            logger.info(f"Scenario {scenario}")
+            for simulation in range(1, N_SIMULATIONS + 1):
+                # Load monitor age data
+                path = Paths.data('csv') / f"{worm}_drug_efficacySC{scenario:02d}SIM{simulation:04d}.csv"
+                df = pd.read_csv(path)
 
         # Parameters
         for time in df['time'].unique():
@@ -68,12 +87,14 @@ class CostCalculator:
 
             df3 = df2[(df2['scenario'] == scenario) & (df2['simulation'] == simulation) & (df2['time'] == time)]
             cost_old = df3['cost'].iloc[0]
-            if costs != cost_old:
+
+            if isnan(costs) and isnan(cost_old):
+                continue
+            if abs(costs - cost_old) > 1e-2:
                 logger.info(f"{scenario} {simulation} {time}: {costs} != {cost_old}")
-                # true_a_pre_old = df3['true_a_pre'].iloc[0]
-                # true_a_post_old = df3['true_a_post'].iloc[0]
-                #
-                # logger.info(f"{scenario} {simulation} {time}: {true_a_pre=} ({true_a_pre_old}) en {true_a_post=} ({true_a_post_old})")
+
+    def __calculate_costs_from_average(self, row: pd.Series):
+
 
     @classmethod
     def calculate(self, pre: pd.DataFrame, post: pd.DataFrame):
@@ -95,23 +116,22 @@ class CostCalculator:
         costs2 += self.__transportation(days2)
 
     @classmethod
-    def __consumable(cls, pre: pd.Series, post: pd.Series) -> float:
+    def __consumable(cls, total_useful_tests: int, skipped_NaN_tests: int) -> float:
         """
         Calculate the consumable costs
         :param pre: Survey data to base costs on
         :param year: Year to schedule if any, otherwise take an average over all years
         :return: Consumable costs
         """
-        # TODO: handle missing observations before calculating costs to avoid this error prevention below
-        total_useful_tests = len(post) - post.isna().sum()
-        skipped_NaN_tests = post.isna().sum()
-
-        # Calculate costs
+        # Determine number of hosts
         N_baseline = total_useful_tests + skipped_NaN_tests
         N_follow_up = total_useful_tests
+
+        # Determine costs
         baseline_costs = N_baseline * (Costs.EQUIPMENT + Costs.FIXED_COST + Costs.KATO_KATZ.get('single_sample'))
         follow_up_costs = N_follow_up * (
                 Costs.EQUIPMENT + Costs.FIXED_COST + 2 * Costs.KATO_KATZ.get('duplicate_sample'))
+
         return baseline_costs + follow_up_costs
 
     @classmethod
@@ -209,21 +229,16 @@ class CostCalculator:
 
 
 if __name__ == '__main__':
-    calculator = CostCalculator(save=True)
+    calculator = CostCalculator()
 
-    for worm in [Worm.ASCARIS]:
-        worm = worm.value
-        # path = Paths.worm_data(worm, 'drug_efficacy')
-        path = Paths.worm_data(worm, 'drug_efficacy')
-        df_merged = pd.read_csv(path)
+    worm = Worm.ASCARIS.value
+    scenario = 1
+    simulation = 4
+    path = Paths.data('csv') / f'{worm}_drug_efficacySC{scenario:02}SIM{simulation:04}.feather'
+    path = Paths.worm_data(worm, 'drug_efficacy')
+    df_merged = pd.read_csv(path)
 
-        for scenario in range(1, N_SCENARIOS + 1):
-            logger.info(f"Scenario {scenario}")
-            for simulation in range(1, N_SIMULATIONS + 1):
-                # Load monitor age data
-                path = Paths.data('csv') / f"{worm}_drug_efficacySC{scenario:02d}SIM{simulation:04d}.csv"
-                df = pd.read_csv(path)
-                calculator.calculate_drug_cost(df, df_merged)
+    calculator.calculate_drug_cost(df_merged, use_averages=True)
 
-        print(calculator.days)
-        print(calculator.days2)
+    print(calculator.days)
+    print(calculator.days2)
