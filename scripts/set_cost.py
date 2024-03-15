@@ -126,7 +126,7 @@ def __days(total_useful_tests: int, skipped_NaN_tests: int, true_a_pre: float, t
     c_post = true_a_post  # TODO: This is true number of eggs in individual, aliquots is on observed
 
     count_pre = Time_Costs.countKK(c_pre)
-    count_post = 2 * Time_Costs.countKK(c_post)
+    count_post = Time_Costs.countKK(2 * c_post)
     time_pre = N_baseline * (Time_Costs.KATO_KATZ['demography'] + Time_Costs.KATO_KATZ.get('single_prep') +
                              Time_Costs.KATO_KATZ.get('single_record')) + count_pre
     time_post = N_follow_up * (Time_Costs.KATO_KATZ.get('demography') + Time_Costs.KATO_KATZ.get('duplicate_prep') +

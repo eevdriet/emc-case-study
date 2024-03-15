@@ -49,15 +49,31 @@ class CostCalculator:
             post = df.loc[df['time'] == time, 'post']
 
             # Calculate using averages
+            costs = 0
+            costs += self.__consumable(pre, post)
 
-            # df3 = df2[(df2['scenario'] == scenario) & (df2['simulation'] == simulation) & (df2['time'] == time)]
-            # cost_old = df3['cost'].iloc[0]
-            # if costs != cost_old:
-            #     true_a_pre_old = df3['true_a_pre'].iloc[0]
-            #     true_a_post_old = df3['true_a_post'].iloc[0]
-            #
-            #     logger.info(
-            #         f"{scenario} {simulation} {time}: {true_a_pre=} ({true_a_pre_old}) en {true_a_post=} ({true_a_post_old})")
+            days = self.__days_average(pre, post)
+            self.days[days] += 1
+            costs += self.__personnel(days)
+            costs += self.__transportation(days)
+
+            # Calculate using hosts
+            costs2 = 0
+            costs2 += self.__consumable(pre, post)
+
+            days2 = self.__days_per_host(pre, post)
+            self.days2[days2] += 1
+            costs2 += self.__personnel(days2)
+            costs2 += self.__transportation(days2)
+
+            df3 = df2[(df2['scenario'] == scenario) & (df2['simulation'] == simulation) & (df2['time'] == time)]
+            cost_old = df3['cost'].iloc[0]
+            if costs != cost_old:
+                logger.info(f"{scenario} {simulation} {time}: {costs} != {cost_old}")
+                # true_a_pre_old = df3['true_a_pre'].iloc[0]
+                # true_a_post_old = df3['true_a_post'].iloc[0]
+                #
+                # logger.info(f"{scenario} {simulation} {time}: {true_a_pre=} ({true_a_pre_old}) en {true_a_post=} ({true_a_post_old})")
 
     @classmethod
     def calculate(self, pre: pd.DataFrame, post: pd.DataFrame):
@@ -198,10 +214,11 @@ if __name__ == '__main__':
     for worm in [Worm.ASCARIS]:
         worm = worm.value
         # path = Paths.worm_data(worm, 'drug_efficacy')
-        path = Paths.data('drug_efficacy') / 'result.csv'
+        path = Paths.worm_data(worm, 'drug_efficacy')
         df_merged = pd.read_csv(path)
 
         for scenario in range(1, N_SCENARIOS + 1):
+            logger.info(f"Scenario {scenario}")
             for simulation in range(1, N_SIMULATIONS + 1):
                 # Load monitor age data
                 path = Paths.data('csv') / f"{worm}_drug_efficacySC{scenario:02d}SIM{simulation:04d}.csv"
