@@ -4,7 +4,6 @@ from pathlib import Path
 import pandas as pd
 import random
 from collections import defaultdict
-from emc.util import Paths
 from emc.log import setup_logger
 from math import isnan
 import logging
@@ -16,6 +15,7 @@ from emc.model.scenario import Scenario
 from emc.model.simulation import Simulation
 from emc.data.constants import *
 from emc.data.monte_carlo_simulation import MonteCarlo
+from emc.data.cost_calculator import CostTechnique
 from emc.model.score import Score, ScoreType
 from emc.util import Writer, Paths
 
@@ -70,7 +70,8 @@ class PolicyManager:
 
         # Set up Monte Carlo
         self.use_monte_carlo = use_monte_carlo
-        self.monte_carlo = MonteCarlo(self.worm)
+        self.cost_technique = cost_technique
+        self.monte_carlo = MonteCarlo(self.worm, self.cost_technique)
 
     def manage(self):
         # TODO: figure out whether to use a better search scheme for new policies
@@ -453,7 +454,7 @@ def main():
                         init_policy = Policy.from_every_n_years(1)
 
                     manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods,
-                                            init_policy, score_type)
+                                            init_policy, score_type, use_monte_carlo=True)
 
                     # Register best policy and save all costs
                     best_score, policy_scores = manager.manage()

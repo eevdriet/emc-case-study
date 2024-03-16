@@ -24,6 +24,8 @@ class MonteCarlo:
 
     def __init__(self, worm: str):
         self.__SHAPE_DAY = 0.510 if worm == 'ascaris' else 1.000
+        self.worm = worm
+        self.cost_calculator = CostCalculator(self.worm)
 
     def run(self, simulation: Simulation, policy: Policy):
         """
@@ -42,13 +44,16 @@ class MonteCarlo:
         df = simulation.drug_efficacy_s
         df = df.loc[df['time'] == year]
 
-        # - ERR
-        pre = host_df['pre'].mean(skipna=True)
-        post = host_df['post'].mean(skipna=True)
-        df['ERR'] = 1 - post / pre
+        # - Egg count statistics
+        df['true_a_pre'] = host_df['pre'].mean(skipna=True)
+        df['true_a_post'] = host_df['post'].mean(skipna=True)
+        df['true_total_pre'] = host_df['pre'].sum(skipna=True)
+        df['true_total_post'] = host_df['post'].sum(skipna=True)
+
+        df['ERR'] = 1 - df['true_a_post'] / df['true_a_post']
 
         # - Costs
-        df['cost'] = CostCalculator.calculate_costs(host_df)
+        df['cost'] = self.cost_calculator.calculate_costs(host_df)
 
     def simulate(self, df: pd.DataFrame):
         """
