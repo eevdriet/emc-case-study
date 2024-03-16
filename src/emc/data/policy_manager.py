@@ -39,6 +39,7 @@ class PolicyManager:
 
     def __init__(self, scenarios: list[Scenario], strategy: str, frequency: int, worm: str, regression_model: regressor,
                  neighborhoods: list[Neighborhood], init_policy: Policy, score_type=ScoreType.TOTAL_COSTS,
+                 early_stop=False,
                  use_monte_carlo: bool = False, cost_technique: CostTechnique = CostTechnique.FROM_INDIVIDUAL_HOSTS):
         self.logger = logging.getLogger(__name__)
 
@@ -67,6 +68,9 @@ class PolicyManager:
 
         # What kind of scoring method
         self.score_type = score_type
+
+        # Early stopping for fixed policies
+        self.early_stop = early_stop
 
         # Set up Monte Carlo
         self.use_monte_carlo = use_monte_carlo
@@ -133,6 +137,9 @@ class PolicyManager:
                     logger.debug(f"Greedy optimisation: No policy improvement found, stopping greedy")
                     break
 
+                if self.early_stop:
+                    break
+
             if (best_score < ils_best_score):
                 ils_best_score = best_score
                 ils_best_policy = best_policy
@@ -152,6 +159,9 @@ class PolicyManager:
                 logger.info(f"Current best policy: {ils_best_policy.epi_time_points}, (score: {float(ils_best_score)})")
                 curr_policy = ils_best_policy.perturbe()
                 logger.info(f"New perturbed policy: {curr_policy.epi_time_points}")
+
+            if self.early_stop:
+                break
 
         logger.info(f"\n\nOptimal policy found:")
         logger.info(best_score)
@@ -426,12 +436,13 @@ def main():
     from emc.data.neighborhood import flip_neighbors, swap_neighbors, identity_neighbors, fixed_interval_neighbors, \
         flip_out_neighbors
 
+    neighborhoods = [flip_out_neighbors]
     worms = [Worm.HOOKWORM.value, Worm.ASCARIS.value]
     frequencies = [1, 2]
     strategies = ['community', 'sac']
     regresModel = GradientBoosterOptuna
     score_types = [ScoreType.TOTAL_COSTS, ScoreType.FINANCIAL_COSTS, ScoreType.RESPONSIVENESS]
-    use_monte_carlo = True
+    use_monte_carlo = False
 
     for worm in worms:
         for frequency in frequencies:
@@ -439,7 +450,7 @@ def main():
                 for score_type in score_types:
                     # Use the policy manager
                     logger.info(f"-- {worm}: {strategy} with {frequency} evaluated on {score_type.value} --")
-                    neighborhoods = [flip_out_neighbors]  # also swap_neighbors
+                    # also swap_neighbors
 
                     loader = DataLoader(worm)
                     all_scenarios = loader.load_scenarios()
@@ -450,22 +461,33 @@ def main():
                     ]
 
                     if score_type == ScoreType.RESPONSIVENESS:
-                        init_policy = Policy.from_every_n_years(5)
+                        init_policy = Policy.from_every_n_years(4)
                     else:
                         init_policy = Policy.from_every_n_years(1)
 
-                    manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods,
-                                            init_policy, score_type, use_monte_carlo=use_monte_carlo)
+                    early_stop = False
+                    fixed_interval = ""
+                    if fixed_interval_neighbors in neighborhoods:
+                        early_stop = True
+                        fixed_interval = "_fixed_interval"
+
+                    manager = PolicyManager(scenarios=scenarios, strategy=strategy, frequency=frequency, worm=worm,
+                                            regression_model=regresModel, neighborhoods=neighborhoods,
+                                            init_policy=init_policy,
+                                            score_type=score_type,
+                                            early_stop=early_stop, use_monte_carlo=use_monte_carlo)
 
                     # Register best policy and save all costs
                     best_score, policy_scores = manager.manage()
 
                     json_costs = {str(policy.epi_time_points): score.as_dict() for policy, score in
                                   policy_scores.items()}
-                    path = Paths.data('policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}.json"
+                    path = Paths.data(
+                        'policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}{fixed_interval}.json"
                     Writer.export_json_file(path, json_costs)
 
-                    path = Paths.data('policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}.txt"
+                    path = Paths.data(
+                        'policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}{fixed_interval}.txt"
                     Writer.export_text_file(path, str(best_score))
 
                     policy, val = best_score.policy, float(best_score)
