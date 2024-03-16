@@ -42,18 +42,22 @@ class MonteCarlo:
 
         # Update associated attributes
         df = simulation.drug_efficacy_s
-        df = df.loc[df['time'] == year]
+        slice = df.loc[df['time'] == year]
 
         # - Egg count statistics
-        df['true_a_pre'] = host_df['pre'].mean(skipna=True)
-        df['true_a_post'] = host_df['post'].mean(skipna=True)
-        df['true_total_pre'] = host_df['pre'].sum(skipna=True)
-        df['true_total_post'] = host_df['post'].sum(skipna=True)
+        pre = host_df['pre'].mean(skipna=True)
+        post = host_df['post'].mean(skipna=True)
 
-        df['ERR'] = 1 - df['true_a_post'] / df['true_a_post']
+        df.loc[df['time'] == year, 'true_a_pre'] = pre
+        df.loc[df['time'] == year, 'true_a_post'] = post
+        df.loc[df['time'] == year, 'true_total_pre'] = host_df['pre'].sum(skipna=True)
+        df.loc[df['time'] == year, 'true_total_post'] = host_df['post'].sum(skipna=True)
+
+        if all(not np.isnan(val) and val != 0 for val in [pre, post]):
+            df.loc[df['time'] == year, 'ERR'] = 1 - (post / pre)
 
         # - Costs
-        df['cost'] = self.cost_calculator.calculate_costs(host_df)
+        df.loc[df['time'] == year, 'cost'] = self.cost_calculator.calculate_costs(host_df)
 
     def simulate(self, df: pd.DataFrame):
         """
@@ -74,16 +78,9 @@ class MonteCarlo:
         if np.isnan(mu_i):
             return mu_i
 
-        logger.debug(f"\t- mu_i: {mu_i}")
-
         mu_id = gamma.rvs(self.__SHAPE_DAY, scale=mu_i / self.__SHAPE_DAY)
-        logger.debug(f"\t- mu_id: {mu_id}")
-
         mu_ids = gamma.rvs(self.__SHAPE_SLIDE, scale=mu_id / self.__SHAPE_SLIDE)
-        logger.debug(f"\t- mu_ids: {mu_ids}")
-
         count = poisson.rvs(mu_ids)
-        logger.debug(f"\t- count: {count}")
 
         return count
 

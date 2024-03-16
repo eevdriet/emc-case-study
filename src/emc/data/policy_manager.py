@@ -39,7 +39,7 @@ class PolicyManager:
 
     def __init__(self, scenarios: list[Scenario], strategy: str, frequency: int, worm: str, regression_model: regressor,
                  neighborhoods: list[Neighborhood], init_policy: Policy, score_type=ScoreType.TOTAL_COSTS,
-                 use_monte_carlo: bool = False):
+                 use_monte_carlo: bool = False, cost_technique: CostTechnique = CostTechnique.FROM_INDIVIDUAL_HOSTS):
         self.logger = logging.getLogger(__name__)
 
         # Setup data fields
@@ -71,7 +71,7 @@ class PolicyManager:
         # Set up Monte Carlo
         self.use_monte_carlo = use_monte_carlo
         self.cost_technique = cost_technique
-        self.monte_carlo = MonteCarlo(self.worm, self.cost_technique)
+        self.monte_carlo = MonteCarlo(self.worm)
 
     def manage(self):
         # TODO: figure out whether to use a better search scheme for new policies
