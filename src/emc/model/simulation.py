@@ -102,7 +102,7 @@ class Simulation:
         worm = self.scenario.species
         path = Paths.host_data(worm, self.scenario.id, self.id)
 
-        return pd.read_feather(path)
+        return pd.read_csv(path)
 
     def __hash__(self):
         return hash((self.scenario.id, self.id))

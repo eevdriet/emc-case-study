@@ -69,12 +69,12 @@ class CostCalculator:
             scenario, simulation, time = group.name
             path = Paths.host_data(self.worm, scenario, simulation)
 
-            host_df = pd.read_feather(path)
+            host_df = pd.read_csv(path)
             host_df = host_df[host_df['time'] == time]
 
             # Calculate the costs from the hosts
             costs = self.calculate_costs(host_df)
-            group['costs'] = costs
+            group[f'cost_{self.technique}'] = costs
             del host_df
 
             logger.info(f"Costs for {scenario:02} {simulation:04} at t={time:02}: {costs}")
@@ -221,7 +221,7 @@ if __name__ == '__main__':
     time = 4
 
     path = Paths.host_data(worm, scenario, simulation)
-    host_df = pd.read_feather(path)
+    host_df = pd.read_csv(path)
     host_df = host_df[host_df['time'] == time]
     costs = calculator.calculate_costs(host_df)
 

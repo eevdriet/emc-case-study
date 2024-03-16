@@ -140,7 +140,7 @@ class Paths:
         :param simulation: Simulation of the scenario
         :return: Path to the data file
         """
-        path = cls.data('csv') / f'{worm}_drug_efficacySC{scenario:02}SIM{simulation:04}.feather'
+        path = cls.data('csv') / f'{worm}_drug_efficacySC{scenario:02}SIM{simulation:04}.csv'
         return cls.__safe_path(path)
 
     @classmethod
