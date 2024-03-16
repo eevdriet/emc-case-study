@@ -19,6 +19,9 @@ def set_costs():
         # NOTE: set to only hosts as average technique is invalid
         for technique in [CostTechnique.FROM_INDIVIDUAL_HOSTS]:
             out_path = path.with_stem(f'{worm}_{technique.value}')
+            if out_path.exists():
+                logger.info(f"Skippped {worm}")
+                continue
 
             # Average costs
             calculator = CostCalculator(worm, technique=technique)

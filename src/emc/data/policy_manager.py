@@ -431,6 +431,7 @@ def main():
     strategies = ['community', 'sac']
     regresModel = GradientBoosterOptuna
     score_types = [ScoreType.TOTAL_COSTS, ScoreType.FINANCIAL_COSTS, ScoreType.RESPONSIVENESS]
+    use_monte_carlo = True
 
     for worm in worms:
         for frequency in frequencies:
@@ -454,7 +455,7 @@ def main():
                         init_policy = Policy.from_every_n_years(1)
 
                     manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods,
-                                            init_policy, score_type, use_monte_carlo=True)
+                                            init_policy, score_type, use_monte_carlo=use_monte_carlo)
 
                     # Register best policy and save all costs
                     best_score, policy_scores = manager.manage()

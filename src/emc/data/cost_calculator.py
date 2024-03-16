@@ -74,7 +74,7 @@ class CostCalculator:
 
             # Calculate the costs from the hosts
             costs = self.calculate_costs(host_df)
-            group[f'cost_{self.technique}'] = costs
+            group[f'cost_{self.technique.value}'] = costs
             del host_df
 
             logger.info(f"Costs for {scenario:02} {simulation:04} at t={time:02}: {costs}")
