@@ -7,6 +7,7 @@ from math import isnan
 
 from emc.model.label import Label
 from emc.data.constants import *
+from emc.util import Paths
 
 # from emc.model.policy import Policy
 from emc.log import setup_logger
@@ -95,6 +96,13 @@ class Simulation:
             return None
 
         return ERR.iloc[0]
+
+    @property
+    def unmerged_drug_efficacy_s(self):
+        worm = self.scenario.species
+        path = Paths.host_data(worm, self.scenario.id, self.id)
+
+        return pd.read_csv(path)
 
     def __hash__(self):
         return hash((self.scenario.id, self.id))

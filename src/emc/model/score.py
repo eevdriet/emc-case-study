@@ -6,17 +6,20 @@ import numpy as np
 
 logger = setup_logger(__name__)
 
+
 class ScoreType(Enum):
     TOTAL_COSTS = 'total_costs'
     FINANCIAL_COSTS = 'financial_costs'
     RESPONSIVENESS = 'responsiveness'
+
 
 class Score:
     """
     Aggregates all objectives that can be used to score a policy on its quality
     """
 
-    def __init__(self, policy: Policy, n_simulations: int, n_false_positives: int, n_false_negatives: int, responses: list[int],
+    def __init__(self, policy: Policy, n_simulations: int, n_false_positives: int, n_false_negatives: int,
+                 responses: list[int],
                  sub_policy_costs: dict[Policy, dict[tuple[int, int], float]], score_type=ScoreType.TOTAL_COSTS):
         # Raw data
         self.policy = policy
@@ -107,29 +110,29 @@ class Score:
             return self._calculate_responsiveness_score()
         else:
             raise ValueError("Invalid score calculation method")
-        
+
     def _calculate_total_costs_score(self):
-        if self.accuracy < 0.80:
+        if self.accuracy < ACCURACY_VIOLATED_THRESHOLD:
             return float('inf')
-    
+
         score = self.total_costs
         return np.float64(score).item()
-    
+
     def _calculate_financial_costs_score(self):
-        if self.accuracy < 0.80:
+        if self.accuracy < ACCURACY_VIOLATED_THRESHOLD:
             return float('inf')
-        
+
         score = self.financial_costs
         return np.float64(score).item()
 
     def _calculate_responsiveness_score(self):
-        if self.accuracy < 0.80:
+        if self.accuracy < ACCURACY_VIOLATED_THRESHOLD:
             return float('inf')
         if len(self.policy.epi_time_points) > 5:
             return float('inf')
-    
+
         responses = [response ** 1.5 for response in self.responses]
-        
+
         score = sum(responses) / len(responses)
         return np.float64(score).item()
 

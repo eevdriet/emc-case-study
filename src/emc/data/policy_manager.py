@@ -4,7 +4,6 @@ from pathlib import Path
 import pandas as pd
 import random
 from collections import defaultdict
-from emc.util import Paths
 from emc.log import setup_logger
 from math import isnan
 import logging
@@ -15,6 +14,8 @@ from emc.model.policy import Policy
 from emc.model.scenario import Scenario
 from emc.model.simulation import Simulation
 from emc.data.constants import *
+from emc.data.monte_carlo_simulation import MonteCarlo
+from emc.data.cost_calculator import CostTechnique
 from emc.model.score import Score, ScoreType
 from emc.util import Writer, Paths
 
@@ -37,7 +38,9 @@ class PolicyManager:
     __NORMALISED_COLS = {'n_host', 'n_host_eggpos', 'a_epg_obs'}
 
     def __init__(self, scenarios: list[Scenario], strategy: str, frequency: int, worm: str, regression_model: regressor,
-                 neighborhoods: list[Neighborhood], init_policy: Policy, score_type=ScoreType.TOTAL_COSTS, early_stop=False):
+                 neighborhoods: list[Neighborhood], init_policy: Policy, score_type=ScoreType.TOTAL_COSTS,
+                 early_stop=False,
+                 use_monte_carlo: bool = False, cost_technique: CostTechnique = CostTechnique.FROM_INDIVIDUAL_HOSTS):
         self.logger = logging.getLogger(__name__)
 
         # Setup data fields
@@ -65,9 +68,14 @@ class PolicyManager:
 
         # What kind of scoring method
         self.score_type = score_type
-        
+
         # Early stopping for fixed policies
         self.early_stop = early_stop
+
+        # Set up Monte Carlo
+        self.use_monte_carlo = use_monte_carlo
+        self.cost_technique = cost_technique
+        self.monte_carlo = MonteCarlo(self.worm)
 
     def manage(self):
         # TODO: figure out whether to use a better search scheme for new policies
@@ -86,7 +94,7 @@ class PolicyManager:
         curr_score = float('inf')
 
         ils_best_policy = self.init_policy
-        best_policy= self.init_policy
+        best_policy = self.init_policy
         ils_best_score = float('inf')
 
         while iteration < self.__N_MAX_ITERS:
@@ -128,8 +136,10 @@ class PolicyManager:
                 else:
                     logger.debug(f"Greedy optimisation: No policy improvement found, stopping greedy")
                     break
-                if self.early_stop: break
-            
+
+                if self.early_stop:
+                    break
+
             if (best_score < ils_best_score):
                 ils_best_score = best_score
                 ils_best_policy = best_policy
@@ -144,12 +154,14 @@ class PolicyManager:
             else:
                 iteration += 1
 
-                logger.info(f"No improvement found in perturbed policy {iteration}/{self.__N_MAX_ITERS} (total: {total_iteration})")
+                logger.info(
+                    f"No improvement found in perturbed policy {iteration}/{self.__N_MAX_ITERS} (total: {total_iteration})")
                 logger.info(f"Current best policy: {ils_best_policy.epi_time_points}, (score: {float(ils_best_score)})")
                 curr_policy = ils_best_policy.perturbe()
                 logger.info(f"New perturbed policy: {curr_policy.epi_time_points}")
 
-            if self.early_stop: break
+            if self.early_stop:
+                break
 
         logger.info(f"\n\nOptimal policy found:")
         logger.info(best_score)
@@ -278,6 +290,9 @@ class PolicyManager:
                     continue
 
                 # Otherwise, verify whether resistance is a problem by scheduling a drug efficacy the year after
+                if self.use_monte_carlo:
+                    self.monte_carlo.run(simulation, sub_policy)
+
                 drug_signal = simulation.verify(sub_policy)
 
                 # If no drug efficacy data is available, penalize the policy for not finding a signal sooner
@@ -293,6 +308,8 @@ class PolicyManager:
 
                 # If data is available and resistance is indeed a problem, stop the simulation and register its cost
                 elif drug_signal < 0.85:
+                    # Perform
+
                     drug_policy = sub_policy.with_drug_survey()
                     costs = simulation.calculate_cost(drug_policy)
                     logger.debug(
@@ -338,7 +355,7 @@ class PolicyManager:
                 latenesses.append(lateness)
 
                 # Verify whether the simulation was wrongly classified
-                
+
                 # Find the last year for which the true drug_efficacy/ERR values are below
                 last_year = None
 
@@ -416,7 +433,8 @@ class PolicyManager:
 
 def main():
     from emc.data.data_loader import DataLoader
-    from emc.data.neighborhood import flip_neighbors, swap_neighbors, identity_neighbors, fixed_interval_neighbors, flip_out_neighbors
+    from emc.data.neighborhood import flip_neighbors, swap_neighbors, identity_neighbors, fixed_interval_neighbors, \
+        flip_out_neighbors
 
     neighborhoods = [flip_out_neighbors]
     worms = [Worm.HOOKWORM.value, Worm.ASCARIS.value]
@@ -424,6 +442,7 @@ def main():
     strategies = ['community', 'sac']
     regresModel = GradientBoosterOptuna
     score_types = [ScoreType.TOTAL_COSTS, ScoreType.FINANCIAL_COSTS, ScoreType.RESPONSIVENESS]
+    use_monte_carlo = False
 
     for worm in worms:
         for frequency in frequencies:
@@ -431,7 +450,7 @@ def main():
                 for score_type in score_types:
                     # Use the policy manager
                     logger.info(f"-- {worm}: {strategy} with {frequency} evaluated on {score_type.value} --")
-                      # also swap_neighbors
+                    # also swap_neighbors
 
                     loader = DataLoader(worm)
                     all_scenarios = loader.load_scenarios()
@@ -440,7 +459,7 @@ def main():
                         s for s in all_scenarios
                         if s.mda_freq == frequency and s.mda_strategy == strategy
                     ]
-                    
+
                     if score_type == ScoreType.RESPONSIVENESS:
                         init_policy = Policy.from_every_n_years(4)
                     else:
@@ -452,17 +471,23 @@ def main():
                         early_stop = True
                         fixed_interval = "_fixed_interval"
 
-                        
-                    manager = PolicyManager(scenarios, strategy, frequency, worm, regresModel, neighborhoods, init_policy, score_type, early_stop)
+                    manager = PolicyManager(scenarios=scenarios, strategy=strategy, frequency=frequency, worm=worm,
+                                            regression_model=regresModel, neighborhoods=neighborhoods,
+                                            init_policy=init_policy,
+                                            score_type=score_type,
+                                            early_stop=early_stop, use_monte_carlo=use_monte_carlo)
 
                     # Register best policy and save all costs
                     best_score, policy_scores = manager.manage()
 
-                    json_costs = {str(policy.epi_time_points): score.as_dict() for policy, score in policy_scores.items()}
-                    path = Paths.data('policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}{fixed_interval}.json"
+                    json_costs = {str(policy.epi_time_points): score.as_dict() for policy, score in
+                                  policy_scores.items()}
+                    path = Paths.data(
+                        'policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}{fixed_interval}.json"
                     Writer.export_json_file(path, json_costs)
 
-                    path = Paths.data('policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}{fixed_interval}.txt"
+                    path = Paths.data(
+                        'policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}{fixed_interval}.txt"
                     Writer.export_text_file(path, str(best_score))
 
                     policy, val = best_score.policy, float(best_score)

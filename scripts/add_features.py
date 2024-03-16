@@ -12,7 +12,7 @@ def add_features_group(group):
     :return: Group with features added
     """
     group['inf_level'] = group['n_host_eggpos'] / group['n_host']
-    
+
     return group
 
 
@@ -39,4 +39,10 @@ def add_features() -> None:
 
 
 if __name__ == '__main__':
-    add_features()
+    # add_features()
+
+    worm = Worm.ASCARIS.value
+    path = Paths.worm_data(worm, 'drug_efficacy')
+    df = pd.read_csv(path)
+    df.rename(columns={'cost': 'cost_avg', 'costs': 'cost'}, inplace=True)
+    df.to_csv(path)

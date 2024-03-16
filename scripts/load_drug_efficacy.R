@@ -34,13 +34,14 @@ extract_surveys <- function(df) {
         }
       }
       
-      de_survey_df <- data.frame(scenario = scenario, simulation = simulation, drug_efficacy = de_survey)
+      # Add scenario / simulation indices and reorder columns
+      de_survey$scenario = scenario
+      de_survey$simulation = simulation
+      de_survey = de_survey[, c("scenario", "simulation", "time", "host", "pre", "post")]
       
-      file <- sprintf("../csv/%s_drug_efficacySC%02dSIM%04d.csv", name, scenario, simulation)
-      write.csv(de_survey_df, row.names = FALSE, file = file)
+      file <- sprintf("../data/csv/%s_drug_efficacySC%02dSIM%04d.csv", name, scenario, simulation)
+      write.csv(de_survey, row.names = FALSE, file = file)
     }
-    
-    
   }
 }
 
