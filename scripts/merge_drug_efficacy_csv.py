@@ -32,8 +32,9 @@ def merge_csv() -> None:
             for simulation in range(N_SIMULATIONS):
                 logger.debug(f"\t- {simulation + 1}/{N_SIMULATIONS}")
                 # Load CSV for a single simulation
-                path = Paths.data('csv') / f'{worm}_drug_efficacySC{scenario + 1:02}SIM{simulation + 1:04}.csv'
+                path = Paths.host_data(worm, scenario, simulation)
                 assert path.exists(), "Make sure to run the `load_drug_efficacy.R` script"
+
                 df = pd.read_csv(path).reset_index(drop=True)
                 dfs.append(df)
 

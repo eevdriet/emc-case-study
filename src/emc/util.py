@@ -132,6 +132,18 @@ class Paths:
         return cls.__safe_path(path)
 
     @classmethod
+    def host_data(cls, worm: str, scenario: int, simulation: int):
+        """
+        Access the data path of individual host drug efficacy data
+        :param worm: Name of the worm
+        :param scenario: Scenario of the data
+        :param simulation: Simulation of the scenario
+        :return: Path to the data file
+        """
+        path = cls.data('csv') / f'{worm}_drug_efficacySC{scenario:02}SIM{simulation:04}.feather'
+        return cls.__safe_path(path)
+
+    @classmethod
     def levels(cls, worm: str, *, bucket_size: int, mda_freq: Optional[int], mda_strategy: Optional[str],
                baseline: Optional[int] = None):
         """

@@ -100,7 +100,7 @@ class Simulation:
     @property
     def unmerged_drug_efficacy_s(self):
         worm = self.scenario.species
-        path = Paths.data('csv') / f'{worm}_drug_efficacySC{self.scenario.id:02}SIM{self.id:04}.feather'
+        path = Paths.host_data(worm, self.scenario.id, self.id)
 
         return pd.read_feather(path)
 
