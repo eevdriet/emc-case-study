@@ -166,6 +166,25 @@ class PolicyManager:
         logger.info(f"\n\nOptimal policy found:")
         logger.info(best_score)
         return best_score, self.policy_scores
+    
+    def evaluate_using_mc(self):
+        policy = self.init_policy
+
+        logger.info(f"Start evaluation for policy({policy.epi_time_points})")
+        self.__build_regressors(policy)
+
+        results = {}
+
+        for i in range(MC_EVALUATION_NUM):
+            score = self.__calculate_score(policy)
+            results[i] = score.as_dict()
+            logger.info(f"Policy costs ({float(score)}), Iteration {i + 1}/{MC_EVALUATION_NUM}")
+
+        json_path = Paths.data('.') / "mc" / f"{self.worm}_{self.strategy}_{self.frequency}_{self.score_type.value}_{self.constructor.__name__}__{policy}.json"
+        Writer.export_json_file(json_path, results)
+
+        logger.info(f"Exporting data")
+
 
     def __build_regressors(self, policy: Policy) -> None:
         """
@@ -442,14 +461,37 @@ def main():
     strategies = ['community', 'sac']
     regresModel = GradientBoosterOptuna
     score_types = [ScoreType.TOTAL_COSTS, ScoreType.FINANCIAL_COSTS, ScoreType.RESPONSIVENESS]
-    use_monte_carlo = False
+
+    use_monte_carlo = True
+    mc_policy = {
+        Worm.HOOKWORM.value : {
+            'community' : {
+                1 : [0, 4, 8, 12, 16],
+                2 : [0, 4, 8, 12, 16]
+            },
+            'sac' : {
+                1 : [0, 4, 8, 12, 16],
+                2 : [0, 4, 8, 12, 16]
+            }
+        },
+        Worm.ASCARIS.value : {
+            'community' : {
+                1 : [0, 4, 8, 12, 16],
+                2 : [0, 4, 8, 12, 16]
+            },
+            'sac' : {
+                1 : [0, 4, 8, 12, 16],
+                2 : [0, 4, 8, 12, 16]
+            }
+        }
+    }
 
     for worm in worms:
         for frequency in frequencies:
             for strategy in strategies:
                 for score_type in score_types:
                     # Use the policy manager
-                    logger.info(f"-- {worm}: {strategy} with {frequency} evaluated on {score_type.value} --")
+                    logger.info(f"-- {worm}: {strategy} with {frequency} evaluated on {score_type.value} (MC: {use_monte_carlo}) --")
                     # also swap_neighbors
 
                     loader = DataLoader(worm)
@@ -475,6 +517,9 @@ def main():
                         early_stop = True
                         fixed_interval = "_5year_policy"
                         init_policy = Policy.from_every_n_years(5)
+                    
+                    if use_monte_carlo:
+                        init_policy = Policy.from_timepoints(mc_policy[worm][strategy][frequency])
 
                     manager = PolicyManager(scenarios=scenarios, strategy=strategy, frequency=frequency, worm=worm,
                                             regression_model=regresModel, neighborhoods=neighborhoods,
@@ -482,21 +527,22 @@ def main():
                                             score_type=score_type,
                                             early_stop=early_stop, use_monte_carlo=use_monte_carlo)
 
-                    # Register best policy and save all costs
-                    best_score, policy_scores = manager.manage()
+                    if use_monte_carlo:
+                        manager.evaluate_using_mc()
+                    else:
+                        # Register best policy and save all costs
+                        best_score, policy_scores = manager.manage()
 
-                    json_costs = {str(policy.epi_time_points): score.as_dict() for policy, score in
-                                  policy_scores.items()}
-                    path = Paths.data(
-                        'policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}{fixed_interval}.json"
-                    Writer.export_json_file(path, json_costs)
+                        json_costs = {str(policy.epi_time_points): score.as_dict() for policy, score in
+                                    policy_scores.items()}
+                        path = Paths.data('policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}{fixed_interval}.json"
+                        Writer.export_json_file(path, json_costs)
 
-                    path = Paths.data(
-                        'policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}{fixed_interval}.txt"
-                    Writer.export_text_file(path, str(best_score))
+                        path = Paths.data('policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}{fixed_interval}.txt"
+                        Writer.export_text_file(path, str(best_score))
 
-                    policy, val = best_score.policy, float(best_score)
-                    logger.info(f"Optimal policy is {policy} with score {val} evaluated with {score_type.value}")
+                        policy, val = best_score.policy, float(best_score)
+                        logger.info(f"Optimal policy is {policy} with score {val} evaluated with {score_type.value}")
 
 
 if __name__ == '__main__':
