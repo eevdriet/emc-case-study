@@ -176,6 +176,7 @@ class PolicyManager:
         results = {}
 
         for i in range(MC_EVALUATION_NUM):
+            logger.info(f"Iteration {i + 1}/{MC_EVALUATION_NUM}")
             score = self.__calculate_score(policy)
             results[i] = score.as_dict()
             logger.info(f"Policy costs ({float(score)}), Iteration {i + 1}/{MC_EVALUATION_NUM}")
