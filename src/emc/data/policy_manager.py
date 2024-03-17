@@ -520,6 +520,7 @@ def main():
                     
                     if use_monte_carlo:
                         init_policy = Policy.from_timepoints(mc_policy[worm][strategy][frequency])
+                        score_type = ScoreType.TOTAL_COSTS
 
                     manager = PolicyManager(scenarios=scenarios, strategy=strategy, frequency=frequency, worm=worm,
                                             regression_model=regresModel, neighborhoods=neighborhoods,
@@ -528,7 +529,7 @@ def main():
                                             early_stop=early_stop, use_monte_carlo=use_monte_carlo)
 
                     if use_monte_carlo:
-                        manager.evaluate_using_mc()
+                        break
                     else:
                         # Register best policy and save all costs
                         best_score, policy_scores = manager.manage()
@@ -543,6 +544,9 @@ def main():
 
                         policy, val = best_score.policy, float(best_score)
                         logger.info(f"Optimal policy is {policy} with score {val} evaluated with {score_type.value}")
+                
+                if use_monte_carlo:
+                    manager.evaluate_using_mc()
 
 
 if __name__ == '__main__':
