@@ -470,6 +470,11 @@ def main():
                     if fixed_interval_neighbors in neighborhoods:
                         early_stop = True
                         fixed_interval = "_fixed_interval"
+                    
+                    if identity_neighbors in neighborhoods:
+                        early_stop = True
+                        fixed_interval = "_5year_policy"
+                        init_policy = Policy.from_every_n_years(5)
 
                     manager = PolicyManager(scenarios=scenarios, strategy=strategy, frequency=frequency, worm=worm,
                                             regression_model=regresModel, neighborhoods=neighborhoods,
