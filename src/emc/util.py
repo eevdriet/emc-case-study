@@ -224,7 +224,7 @@ class Writer:
     """
 
     @classmethod
-    def __read_json_file(cls, path):
+    def read_json_file(cls, path):
         """
         Read JSON file from the given filename
         :param path: Path to the JSON file
@@ -259,7 +259,7 @@ class Writer:
         :param key: Key to update
         :param value: Value to update
         """
-        data = cls.__read_json_file(path)
+        data = cls.read_json_file(path)
         data[key] = value
         cls.__write_json_file(path, data)
 
