@@ -169,6 +169,7 @@ class PolicyManager:
     
     def evaluate_using_mc(self):
         policy = self.init_policy
+        json_path = Paths.data('.') / "mc" / f"{self.worm}_{self.strategy}_{self.frequency}_{self.constructor.__name__}__{policy}.json"
 
         logger.info(f"Start evaluation for policy({policy.epi_time_points})")
         self.__build_regressors(policy)
@@ -181,9 +182,10 @@ class PolicyManager:
             results[i] = score.as_dict()
             logger.info(f"Policy costs ({float(score)}), Iteration {i + 1}/{MC_EVALUATION_NUM}")
 
-        json_path = Paths.data('.') / "mc" / f"{self.worm}_{self.strategy}_{self.frequency}_{self.constructor.__name__}__{policy}.json"
+            if (i % 10 == 0):
+                Writer.export_json_file(json_path, results)
+        
         Writer.export_json_file(json_path, results)
-
         logger.info(f"Exporting data")
 
 
