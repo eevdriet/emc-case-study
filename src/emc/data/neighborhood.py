@@ -48,7 +48,9 @@ def fixed_interval_neighbors(policy: Policy) -> Neighbor:
     for year in range(1, N_YEARS - 1):
         yield Policy.from_every_n_years(year)
 
+def model_accuracy_neighbors(policy: Policy) -> Neighbor:
+    yield policy.from_every_n_years(1)
 
 if __name__ == '__main__':
-    policy = Policy.from_timepoints([0, 2, 8, 16, 20])
-    print(list(p for p in fixed_interval_neighbors(policy)))
+    policy = Policy.from_timepoints([0, 2, 8, 16])
+    print(list(p for p in model_accuracy_neighbors(policy)))
