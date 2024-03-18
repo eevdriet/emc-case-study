@@ -456,7 +456,7 @@ class PolicyManager:
 def main():
     from emc.data.data_loader import DataLoader
     from emc.data.neighborhood import flip_neighbors, swap_neighbors, identity_neighbors, fixed_interval_neighbors, \
-        flip_out_neighbors
+        flip_out_neighbors, model_accuracy_neighbors
 
     neighborhoods = [flip_out_neighbors]
     worms = [Worm.HOOKWORM.value, Worm.ASCARIS.value]
