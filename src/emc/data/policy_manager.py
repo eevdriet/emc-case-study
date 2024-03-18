@@ -465,7 +465,33 @@ def main():
     regresModel = GradientBoosterOptuna
     score_types = [ScoreType.TOTAL_COSTS, ScoreType.FINANCIAL_COSTS, ScoreType.RESPONSIVENESS]
 
-    use_monte_carlo = True
+    write_output = True
+    custom_append = ""
+
+    identity_policy = {
+        Worm.HOOKWORM.value : {
+            'community' : {
+                1 : [0, 5, 10, 15],
+                2 : [0, 5, 10, 15]
+            },
+            'sac' : {
+                1 : [0, 5, 10, 15],
+                2 : [0, 5, 10, 15]
+            }
+        },
+        Worm.ASCARIS.value : {
+            'community' : {
+                1 : [0, 5, 10, 15],
+                2 : [0, 5, 10, 15]
+            },
+            'sac' : {
+                1 : [0, 5, 10, 15],
+                2 : [0, 5, 10, 15]
+            }
+        }
+    }
+
+    use_monte_carlo = False
     mc_policy = {
         Worm.HOOKWORM.value : {
             'community' : {
@@ -511,16 +537,21 @@ def main():
                         init_policy = Policy.from_every_n_years(1)
 
                     early_stop = False
-                    fixed_interval = ""
+                    file_name_append = ""
                     if fixed_interval_neighbors in neighborhoods:
                         early_stop = True
-                        fixed_interval = "_fixed_interval"
+                        file_name_append = "_fixed_interval"
                     
                     if identity_neighbors in neighborhoods:
                         early_stop = True
-                        fixed_interval = "_5year_policy"
-                        init_policy = Policy.from_every_n_years(5)
+                        file_name_append = "_identity"
+                        init_policy = Policy.from_timepoints(identity_policy[worm][strategy][frequency])
                     
+                    if model_accuracy_neighbors in neighborhoods:
+                        early_stop = True
+                        file_name_append = "_model_accuracy"
+                        init_policy = Policy.from_every_n_years(1)
+
                     if use_monte_carlo:
                         init_policy = Policy.from_timepoints(mc_policy[worm][strategy][frequency])
                         score_type = ScoreType.TOTAL_COSTS
@@ -537,13 +568,14 @@ def main():
                         # Register best policy and save all costs
                         best_score, policy_scores = manager.manage()
 
-                        json_costs = {str(policy.epi_time_points): score.as_dict() for policy, score in
-                                    policy_scores.items()}
-                        path = Paths.data('policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}{fixed_interval}.json"
-                        Writer.export_json_file(path, json_costs)
+                        if write_output:
+                            json_costs = {str(policy.epi_time_points): score.as_dict() for policy, score in
+                                        policy_scores.items()}
+                            path = Paths.data('policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}{file_name_append}{custom_append}.json"
+                            Writer.export_json_file(path, json_costs)
 
-                        path = Paths.data('policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}{fixed_interval}.txt"
-                        Writer.export_text_file(path, str(best_score))
+                            path = Paths.data('policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}{file_name_append}{custom_append}.txt"
+                            Writer.export_text_file(path, str(best_score))
 
                         policy, val = best_score.policy, float(best_score)
                         logger.info(f"Optimal policy is {policy} with score {val} evaluated with {score_type.value}")
