@@ -43,12 +43,7 @@ def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
         for j, strategy in enumerate(MDA_STRATEGIES):
             for k, frequency in enumerate(MDA_FREQUENCIES):
                 # Read data from JSON file
-                path1 = Paths.hyperparameter_opt(
-                    f'classifier_stats_f1score_{worm}_{strategy}_{frequency}_SingleGradientBoosterBayesian.json', True)
-                path2 = Paths.hyperparameter_opt(
-                    f'classifier_stats_{worm}_{strategy}_{frequency}_SingleGradientBoosterDefault.json', True)
-                path3 = Paths.hyperparameter_opt(
-                    f'classifier_stats_{worm}_{strategy}_{frequency}_SingleGradientBoosterBayesian.json', True)
+                path1 = Paths.data('model_accuracy') / f"{worm}{frequency}{strategy}" / "model_accuracy.json"
 
                 with open(path1, 'r') as file:
                     data = json.load(file)
@@ -58,17 +53,19 @@ def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
                 accuracy = [data[time]['accuracy'] for time in time_points]
                 f1_score = [data[time]['f1_score'] for time in time_points]
 
-                with open(path2, 'r') as file:
-                    data = json.load(file)
+                # with open(path2, 'r') as file:
+                #     data = json.load(file)
 
-                accuracy_def = [data[time]['accuracy'] for time in time_points]
-                f1_score_def = [data[time]['f1_score'] for time in time_points]
+                # accuracy_def = [data[time]['accuracy'] for time in time_points]
+                # f1_score_def = [data[time]['f1_score'] for time in time_points]
 
-                with open(path3, 'r') as file:
-                    data = json.load(file)
+                # with open(path3, 'r') as file:
+                #     data = json.load(file)
 
-                accuracy_opt = [data[time]['accuracy'] for time in time_points]
-                f1_score_opt = [data[time]['f1_score'] for time in time_points]
+                # accuracy_opt = [data[time]['accuracy'] for time in time_points]
+                # f1_score_opt = [data[time]['f1_score'] for time in time_points]
+
+                time_points = [int(x) for x in time_points]
 
                 if display_mode == DisplayMode.ALL:
                     # Plotting in corresponding subplot
@@ -77,9 +74,9 @@ def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
                     # Create a separate figure for each subplot
                     fig, ax = plt.subplots(figsize=(8, 4))
 
-                line1, = ax.plot(time_points, f1_score_def, label='F1 score', alpha=1, color=YELLOW)
+                line1, = ax.plot(time_points, f1_score, label='F1 score', alpha=1, color=YELLOW)
                 # l2, = ax.plot(time_points, accuracy_opt, label='Optimized Accuracy by MSE', alpha=1, color='#FFA07A')
-                line2, = ax.plot(time_points, accuracy_def, label='Accuracy', alpha=1, color=MAGENTA)
+                line2, = ax.plot(time_points, accuracy, label='Accuracy', alpha=1, color=MAGENTA)
 
                 # #CD5C5C')
                 # l2, = ax.plot(time_points, accuracy_opt, label='Optimised Accuracy by MSE', alpha=1, color='#FFA07A')
@@ -101,7 +98,7 @@ def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
                     # Create a separate figure for each subplot
                     fig, ax = plt.subplots(figsize=(7, 6))
 
-                    line1, = ax.plot(time_points, f1_score_def, label='Default accuracy', alpha=1, color=YELLOW)
+                    line1, = ax.plot(time_points, f1_score, label='Default accuracy', alpha=1, color=YELLOW)
                     line2, = ax.plot(time_points, f1_score, label='Optimized accuracy by F1', alpha=1, color=GREEN)
 
                     # Set the title below the figure
@@ -125,13 +122,13 @@ def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
                     plt.clf()
 
     if display_mode == DisplayMode.ALL:
-        path = Paths.hyperparameter_opt(f"plots.png", plotdata=True)
+        path = Paths.data('plots') / "model_accuracy" / "plot.png"
         legend = fig.legend(lines, labels, loc='lower center', ncol=2, bbox_to_anchor=(0.5, 0))
         legend.get_frame().set_alpha(None)
         legend.get_frame().set_facecolor((1, 1, 1, 0))
-
-        fig.savefig(path, transparent=True, bbox_inches='tight')
         plt.show()
+        fig.savefig(path, transparent=True, bbox_inches='tight')
+        
 
 
 if __name__ == '__main__':
