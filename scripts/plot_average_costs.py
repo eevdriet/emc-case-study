@@ -77,7 +77,7 @@ def plot_costs(costs: Costs, path: Path):
 
 
 def main():
-    OVERWRITE = False
+    OVERWRITE = True
 
     for worm in Worm:
         worm = worm.value
