@@ -277,7 +277,7 @@ class PolicyManager:
         if len(sub_policies) == 0:
             return Score.create_missing()
 
-        latenesses = []
+        responses = []
         n_false_positives = 0
         n_false_negatives = 0
 
@@ -359,16 +359,16 @@ class PolicyManager:
                     first_year = time
                     break
 
-                # Determine lateness of the policy
+                # Determine responsiveness of the policy
                 # Note that the absolute value is needed, regressor can find a signal before it occurs in the monitor_age data
                 if first_year is None:
-                    lateness = 0
+                    responsiveness = 0
                 else:
-                    lateness = (20 if signal_year is None else signal_year) - first_year
-                    lateness = abs(lateness)
+                    responsiveness = (20 if signal_year is None else signal_year) - first_year
+                    responsiveness = abs(responsiveness)
 
-                logger.debug(f"Simulation {key} has lateness {lateness}")
-                latenesses.append(lateness)
+                logger.debug(f"Simulation {key} has responsiveness {responsiveness}")
+                responses.append(responsiveness)
 
                 # Verify whether the simulation was wrongly classified
 
@@ -397,7 +397,7 @@ class PolicyManager:
                      n_simulations=len(self.test_simulations),
                      n_false_positives=n_false_positives,
                      n_false_negatives=n_false_negatives,
-                     responses=latenesses,
+                     responses=responses,
                      sub_policy_costs=sub_policy_costs,
                      score_type=self.score_type)
 
