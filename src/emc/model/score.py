@@ -67,7 +67,7 @@ class Score:
         times = (True,) + (False,) * (N_YEARS - 1)
         policy = Policy(times)
         costs = {policy: {(0, 0): float('inf')}}
-        latenesses = [float('inf')]
+        latenesses = [1_000_000]
 
         score = cls(policy=policy, n_simulations=1, n_false_positives=0, n_false_negatives=0, responses=latenesses,
                     sub_policy_costs=costs)

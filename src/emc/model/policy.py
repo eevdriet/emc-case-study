@@ -13,6 +13,7 @@ from emc.util import first_or_mean
 
 random.seed(SEED)
 
+
 class Policy:
     """
     States at which point times a survey is conducted, which can be
@@ -30,15 +31,6 @@ class Policy:
         # Initially schedule no drug efficacy surveys
         self.drug_surveys = (False,) * N_YEARS
 
-    def __eq__(self, other: "Policy") -> bool:
-        """
-        Check if two policies are equal based on their epi_surveys attribute only.
-        """
-        if not isinstance(other, Policy):
-            return False
-
-        return self.epi_surveys == other.epi_surveys
-    
     @classmethod
     def from_timepoints(cls, time_points: list[int]) -> "Policy":
         assert min(time_points) >= 0, "Minimum time should be 0"
@@ -62,7 +54,7 @@ class Policy:
         epi_surveys = epi_surveys[:-1] + (False,)
 
         return Policy(epi_surveys)
-    
+
     def perturbe(self) -> "Policy":
         input_list = list(self.epi_surveys)
         true_count = input_list.count(True)
@@ -78,7 +70,7 @@ class Policy:
             if index < len(list_to_check) - 1 and list_to_check[index + 1]:
                 return True
             return False
-        
+
         # Function to find all possible positions for a new True value
         def find_possible_positions(list_to_check):
             possible_positions = []
@@ -86,7 +78,7 @@ class Policy:
                 if not list_to_check[i] and is_true_within_one(i, list_to_check):
                     possible_positions.append(i)
             return possible_positions
-        
+
         # Set all elements to False initially, except the first one
         new_epi_surveys = [False] * len(input_list)
         new_epi_surveys[0] = True
@@ -136,7 +128,8 @@ class Policy:
 
         return total_cost
 
-    def calculate_drug_cost(self, de_survey: pd.DataFrame, year: Optional[int] = None) -> float:
+    @classmethod
+    def calculate_drug_cost(cls, de_survey: pd.DataFrame, year: Optional[int] = None) -> float:
         """
         Calculate the cost of scheduling a drug efficacy survey in the given year
         :param de_survey: Data to base costs on
@@ -158,6 +151,10 @@ class Policy:
         return hash(self.epi_surveys)
 
     def __eq__(self, other):
+        """
+        Check if two policies are equal based on their epi_surveys attribute only.
+        :param other: Other policy to compare
+        """
         if not isinstance(other, Policy):
             return False
 

@@ -31,6 +31,7 @@ class MonteCarlo:
         """
         Run the simulation and update associated costs
         :param simulation: Simulation to run for
+        :param policy: Policy to run the simulation for
         """
         # Determine in which year to simulate
         year = policy.last_year + 1
@@ -42,7 +43,6 @@ class MonteCarlo:
 
         # Update associated attributes
         df = simulation.drug_efficacy_s
-        slice = df.loc[df['time'] == year]
 
         # - Egg count statistics
         pre = host_df['pre'].mean(skipna=True)

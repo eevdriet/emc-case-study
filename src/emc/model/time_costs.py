@@ -32,11 +32,11 @@ class Time_Costs:
     }
 
     @staticmethod
-    def countKK(count: int):
+    def countKK(count: float):
         return pow(10, 2.3896 + 0.0661 * pow(math.log10(count + 1), 2))
 
     @staticmethod
-    def __countMF(count: int):
+    def __countMF(count: float):
         return pow(10, 2.5154 + 0.0661 * pow(math.log10(count + 1), 2))
 
     @staticmethod

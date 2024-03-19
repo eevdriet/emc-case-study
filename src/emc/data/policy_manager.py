@@ -78,8 +78,6 @@ class PolicyManager:
         self.monte_carlo = MonteCarlo(self.worm)
 
     def manage(self):
-        # TODO: figure out whether to use a better search scheme for new policies
-
         # Setup iteration variables
         logger.info("Start iterated local search")
         self.policy_scores = {}
@@ -140,7 +138,7 @@ class PolicyManager:
                 if self.early_stop:
                     break
 
-            if (best_score < ils_best_score):
+            if best_score < ils_best_score:
                 ils_best_score = best_score
                 ils_best_policy = best_policy
 
@@ -166,10 +164,11 @@ class PolicyManager:
         logger.info(f"\n\nOptimal policy found:")
         logger.info(best_score)
         return best_score, self.policy_scores
-    
+
     def evaluate_using_mc(self):
         policy = self.init_policy
-        json_path = Paths.data('.') / "mc" / f"{self.worm}_{self.strategy}_{self.frequency}_{self.constructor.__name__}__{policy}.json"
+        json_path = Paths.data(
+            '.') / "mc" / f"{self.worm}_{self.strategy}_{self.frequency}_{self.constructor.__name__}__{policy}.json"
 
         logger.info(f"Start evaluation for policy({policy.epi_time_points})")
         self.__build_regressors(policy)
@@ -182,12 +181,11 @@ class PolicyManager:
             results[i] = score.as_dict()
             logger.info(f"Policy costs ({float(score)}), Iteration {i + 1}/{MC_EVALUATION_NUM}")
 
-            if (i % 10 == 0):
+            if i % 10 == 0:
                 Writer.export_json_file(json_path, results)
-        
+
         Writer.export_json_file(json_path, results)
         logger.info(f"Exporting data")
-
 
     def __build_regressors(self, policy: Policy) -> None:
         """
@@ -273,9 +271,6 @@ class PolicyManager:
         :param policy: Policy to find costs for
         :return: Costs of the policy and its sub-policies
         """
-        # Keep track of the costs of all simulations that terminate in a certain policy
-        # TODO: figure out if costs are being calculated properly
-
         # Go through all sub-policies and ignore the empty policy
         sub_policies = [p for p in policy.sub_policies]
         sub_policy_costs: dict[Policy, dict[tuple[int, int], float]] = defaultdict(dict)
@@ -287,9 +282,9 @@ class PolicyManager:
         n_false_positives = 0
         n_false_negatives = 0
 
-        for iter, simulation in enumerate(self.test_simulations):
+        for it, simulation in enumerate(self.test_simulations):
             key = (simulation.scenario.id, simulation.id)
-            logger.debug(f"{iter}/{len(self.test_simulations)} with simulation {key}")
+            logger.debug(f"{it}/{len(self.test_simulations)} with simulation {key}")
 
             signal_year = None
 
@@ -469,48 +464,48 @@ def main():
     custom_append = ""
 
     identity_policy = {
-        Worm.HOOKWORM.value : {
-            'community' : {
-                1 : [0, 5, 10, 15],
-                2 : [0, 5, 10, 15]
+        Worm.HOOKWORM.value: {
+            'community': {
+                1: [0, 5, 10, 15],
+                2: [0, 5, 10, 15]
             },
-            'sac' : {
-                1 : [0, 5, 10, 15],
-                2 : [0, 5, 10, 15]
+            'sac': {
+                1: [0, 5, 10, 15],
+                2: [0, 5, 10, 15]
             }
         },
-        Worm.ASCARIS.value : {
-            'community' : {
-                1 : [0, 5, 10, 15],
-                2 : [0, 5, 10, 15]
+        Worm.ASCARIS.value: {
+            'community': {
+                1: [0, 5, 10, 15],
+                2: [0, 5, 10, 15]
             },
-            'sac' : {
-                1 : [0, 5, 10, 15],
-                2 : [0, 5, 10, 15]
+            'sac': {
+                1: [0, 5, 10, 15],
+                2: [0, 5, 10, 15]
             }
         }
     }
 
     use_monte_carlo = False
     mc_policy = {
-        Worm.HOOKWORM.value : {
-            'community' : {
-                1 : [0, 4, 8, 12, 16],
-                2 : [0, 4, 8, 12, 16]
+        Worm.HOOKWORM.value: {
+            'community': {
+                1: [0, 4, 8, 12, 16],
+                2: [0, 4, 8, 12, 16]
             },
-            'sac' : {
-                1 : [0, 4, 8, 12, 16],
-                2 : [0, 4, 8, 12, 16]
+            'sac': {
+                1: [0, 4, 8, 12, 16],
+                2: [0, 4, 8, 12, 16]
             }
         },
-        Worm.ASCARIS.value : {
-            'community' : {
-                1 : [0, 4, 8, 12, 16],
-                2 : [0, 4, 8, 12, 16]
+        Worm.ASCARIS.value: {
+            'community': {
+                1: [0, 4, 8, 12, 16],
+                2: [0, 4, 8, 12, 16]
             },
-            'sac' : {
-                1 : [0, 4, 8, 12, 16],
-                2 : [0, 4, 8, 12, 16]
+            'sac': {
+                1: [0, 4, 8, 12, 16],
+                2: [0, 4, 8, 12, 16]
             }
         }
     }
@@ -520,7 +515,8 @@ def main():
             for strategy in strategies:
                 for score_type in score_types:
                     # Use the policy manager
-                    logger.info(f"-- {worm}: {strategy} with {frequency} evaluated on {score_type.value} (MC: {use_monte_carlo}) --")
+                    logger.info(
+                        f"-- {worm}: {strategy} with {frequency} evaluated on {score_type.value} (MC: {use_monte_carlo}) --")
                     # also swap_neighbors
 
                     loader = DataLoader(worm)
@@ -541,12 +537,12 @@ def main():
                     if fixed_interval_neighbors in neighborhoods:
                         early_stop = True
                         file_name_append = "_fixed_interval"
-                    
+
                     if identity_neighbors in neighborhoods:
                         early_stop = True
                         file_name_append = "_identity"
                         init_policy = Policy.from_timepoints(identity_policy[worm][strategy][frequency])
-                    
+
                     if model_accuracy_neighbors in neighborhoods:
                         early_stop = True
                         file_name_append = "_model_accuracy"
@@ -570,16 +566,18 @@ def main():
 
                         if write_output:
                             json_costs = {str(policy.epi_time_points): score.as_dict() for policy, score in
-                                        policy_scores.items()}
-                            path = Paths.data('policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}{file_name_append}{custom_append}.json"
+                                          policy_scores.items()}
+                            path = Paths.data(
+                                'policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}{file_name_append}{custom_append}.json"
                             Writer.export_json_file(path, json_costs)
 
-                            path = Paths.data('policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}{file_name_append}{custom_append}.txt"
+                            path = Paths.data(
+                                'policies') / f"{worm}{frequency}{strategy}" / f"{score_type.value}{file_name_append}{custom_append}.txt"
                             Writer.export_text_file(path, str(best_score))
 
                         policy, val = best_score.policy, float(best_score)
                         logger.info(f"Optimal policy is {policy} with score {val} evaluated with {score_type.value}")
-                
+
                 if use_monte_carlo:
                     manager.evaluate_using_mc()
 
