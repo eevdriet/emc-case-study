@@ -1,11 +1,13 @@
 import json
-import scipy as sp
-from emc.data.constants import *
-from emc.util import Paths
-from emc.log import setup_logger
 from itertools import product
-from typing import Tuple
 from math import isnan
+from typing import Tuple
+
+import scipy as sp
+
+from emc.data.constants import *
+from emc.log import setup_logger
+from emc.util import Paths
 
 logger = setup_logger(__name__)
 

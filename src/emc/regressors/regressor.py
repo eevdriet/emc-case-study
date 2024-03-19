@@ -1,13 +1,12 @@
 from abc import ABC, abstractmethod
 from typing import Optional
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
 import numpy as np
-
 import pandas as pd
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-from emc.model.simulation import Simulation
 from emc.model.policy import Policy
-from emc.data.constants import SEED
+from emc.model.simulation import Simulation
 
 _X = dict[tuple[int, int], np.ndarray]
 _Y = dict[tuple[int, int], float]
@@ -129,7 +128,7 @@ class Regressor(ABC):
         Retrieve the preprocessing data including features and targets for training and testing.
         :return: A tuple containing features and targets for training and testing.
         """
-        return (self.features_data, self.targets_data, self.features_test, self.targets_test)
+        return self.features_data, self.targets_data, self.features_test, self.targets_test
 
     def setPreprocessing(self, features_data, targets_data, features_test, targets_test) -> None:
         """
@@ -160,7 +159,7 @@ class Regressor(ABC):
         return newRegressor
 
     def getParameters(self):
-        if self.regression_model == None:
+        if self.regression_model is None:
             return None
         else:
             return self.regression_model.get_params()

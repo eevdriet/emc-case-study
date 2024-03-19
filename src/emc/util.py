@@ -1,10 +1,10 @@
-import logging
-from pathlib import Path
+import json
 import pickle
+from pathlib import Path
 from typing import Tuple, TypeVar, Optional, Any
+
 import numpy as np
 import pandas as pd
-import json
 
 from emc.log import setup_logger
 
@@ -49,8 +49,6 @@ def normalised(series: pd.Series, missing_val: float = 0.5):
     :param missing_val: Value to fill out when normalisation is invalid
     :return:
     """
-    logger = logging.getLogger(__name__)
-
     min_val = series.min()
     max_val = series.max()
 

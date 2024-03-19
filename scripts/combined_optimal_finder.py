@@ -1,8 +1,6 @@
-import pandas as pd
-
-from emc.util import Paths, Writer
 from emc.data.constants import *
 from emc.model.score import ScoreType
+from emc.util import Paths, Writer
 
 
 def find_combined_optimal():
@@ -13,9 +11,11 @@ def find_combined_optimal():
     for strategy in strategies:
         for frequency in frequencies:
             for score_type in score_types:
-                path1 = Paths.data('policies') / f"{Worm.HOOKWORM.value}{frequency}{strategy}" / f"{score_type.value}_fixed_interval.json"
+                path1 = Paths.data(
+                    'policies') / f"{Worm.HOOKWORM.value}{frequency}{strategy}" / f"{score_type.value}_fixed_interval.json"
                 data1 = Writer.read_json_file(path1)
-                path2 = Paths.data('policies') / f"{Worm.ASCARIS.value}{frequency}{strategy}" / f"{score_type.value}_fixed_interval.json"
+                path2 = Paths.data(
+                    'policies') / f"{Worm.ASCARIS.value}{frequency}{strategy}" / f"{score_type.value}_fixed_interval.json"
                 data2 = Writer.read_json_file(path2)
 
                 # Calculate the sum of total_costs for each key in both JSON inputs
@@ -35,8 +35,6 @@ def find_combined_optimal():
 
                 print(f"For freq: {frequency}, strat: {strategy}, score_type: {score_type.value}")
                 print(f"Key with lowest total cost: {min_key}")
-
-
 
 
 if __name__ == '__main__':

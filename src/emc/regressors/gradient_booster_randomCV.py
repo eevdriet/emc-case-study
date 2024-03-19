@@ -2,11 +2,12 @@ import numpy as np
 from sklearn.model_selection import RandomizedSearchCV
 from xgboost import XGBRegressor
 
-from emc.regressors import Regressor
 from emc.data.constants import SEED
 from emc.log import setup_logger
+from emc.regressors import Regressor
 
 logger = setup_logger(__name__)
+
 
 class GradientBoosterRandomCV(Regressor):
     def _train(self, X_train: np.ndarray, y_train: np.array) -> None:

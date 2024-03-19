@@ -1,16 +1,14 @@
 import json
-
-import pandas as pd
-import numpy as np
-
 from typing import Optional
 
+import numpy as np
+import pandas as pd
+
+from emc.data.constants import *
+from emc.log import setup_logger
 from emc.model.scenario import Scenario
 from emc.model.simulation import Simulation
-from emc.model.label import Label
 from emc.util import Paths
-from emc.log import setup_logger
-from emc.data.constants import *
 
 logger = setup_logger(__name__)
 

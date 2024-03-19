@@ -1,16 +1,15 @@
-import pandas as pd
-import numpy as np
-from math import isnan
-from collections import Counter
 import math
-from enum import Enum
+from math import isnan
 from typing import Optional
 
-from emc.util import Paths
+import numpy as np
+import pandas as pd
+
 from emc.data.constants import *
 from emc.log import setup_logger
 from emc.model.costs import Costs
 from emc.model.time_costs import Time_Costs
+from emc.util import Paths
 
 logger = setup_logger(__name__)
 
@@ -125,8 +124,6 @@ class CostCalculator:
     def __consumable(self) -> float:
         """
         Calculate the consumable costs
-        :param pre: Survey data to base costs on
-        :param year: Year to schedule if any, otherwise take an average over all years
         :return: Consumable costs
         """
         # Determine costs
@@ -136,20 +133,20 @@ class CostCalculator:
 
         return baseline_costs + follow_up_costs
 
-    def __personnel(self, days: int) -> float:
+    @classmethod
+    def __personnel(cls, days: int) -> float:
         """
         Calculate the personnel costs of a drug efficacy survey
-        :param de_survey: Survey data to base costs on
-        :param year: Year to schedule if any, otherwise take an average over all years
+        :param days: Number of days to base costs on
         :return: Personnel costs
         """
         return 4 * 22.5 * days
 
-    def __transportation(self, days: int) -> int:
+    @classmethod
+    def __transportation(cls, days: int) -> int:
         """
         Calculate the transportation costs of a drug efficacy survey
-        :param de_survey: Survey data to base costs on
-        :param year: Year to schedule if any, otherwise take an average over all years
+        :param days: Number of days to base costs on
         :return: Transportation costs
         """
         return 90 * days
@@ -157,8 +154,8 @@ class CostCalculator:
     def __days_per_host(self, pre: pd.Series, post: pd.Series) -> int:
         """
         Calculate the number of days required to take a drug efficacy survey
-        :param de_survey: Survey data to base the calculation on
-        :param year: Year to schedule if any, otherwise take an average over all years
+        :param pre: Pre-PC treatment egg counts
+        :param post: Post-PC treatment egg counts
         :return: Survey days
         """
         # Set parameters
@@ -184,11 +181,9 @@ class CostCalculator:
 
         return math.ceil((time_pre + time_post) / timeAvailable)
 
-    def __days_average(self) -> int:
+    def __days_average(self) -> int | np.nan:
         """
         Calculate the number of days required to take a drug efficacy survey
-        :param de_survey: Survey data to base the calculation on
-        :param year: Year to schedule if any, otherwise take an average over all years
         :return: Survey days
         """
         if isnan(self.true_a_pre) or isnan(self.true_a_post):

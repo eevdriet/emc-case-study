@@ -1,6 +1,7 @@
-from emc.model.policy import Policy
-from emc.data.constants import N_YEARS
 from typing import Generator, Callable
+
+from emc.data.constants import N_YEARS
+from emc.model.policy import Policy
 
 Neighbor = Generator[Policy, Policy, None]
 Neighborhood = Callable[[Policy], Neighbor]
@@ -48,8 +49,10 @@ def fixed_interval_neighbors(policy: Policy) -> Neighbor:
     for year in range(1, N_YEARS - 1):
         yield Policy.from_every_n_years(year)
 
+
 def model_accuracy_neighbors(policy: Policy) -> Neighbor:
     yield policy.from_every_n_years(1)
+
 
 if __name__ == '__main__':
     policy = Policy.from_timepoints([0, 2, 8, 16])

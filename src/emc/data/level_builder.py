@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from emc.data.constants import *
+from emc.log import setup_logger
 from emc.model.scenario import Scenario
 from emc.util import Paths
-from emc.log import setup_logger
-from emc.data.constants import *
 
 logger = setup_logger(__name__)
 

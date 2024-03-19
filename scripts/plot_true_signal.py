@@ -1,15 +1,15 @@
-from emc.data.data_loader import DataLoader
-from emc.log import setup_logger
-from emc.data.constants import *
-from emc.util import Paths
 import random
-
-import numpy as np
-import matplotlib.pyplot as plt
 from collections import Counter
-
 from math import isnan
 from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+from emc.data.constants import *
+from emc.data.data_loader import DataLoader
+from emc.log import setup_logger
+from emc.util import Paths
 
 logger = setup_logger(__name__)
 
