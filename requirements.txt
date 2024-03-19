@@ -10,4 +10,3 @@ seaborn~=0.13.2
 optuna~=3.5.0
 ipython~=8.21.0
 pyarrow~=15.0.0
-merge_csv~=0.1.1
