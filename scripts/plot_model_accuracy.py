@@ -88,7 +88,7 @@ def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
                 ax.set_title(f'{worm}-{strategy[0]}-{frequency}')
                 ax.set_xticks(range(N_YEARS), labels=[str(year) if year % 2 == 0 else "" for year in range(N_YEARS)])
                 ax.set_xlabel('Time (years)')
-                ax.set_ylabel('Metrics')
+                ax.set_ylabel('')
                 ax.set_ylim(0, 1)
                 ax.grid(False)
 
