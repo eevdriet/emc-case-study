@@ -26,16 +26,6 @@ policies = {
             '2': '[0, 4, 8, 12, 16]'
         }
     },
-    'financial_costs': {
-        'sac': {
-            '1': '[0, 17]',
-            '2': '[0, 12]'
-        },
-        'community': {
-            '1': '[0, 10]',
-            '2': '[0, 10]'
-        }
-    },
     '5year_policy': {
         'sac': {
             '1': '[0, 5, 10, 15]',
@@ -51,8 +41,7 @@ policies = {
 
 def create_plot(method: str, worm: str, frequency: str, strategy: str, policies: dict):
     policy = policies[method][strategy][frequency]
-    json_path = Paths.data(
-        'mc') / method / f"{worm}_{strategy}_{frequency}_GradientBoosterOptuna__Policy({policy}).json"
+    json_path = Paths.data('mc') / method / f"{worm}_{strategy}_{frequency}_GradientBoosterOptuna__Policy({policy}).json"
 
     data = Writer.read_json_file(json_path)
 
@@ -65,39 +54,37 @@ def create_plot(method: str, worm: str, frequency: str, strategy: str, policies:
 
     # Plot histogram for accuracy
     sns.histplot(df['accuracy'], color=GREEN, kde=True, ax=axs[0])
-    axs[0].set_title('Distribution of Accuracy')
+    # axs[0].set_title('Distribution')
     axs[0].set_xlabel('Accuracy')
     axs[0].set_ylabel('Frequency')
-    axs[0].axvline(x=model_data[policy]['accuracy'], color=MAGENTA, linestyle='--',
-                   label='Trained Model')  # Vertical line at 4
+    axs[0].axvline(x=model_data[policy]['accuracy'], color=MAGENTA, linestyle='--', label='Model score using true values')  # Vertical line at 4
 
     # Plot histogram for financial costs
     sns.histplot(df['n_false_positives'], color=BLUE, kde=True, ax=axs[1])
-    axs[1].set_title('Distribution of n_false_positives')
-    axs[1].set_xlabel('n_false_positives')
-    axs[1].set_ylabel('Frequency')
+    # axs[1].set_title('Distribution')
+    axs[1].set_xlabel('Number of false positives')
+    axs[1].set_ylabel('')
     axs[1].axvline(x=model_data[policy]['n_false_positives'], color=MAGENTA, linestyle='--')
 
     # Plot histogram for financial costs
-    sns.histplot(df['n_false_negatives'], color=BLUE, kde=True, ax=axs[2])
-    axs[2].set_title('Distribution of n_false_negatives')
-    axs[2].set_xlabel('n_false_negatives')
-    axs[2].set_ylabel('Frequency')
+    sns.histplot(df['n_false_negatives'], color=ORANGE, kde=True, ax=axs[2])
+    # axs[2].set_title('Distribution')
+    axs[2].set_xlabel('Number of false negatives')
+    axs[2].set_ylabel('')
     axs[2].axvline(x=model_data[policy]['n_false_negatives'], color=MAGENTA, linestyle='--')
 
     # Plot histogram for avg_response
-    sns.histplot(df['avg_response'], color=YELLOW, kde=True, ax=axs[3])
-    axs[3].set_title('Distribution of Average Response')
-    axs[3].set_xlabel('Average Response')
-    axs[3].set_ylabel('Frequency')
-    axs[3].axvline(x=model_data[policy]['avg_response'], color=MAGENTA, linestyle='--',
-                   label='Model Predicted')  # Vertical line at 6
+    sns.histplot(df['avg_lateness'], color=YELLOW, kde=True, ax=axs[3])
+    # axs[3].set_title('Distribution')
+    axs[3].set_xlabel('Average responsiveness')
+    axs[3].set_ylabel('')
+    axs[3].axvline(x=model_data[policy]['avg_lateness'], color=MAGENTA, linestyle='--', label='Model score using true values')  # Vertical line at 6
 
     # Plot histogram for financial costs
     sns.histplot(df['financial_costs'], color=VIOLET, kde=True, ax=axs[4])
-    axs[4].set_title('Distribution of Financial Costs')
-    axs[4].set_xlabel('Financial Costs')
-    axs[4].set_ylabel('Frequency')
+    # axs[4].set_title('Distribution')
+    axs[4].set_xlabel('Financial costs')
+    axs[4].set_ylabel('')
     axs[4].axvline(x=model_data[policy]['financial_costs'], color=MAGENTA, linestyle='--')
 
     # Add legend for trained model and model predicted
