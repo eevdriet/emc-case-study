@@ -1,14 +1,15 @@
-from emc.data.data_loader import DataLoader
-from emc.data.constants import *
-from emc.log import setup_logger
-from emc.util import Paths
-from emc.model.policy import Policy
-
-from collections import defaultdict
-from pathlib import Path
-from math import isnan
 import json
+from collections import defaultdict
+from math import isnan
+from pathlib import Path
+
 import matplotlib.pyplot as plt
+
+from emc.data.constants import *
+from emc.data.data_loader import DataLoader
+from emc.log import setup_logger
+from emc.model.policy import Policy
+from emc.util import Paths
 
 logger = setup_logger(__name__)
 

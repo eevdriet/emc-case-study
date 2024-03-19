@@ -1,12 +1,10 @@
-from emc.util import Paths
-from emc.data.constants import *
-
-import json
-import matplotlib.pyplot as plt
-
-import matplotlib.pyplot as plt
 import json
 from enum import Enum, auto
+
+import matplotlib.pyplot as plt
+
+from emc.data.constants import *
+from emc.util import Paths
 
 
 class DisplayMode(Enum):
@@ -128,7 +126,6 @@ def show_regression_plot(display_mode: DisplayMode = DisplayMode.ALL) -> None:
         legend.get_frame().set_facecolor((1, 1, 1, 0))
         plt.show()
         fig.savefig(path, transparent=True, bbox_inches='tight')
-        
 
 
 if __name__ == '__main__':

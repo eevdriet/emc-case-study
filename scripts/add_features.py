@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 
 from emc.data.constants import *
 from emc.util import Paths

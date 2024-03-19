@@ -1,10 +1,11 @@
-import pandas as pd
-import numpy as np
 import json
 
-from emc.util import Paths
+import numpy as np
+import pandas as pd
+
 from emc.data.constants import *
 from emc.log import setup_logger
+from emc.util import Paths
 
 logger = setup_logger(__name__)
 

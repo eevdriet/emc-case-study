@@ -1,7 +1,5 @@
 import json
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
+
 from emc.util import Paths
 
 path = Paths.stats()

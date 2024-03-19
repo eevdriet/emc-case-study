@@ -1,9 +1,9 @@
 import pandas as pd
 
-from emc.util import Paths
 from emc.data.constants import *
-from emc.log import setup_logger
 from emc.data.cost_calculator import CostCalculator, CostTechnique
+from emc.log import setup_logger
+from emc.util import Paths
 
 logger = setup_logger(__name__)
 
