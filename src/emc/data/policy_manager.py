@@ -1,12 +1,11 @@
-import json
-from pathlib import Path
-
-import pandas as pd
+import logging
 import random
 from collections import defaultdict
-from emc.log import setup_logger
 from math import isnan
-import logging
+
+import pandas as pd
+
+from emc.log import setup_logger
 
 logger = setup_logger(__name__)
 
@@ -450,7 +449,7 @@ class PolicyManager:
 
 def main():
     from emc.data.data_loader import DataLoader
-    from emc.data.neighborhood import flip_neighbors, swap_neighbors, identity_neighbors, fixed_interval_neighbors, \
+    from emc.data.neighborhood import identity_neighbors, fixed_interval_neighbors, \
         flip_out_neighbors, model_accuracy_neighbors
 
     neighborhoods = [flip_out_neighbors]

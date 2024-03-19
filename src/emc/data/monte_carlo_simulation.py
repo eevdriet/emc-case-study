@@ -1,15 +1,16 @@
-import pandas as pd
+import sys as sys
+
 import numpy as np
+import pandas as pd
 from scipy.stats import gamma
 from scipy.stats import poisson
-import sys as sys
 
 from emc.data.constants import *
 from emc.data.cost_calculator import CostCalculator
-from emc.model.simulation import Simulation
-from emc.model.policy import Policy
-from emc.util import Paths
 from emc.log import setup_logger
+from emc.model.policy import Policy
+from emc.model.simulation import Simulation
+from emc.util import Paths
 
 logger = setup_logger(__name__)
 

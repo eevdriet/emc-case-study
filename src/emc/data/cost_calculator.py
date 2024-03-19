@@ -1,16 +1,15 @@
-import pandas as pd
-import numpy as np
-from math import isnan
-from collections import Counter
 import math
-from enum import Enum
+from math import isnan
 from typing import Optional
 
-from emc.util import Paths
+import numpy as np
+import pandas as pd
+
 from emc.data.constants import *
 from emc.log import setup_logger
 from emc.model.costs import Costs
 from emc.model.time_costs import Time_Costs
+from emc.util import Paths
 
 logger = setup_logger(__name__)
 

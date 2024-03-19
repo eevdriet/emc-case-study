@@ -1,6 +1,7 @@
-from emc.model.policy import Policy
-from emc.data.constants import N_YEARS
 from typing import Generator, Callable
+
+from emc.data.constants import N_YEARS
+from emc.model.policy import Policy
 
 Neighbor = Generator[Policy, Policy, None]
 Neighborhood = Callable[[Policy], Neighbor]
