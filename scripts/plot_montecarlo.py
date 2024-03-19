@@ -85,12 +85,12 @@ def create_plot(method: str, worm: str, frequency: str, strategy: str, policies:
     axs[2].set_ylabel('Frequency')
     axs[2].axvline(x=model_data[policy]['n_false_negatives'], color=MAGENTA, linestyle='--')
 
-    # Plot histogram for avg_lateness
-    sns.histplot(df['avg_lateness'], color=YELLOW, kde=True, ax=axs[3])
-    axs[3].set_title('Distribution of Average Lateness')
-    axs[3].set_xlabel('Average Lateness')
+    # Plot histogram for avg_response
+    sns.histplot(df['avg_response'], color=YELLOW, kde=True, ax=axs[3])
+    axs[3].set_title('Distribution of Average Response')
+    axs[3].set_xlabel('Average Response')
     axs[3].set_ylabel('Frequency')
-    axs[3].axvline(x=model_data[policy]['avg_lateness'], color=MAGENTA, linestyle='--',
+    axs[3].axvline(x=model_data[policy]['avg_response'], color=MAGENTA, linestyle='--',
                    label='Model Predicted')  # Vertical line at 6
 
     # Plot histogram for financial costs

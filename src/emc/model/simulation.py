@@ -5,7 +5,6 @@ from attrs import define, field
 from typing import Optional
 from math import isnan
 
-from emc.model.label import Label
 from emc.data.constants import *
 from emc.util import Paths
 
@@ -43,9 +42,6 @@ class Simulation:
 
     # Data concerning the simulated drug efficacy survey results
     drug_efficacy_s: typing.Optional[pd.DataFrame] = field(eq=False, repr=False)
-
-    # Label that defines what signal the simulation produces
-    label: Label
 
     # Identifier of the simulation
     id: int = field(eq=False, default=-1)

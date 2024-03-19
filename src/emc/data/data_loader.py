@@ -6,7 +6,6 @@ import pandas as pd
 
 from emc.data.constants import *
 from emc.log import setup_logger
-from emc.model.label import Label
 from emc.model.scenario import Scenario
 from emc.model.simulation import Simulation
 from emc.util import Paths

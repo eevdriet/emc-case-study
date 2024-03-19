@@ -1,15 +1,11 @@
-import math
-from math import isnan
 import random
-
-import pandas as pd
-import numpy as np
+from math import isnan
 from typing import Generator, Iterable, Optional
 
-from emc.model.costs import Costs
-from emc.model.time_costs import Time_Costs
+import numpy as np
+import pandas as pd
+
 from emc.data.constants import *
-from emc.util import first_or_mean
 
 random.seed(SEED)
 
