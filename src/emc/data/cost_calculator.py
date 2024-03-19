@@ -181,7 +181,7 @@ class CostCalculator:
 
         return math.ceil((time_pre + time_post) / timeAvailable)
 
-    def __days_average(self) -> int | np.nan:
+    def __days_average(self) -> float:
         """
         Calculate the number of days required to take a drug efficacy survey
         :return: Survey days
