@@ -1,13 +1,12 @@
 from abc import ABC, abstractmethod
 from typing import Optional
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
 import numpy as np
-
 import pandas as pd
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-from emc.model.simulation import Simulation
 from emc.model.policy import Policy
-from emc.data.constants import SEED
+from emc.model.simulation import Simulation
 
 _X = dict[tuple[int, int], np.ndarray]
 _Y = dict[tuple[int, int], float]

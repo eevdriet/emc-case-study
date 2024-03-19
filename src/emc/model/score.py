@@ -1,8 +1,10 @@
+from math import isnan
+
+import numpy as np
+
+from emc.data.constants import *
 from emc.log import setup_logger
 from emc.model.policy import Policy
-from emc.data.constants import *
-from math import isnan
-import numpy as np
 
 logger = setup_logger(__name__)
 

@@ -1,15 +1,13 @@
 import typing
+from math import isnan
+from typing import Optional
 
 import pandas as pd
 from attrs import define, field
-from typing import Optional
-from math import isnan
-
-from emc.data.constants import *
-from emc.util import Paths
 
 # from emc.model.policy import Policy
 from emc.log import setup_logger
+from emc.util import Paths
 
 # Required to avoid circular dependency
 if typing.TYPE_CHECKING:

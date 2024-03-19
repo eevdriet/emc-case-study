@@ -1,12 +1,11 @@
 import numpy as np
-import pandas as pd
 import optuna
 from sklearn.metrics import f1_score
 from xgboost import XGBRegressor
 
-from emc.regressors import Regressor
 from emc.data.constants import SEED
 from emc.log import setup_logger
+from emc.regressors import Regressor
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 logger = setup_logger(__name__)
