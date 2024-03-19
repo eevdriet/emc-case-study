@@ -106,8 +106,9 @@ def create_plot(method : str, worm : str, frequency : str, strategy : str, polic
     # plt.tight_layout()
     # plt.show()
 
-    path = Paths.data('plots') / "model_accuracy" / f"{worm}{strategy}{frequency}_{method}.png"
+    path = Paths.data('plots') / "montecarlo" / f"{worm}{strategy}{frequency}_{method}.png"
     fig.savefig(path, transparent=True, bbox_inches='tight')
+    plt.close()
 
 
 if __name__ == '__main__':
